@@ -12,12 +12,17 @@ import {
   Building2,
   Edit,
   DollarSign,
-  Menu
+  Menu,
+  TrendingUp,
+  PiggyBank
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
 import { Sidebar } from "@/components/sidebar";
-import { CreditCard, Loan } from "@shared/schema";
+import { UpcomingPayments } from "@/components/upcoming-payments";
+import { IncomeOverview } from "@/components/income-overview";
+import { PaymentDialog } from "@/components/payment-dialog";
+import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
 import { 
   formatCurrency, 
   calculateCreditUtilization, 
@@ -32,6 +37,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const [extraPayment, setExtraPayment] = useState("100");
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  const [selectedAccountType, setSelectedAccountType] = useState<string>("");
 
   const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery({
     queryKey: ["/api/credit-cards"],
@@ -41,7 +49,15 @@ export default function Dashboard() {
     queryKey: ["/api/loans"],
   });
 
-  const isLoading = creditCardsLoading || loansLoading;
+  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useQuery({
+    queryKey: ["/api/monthly-payments"],
+  });
+
+  const { data: incomes = [], isLoading: incomesLoading } = useQuery({
+    queryKey: ["/api/income"],
+  });
+
+  const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading;
 
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
@@ -49,7 +65,7 @@ export default function Dashboard() {
     0
   );
 
-  const monthlyPayments = [
+  const totalMonthlyPayments = [
     ...creditCards.map((card: CreditCard) => parseFloat(card.minimumPayment)),
     ...loans.map((loan: Loan) => parseFloat(loan.monthlyPayment))
   ].reduce((sum, payment) => sum + payment, 0);
@@ -57,7 +73,7 @@ export default function Dashboard() {
   const creditUtilization = calculateCreditUtilization(creditCards);
 
   // Calculate debt-free date (simplified)
-  const averagePayment = monthlyPayments + parseFloat(extraPayment || "0");
+  const averagePayment = totalMonthlyPayments + parseFloat(extraPayment || "0");
   const estimatedMonths = totalDebt > 0 && averagePayment > 0 
     ? Math.ceil(totalDebt / averagePayment) 
     : 0;
@@ -65,14 +81,37 @@ export default function Dashboard() {
   const debtFreeDate = new Date();
   debtFreeDate.setMonth(debtFreeDate.getMonth() + estimatedMonths);
 
-  // Get next due date
-  const allAccounts = [...creditCards, ...loans];
-  const nextDueAccount = allAccounts.reduce((earliest, account) => {
-    const daysUntil = getDaysUntilDue(account.dueDate);
-    return !earliest || daysUntil < getDaysUntilDue(earliest.dueDate) ? account : earliest;
-  }, null as CreditCard | Loan | null);
+  // Calculate monthly income
+  const calculateMonthlyIncome = (incomes: Income[]) => {
+    return incomes.reduce((total, income) => {
+      const amount = parseFloat(income.amount);
+      switch (income.frequency) {
+        case "weekly": return total + (amount * 4.33);
+        case "biweekly": return total + (amount * 2.17);
+        case "monthly": return total + amount;
+        case "yearly": return total + (amount / 12);
+        default: return total + amount;
+      }
+    }, 0);
+  };
 
-  const nextDueDate = nextDueAccount ? getNextDueDate(nextDueAccount.dueDate) : null;
+  const monthlyIncome = calculateMonthlyIncome(incomes);
+  const netCashFlow = monthlyIncome - totalMonthlyPayments;
+
+  // Get all debt accounts for display
+  const allAccounts = [...creditCards, ...loans];
+
+  // Handle account editing and payments
+  const handleEditAccount = (account: any, type: string) => {
+    // This would open the edit form - implementation depends on your form setup
+    console.log("Edit account:", account, type);
+  };
+
+  const handlePayAccount = (account: any, type: string) => {
+    setSelectedAccount(account);
+    setSelectedAccountType(type);
+    setPaymentDialogOpen(true);
+  };
 
   // Generate payment schedule for next 4 months
   const paymentSchedule = Array.from({ length: 4 }, (_, i) => {
@@ -81,7 +120,7 @@ export default function Dashboard() {
     
     return {
       month: formatDate(date),
-      total: monthlyPayments,
+      total: totalMonthlyPayments,
       accounts: [
         ...creditCards.map((card: CreditCard) => ({
           name: card.name,
@@ -173,10 +212,31 @@ export default function Dashboard() {
                   <Calendar className="text-primary" size={20} />
                 </div>
                 <div className="text-2xl font-bold text-neutral-900" data-testid="text-monthly-payments">
-                  {formatCurrency(monthlyPayments)}
+                  {formatCurrency(totalMonthlyPayments)}
                 </div>
                 <div className="text-sm text-secondary mt-1">
-                  {nextDueDate ? `Next due: ${nextDueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'No accounts'}
+                  Minimum monthly obligations
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-income-vs-debt">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-neutral-500">Monthly Cash Flow</span>
+                  <TrendingUp className="text-secondary" size={20} />
+                </div>
+                <div className="text-2xl font-bold text-neutral-900" data-testid="text-cash-flow">
+                  {formatCurrency(netCashFlow)}
+                </div>
+                <div className="text-sm mt-1">
+                  <span className="text-secondary">
+                    Income: {formatCurrency(monthlyIncome)}
+                  </span>
+                  <span className="text-neutral-400 mx-2">|</span>
+                  <span className="text-accent">
+                    Debt: {formatCurrency(totalMonthlyPayments)}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -258,7 +318,7 @@ export default function Dashboard() {
                     <div className="flex justify-between py-1">
                       <span>Time Saved:</span>
                       <span className="font-medium" data-testid="text-time-saved">
-                        {Math.max(0, estimatedMonths - Math.ceil(totalDebt / (monthlyPayments + parseFloat(extraPayment || "0"))))} months
+                        {Math.max(0, estimatedMonths - Math.ceil(totalDebt / (totalMonthlyPayments + parseFloat(extraPayment || "0"))))} months
                       </span>
                     </div>
                     <div className="flex justify-between py-1">
@@ -274,6 +334,18 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Enhanced Dashboard Sections */}
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Income Overview */}
+            <IncomeOverview onAddIncome={() => {/* Handle adding income */}} />
+            
+            {/* Upcoming Payments with Filtering */}
+            <UpcomingPayments 
+              onEdit={handleEditAccount}
+              onPay={handlePayAccount}
+            />
           </div>
 
           {/* Accounts List */}
@@ -481,6 +553,14 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        account={selectedAccount}
+        accountType={selectedAccountType}
+      />
     </div>
   );
 }

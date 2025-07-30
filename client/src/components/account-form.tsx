@@ -34,13 +34,28 @@ const accountFormSchema = z.discriminatedUnion("type", [
     dueDate: z.string().min(1, "Due date is required"),
     loanType: z.enum(["personal", "auto", "student", "mortgage"]),
   }),
+  z.object({
+    type: z.literal("monthly-payment"),
+    name: z.string().min(1, "Payment name is required"),
+    amount: z.string().min(1, "Amount is required"),
+    dueDate: z.string().min(1, "Due date is required"),
+    paymentType: z.enum(["auto_loan", "insurance", "utilities", "other"]),
+    isRecurring: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal("income"),
+    name: z.string().min(1, "Income source is required"),
+    amount: z.string().min(1, "Amount is required"),
+    frequency: z.enum(["weekly", "biweekly", "monthly", "yearly"]),
+    nextPayDate: z.string().min(1, "Next pay date is required"),
+  }),
 ]);
 
 type AccountFormData = z.infer<typeof accountFormSchema>;
 
 export function AccountForm() {
   const [open, setOpen] = useState(false);
-  const [accountType, setAccountType] = useState<"credit-card" | "loan">("credit-card");
+  const [accountType, setAccountType] = useState<"credit-card" | "loan" | "monthly-payment" | "income">("credit-card");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -49,8 +64,6 @@ export function AccountForm() {
     defaultValues: {
       type: "credit-card",
       name: "",
-      balance: "",
-      interestRate: "",
       dueDate: "",
     },
   });
@@ -100,15 +113,59 @@ export function AccountForm() {
     },
   });
 
+  const createMonthlyPaymentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/monthly-payments", {
+        ...data,
+        amount: data.amount,
+        dueDate: parseInt(data.dueDate),
+        isRecurring: data.isRecurring ?? true,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/monthly-payments"] });
+      toast({ title: "Success", description: "Monthly payment added successfully" });
+      setOpen(false);
+      form.reset();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add monthly payment", variant: "destructive" });
+    },
+  });
+
+  const createIncomeMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/income", {
+        ...data,
+        amount: data.amount,
+        nextPayDate: data.nextPayDate,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+      toast({ title: "Success", description: "Income source added successfully" });
+      setOpen(false);
+      form.reset();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add income source", variant: "destructive" });
+    },
+  });
+
   const onSubmit = (data: AccountFormData) => {
     if (data.type === "credit-card") {
       createCreditCardMutation.mutate(data);
-    } else {
+    } else if (data.type === "loan") {
       createLoanMutation.mutate(data);
+    } else if (data.type === "monthly-payment") {
+      createMonthlyPaymentMutation.mutate(data);
+    } else if (data.type === "income") {
+      createIncomeMutation.mutate(data);
     }
   };
 
-  const isPending = createCreditCardMutation.isPending || createLoanMutation.isPending;
+  const isPending = createCreditCardMutation.isPending || createLoanMutation.isPending || 
+                   createMonthlyPaymentMutation.isPending || createIncomeMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -134,7 +191,7 @@ export function AccountForm() {
                     <FormLabel>Account Type</FormLabel>
                     <Select
                       value={field.value}
-                      onValueChange={(value: "credit-card" | "loan") => {
+                      onValueChange={(value: "credit-card" | "loan" | "monthly-payment" | "income") => {
                         field.onChange(value);
                         setAccountType(value);
                         form.reset({ type: value });
@@ -149,6 +206,8 @@ export function AccountForm() {
                       <SelectContent>
                         <SelectItem value="credit-card">Credit Card</SelectItem>
                         <SelectItem value="loan">Loan</SelectItem>
+                        <SelectItem value="monthly-payment">Monthly Payment</SelectItem>
+                        <SelectItem value="income">Income Source</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -175,154 +234,186 @@ export function AccountForm() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="balance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current Balance</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="0.00" 
-                        {...field} 
-                        data-testid="input-balance"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {accountType === "credit-card" ? (
+            {/* Credit Card and Loan specific fields */}
+            {(accountType === "credit-card" || accountType === "loan") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="creditLimit"
+                  name="balance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Credit Limit</FormLabel>
+                      <FormLabel>Current Balance</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
                           placeholder="0.00" 
                           {...field} 
-                          data-testid="input-credit-limit"
+                          data-testid="input-balance"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="originalAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Original Loan Amount</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00" 
-                          {...field} 
-                          data-testid="input-original-amount"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="interestRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interest Rate (%)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="0.00" 
-                        {...field} 
-                        data-testid="input-interest-rate"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {accountType === "credit-card" ? (
-                <FormField
-                  control={form.control}
-                  name="minimumPayment"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Minimum Payment</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00" 
-                          {...field} 
-                          data-testid="input-minimum-payment"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <>
+                
+                {accountType === "credit-card" ? (
                   <FormField
                     control={form.control}
-                    name="monthlyPayment"
+                    name="creditLimit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Monthly Payment</FormLabel>
+                        <FormLabel>Credit Limit</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
                             step="0.01" 
                             placeholder="0.00" 
                             {...field} 
-                            data-testid="input-monthly-payment"
+                            data-testid="input-credit-limit"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+                ) : (
                   <FormField
                     control={form.control}
-                    name="termMonths"
+                    name="originalAmount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Term (Months)</FormLabel>
+                        <FormLabel>Original Loan Amount</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="36" 
+                            step="0.01" 
+                            placeholder="0.00" 
                             {...field} 
-                            data-testid="input-term-months"
+                            data-testid="input-original-amount"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </>
-              )}
-              
+                )}
+              </div>
+            )}
+
+            {/* Amount field for monthly payments and income */}
+            {(accountType === "monthly-payment" || accountType === "income") && (
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{accountType === "income" ? "Income Amount" : "Payment Amount"}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00" 
+                        {...field} 
+                        data-testid="input-amount"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Interest rate and payment fields for credit cards and loans */}
+            {(accountType === "credit-card" || accountType === "loan") && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="interestRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Interest Rate (%)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          {...field} 
+                          data-testid="input-interest-rate"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {accountType === "credit-card" ? (
+                  <FormField
+                    control={form.control}
+                    name="minimumPayment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Minimum Payment</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            placeholder="0.00" 
+                            {...field} 
+                            data-testid="input-minimum-payment"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="monthlyPayment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Monthly Payment</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              placeholder="0.00" 
+                              {...field} 
+                              data-testid="input-monthly-payment"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="termMonths"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Term (Months)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="36" 
+                              {...field} 
+                              data-testid="input-term-months"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Due Date field for credit cards, loans, and monthly payments */}
+            {(accountType === "credit-card" || accountType === "loan" || accountType === "monthly-payment") && (
               <FormField
                 control={form.control}
                 name="dueDate"
@@ -343,8 +434,56 @@ export function AccountForm() {
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
+            {/* Income frequency and pay date */}
+            {accountType === "income" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="frequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pay Frequency</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange} data-testid="select-frequency">
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="nextPayDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Next Pay Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          data-testid="input-next-pay-date"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Loan type selector */}
             {accountType === "loan" && (
               <FormField
                 control={form.control}
@@ -363,6 +502,33 @@ export function AccountForm() {
                         <SelectItem value="auto">Auto Loan</SelectItem>
                         <SelectItem value="student">Student Loan</SelectItem>
                         <SelectItem value="mortgage">Mortgage</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Payment type selector */}
+            {accountType === "monthly-payment" && (
+              <FormField
+                control={form.control}
+                name="paymentType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Type</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} data-testid="select-payment-type">
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="auto_loan">Auto Loan</SelectItem>
+                        <SelectItem value="insurance">Insurance</SelectItem>
+                        <SelectItem value="utilities">Utilities</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

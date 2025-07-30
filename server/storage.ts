@@ -1,4 +1,11 @@
-import { type User, type InsertUser, type CreditCard, type InsertCreditCard, type Loan, type InsertLoan } from "@shared/schema";
+import { 
+  type User, type InsertUser, 
+  type CreditCard, type InsertCreditCard, 
+  type Loan, type InsertLoan,
+  type MonthlyPayment, type InsertMonthlyPayment,
+  type Income, type InsertIncome,
+  type Payment, type InsertPayment
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -20,17 +27,43 @@ export interface IStorage {
   createLoan(loan: InsertLoan): Promise<Loan>;
   updateLoan(id: string, loan: Partial<InsertLoan>): Promise<Loan | undefined>;
   deleteLoan(id: string): Promise<boolean>;
+  
+  // Monthly Payments
+  getMonthlyPayments(): Promise<MonthlyPayment[]>;
+  getMonthlyPayment(id: string): Promise<MonthlyPayment | undefined>;
+  createMonthlyPayment(payment: InsertMonthlyPayment): Promise<MonthlyPayment>;
+  updateMonthlyPayment(id: string, payment: Partial<InsertMonthlyPayment>): Promise<MonthlyPayment | undefined>;
+  deleteMonthlyPayment(id: string): Promise<boolean>;
+  
+  // Income
+  getIncomes(): Promise<Income[]>;
+  getIncome(id: string): Promise<Income | undefined>;
+  createIncome(income: InsertIncome): Promise<Income>;
+  updateIncome(id: string, income: Partial<InsertIncome>): Promise<Income | undefined>;
+  deleteIncome(id: string): Promise<boolean>;
+  
+  // Payments
+  getPayments(): Promise<Payment[]>;
+  getPayment(id: string): Promise<Payment | undefined>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByAccount(accountId: string, accountType: string): Promise<Payment[]>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private creditCards: Map<string, CreditCard>;
   private loans: Map<string, Loan>;
+  private monthlyPayments: Map<string, MonthlyPayment>;
+  private incomes: Map<string, Income>;
+  private payments: Map<string, Payment>;
 
   constructor() {
     this.users = new Map();
     this.creditCards = new Map();
     this.loans = new Map();
+    this.monthlyPayments = new Map();
+    this.incomes = new Map();
+    this.payments = new Map();
   }
 
   // Users
@@ -107,6 +140,94 @@ export class MemStorage implements IStorage {
 
   async deleteLoan(id: string): Promise<boolean> {
     return this.loans.delete(id);
+  }
+
+  // Monthly Payments
+  async getMonthlyPayments(): Promise<MonthlyPayment[]> {
+    return Array.from(this.monthlyPayments.values());
+  }
+
+  async getMonthlyPayment(id: string): Promise<MonthlyPayment | undefined> {
+    return this.monthlyPayments.get(id);
+  }
+
+  async createMonthlyPayment(insertMonthlyPayment: InsertMonthlyPayment): Promise<MonthlyPayment> {
+    const id = randomUUID();
+    const monthlyPayment: MonthlyPayment = { 
+      ...insertMonthlyPayment, 
+      id,
+      isRecurring: insertMonthlyPayment.isRecurring ?? true
+    };
+    this.monthlyPayments.set(id, monthlyPayment);
+    return monthlyPayment;
+  }
+
+  async updateMonthlyPayment(id: string, updates: Partial<InsertMonthlyPayment>): Promise<MonthlyPayment | undefined> {
+    const existing = this.monthlyPayments.get(id);
+    if (!existing) return undefined;
+    
+    const updated: MonthlyPayment = { ...existing, ...updates };
+    this.monthlyPayments.set(id, updated);
+    return updated;
+  }
+
+  async deleteMonthlyPayment(id: string): Promise<boolean> {
+    return this.monthlyPayments.delete(id);
+  }
+
+  // Income
+  async getIncomes(): Promise<Income[]> {
+    return Array.from(this.incomes.values());
+  }
+
+  async getIncome(id: string): Promise<Income | undefined> {
+    return this.incomes.get(id);
+  }
+
+  async createIncome(insertIncome: InsertIncome): Promise<Income> {
+    const id = randomUUID();
+    const income: Income = { ...insertIncome, id };
+    this.incomes.set(id, income);
+    return income;
+  }
+
+  async updateIncome(id: string, updates: Partial<InsertIncome>): Promise<Income | undefined> {
+    const existing = this.incomes.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Income = { ...existing, ...updates };
+    this.incomes.set(id, updated);
+    return updated;
+  }
+
+  async deleteIncome(id: string): Promise<boolean> {
+    return this.incomes.delete(id);
+  }
+
+  // Payments
+  async getPayments(): Promise<Payment[]> {
+    return Array.from(this.payments.values());
+  }
+
+  async getPayment(id: string): Promise<Payment | undefined> {
+    return this.payments.get(id);
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const id = randomUUID();
+    const payment: Payment = { 
+      ...insertPayment, 
+      id,
+      notes: insertPayment.notes ?? null
+    };
+    this.payments.set(id, payment);
+    return payment;
+  }
+
+  async getPaymentsByAccount(accountId: string, accountType: string): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter(
+      payment => payment.accountId === accountId && payment.accountType === accountType
+    );
   }
 }
 
