@@ -22,6 +22,8 @@ import { Sidebar } from "@/components/sidebar";
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { IncomeOverview } from "@/components/income-overview";
 import { PaymentDialog } from "@/components/payment-dialog";
+import { ExpenseForm } from "@/components/expense-form";
+import { ExpenseOverview } from "@/components/expense-overview";
 import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
 import { 
   formatCurrency, 
@@ -41,19 +43,19 @@ export default function Dashboard() {
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
 
-  const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery({
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery<CreditCard[]>({
     queryKey: ["/api/credit-cards"],
   });
 
-  const { data: loans = [], isLoading: loansLoading } = useQuery({
+  const { data: loans = [], isLoading: loansLoading } = useQuery<Loan[]>({
     queryKey: ["/api/loans"],
   });
 
-  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useQuery({
+  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useQuery<MonthlyPayment[]>({
     queryKey: ["/api/monthly-payments"],
   });
 
-  const { data: incomes = [], isLoading: incomesLoading } = useQuery({
+  const { data: incomes = [], isLoading: incomesLoading } = useQuery<Income[]>({
     queryKey: ["/api/income"],
   });
 
@@ -346,6 +348,19 @@ export default function Dashboard() {
               onEdit={handleEditAccount}
               onPay={handlePayAccount}
             />
+          </div>
+
+          {/* Expense Tracking Section */}
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Expense Overview */}
+            <div className="lg:col-span-2">
+              <ExpenseOverview />
+            </div>
+            
+            {/* Quick Add Expense */}
+            <div className="flex items-start">
+              <ExpenseForm />
+            </div>
           </div>
 
           {/* Accounts List */}

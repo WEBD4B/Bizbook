@@ -4,7 +4,8 @@ import {
   type Loan, type InsertLoan,
   type MonthlyPayment, type InsertMonthlyPayment,
   type Income, type InsertIncome,
-  type Payment, type InsertPayment
+  type Payment, type InsertPayment,
+  type Expense, type InsertExpense
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -47,6 +48,14 @@ export interface IStorage {
   getPayment(id: string): Promise<Payment | undefined>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByAccount(accountId: string, accountType: string): Promise<Payment[]>;
+  
+  // Expenses
+  getExpenses(): Promise<Expense[]>;
+  getExpense(id: string): Promise<Expense | undefined>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
+  deleteExpense(id: string): Promise<boolean>;
+  getExpensesByDateRange(startDate: string, endDate: string): Promise<Expense[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,6 +65,7 @@ export class MemStorage implements IStorage {
   private monthlyPayments: Map<string, MonthlyPayment>;
   private incomes: Map<string, Income>;
   private payments: Map<string, Payment>;
+  private expenses: Map<string, Expense>;
 
   constructor() {
     this.users = new Map();
@@ -64,6 +74,7 @@ export class MemStorage implements IStorage {
     this.monthlyPayments = new Map();
     this.incomes = new Map();
     this.payments = new Map();
+    this.expenses = new Map();
   }
 
   // Users
@@ -228,6 +239,50 @@ export class MemStorage implements IStorage {
     return Array.from(this.payments.values()).filter(
       payment => payment.accountId === accountId && payment.accountType === accountType
     );
+  }
+
+  // Expenses
+  async getExpenses(): Promise<Expense[]> {
+    return Array.from(this.expenses.values());
+  }
+
+  async getExpense(id: string): Promise<Expense | undefined> {
+    return this.expenses.get(id);
+  }
+
+  async createExpense(insertExpense: InsertExpense): Promise<Expense> {
+    const id = randomUUID();
+    const expense: Expense = { 
+      ...insertExpense, 
+      id,
+      paymentMethod: insertExpense.paymentMethod ?? null,
+      notes: insertExpense.notes ?? null,
+      createdAt: new Date()
+    };
+    this.expenses.set(id, expense);
+    return expense;
+  }
+
+  async updateExpense(id: string, updates: Partial<InsertExpense>): Promise<Expense | undefined> {
+    const existing = this.expenses.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Expense = { ...existing, ...updates };
+    this.expenses.set(id, updated);
+    return updated;
+  }
+
+  async deleteExpense(id: string): Promise<boolean> {
+    return this.expenses.delete(id);
+  }
+
+  async getExpensesByDateRange(startDate: string, endDate: string): Promise<Expense[]> {
+    return Array.from(this.expenses.values()).filter(expense => {
+      const expenseDate = new Date(expense.expenseDate);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return expenseDate >= start && expenseDate <= end;
+    });
   }
 }
 
