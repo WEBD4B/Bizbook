@@ -257,6 +257,7 @@ export class MemStorage implements IStorage {
       id,
       paymentMethod: insertExpense.paymentMethod ?? null,
       notes: insertExpense.notes ?? null,
+      isRecurring: insertExpense.isRecurring ?? false,
       createdAt: new Date()
     };
     this.expenses.set(id, expense);

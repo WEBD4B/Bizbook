@@ -9,9 +9,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Receipt } from "lucide-react";
+import { Plus, Receipt, Repeat } from "lucide-react";
 import { insertExpenseSchema } from "@shared/schema";
 
 const expenseFormSchema = insertExpenseSchema.extend({
@@ -19,6 +20,7 @@ const expenseFormSchema = insertExpenseSchema.extend({
   description: z.string().min(1, "Description is required"),
   category: z.string().min(1, "Category is required"),
   expenseDate: z.string().min(1, "Date is required"),
+  isRecurring: z.boolean().optional(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseFormSchema>;
@@ -41,6 +43,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
       expenseDate: new Date().toISOString().split('T')[0],
       paymentMethod: "",
       notes: "",
+      isRecurring: false,
     },
   });
 
@@ -206,6 +209,31 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isRecurring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base flex items-center space-x-2">
+                      <Repeat size={16} />
+                      <span>Recurring Expense</span>
+                    </FormLabel>
+                    <div className="text-sm text-neutral-500">
+                      Mark if this is a regular monthly bill or recurring purchase
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-recurring-expense"
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

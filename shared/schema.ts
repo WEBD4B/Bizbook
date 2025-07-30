@@ -106,6 +106,7 @@ export const expenses = pgTable("expenses", {
   expenseDate: date("expense_date").notNull(),
   paymentMethod: text("payment_method"), // cash, credit-card, debit-card, check
   notes: text("notes"),
+  isRecurring: boolean("is_recurring").default(false), // Track if this is a recurring expense
   createdAt: timestamp("created_at").defaultNow(),
 });
 

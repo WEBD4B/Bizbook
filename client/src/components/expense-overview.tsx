@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Receipt, Calendar, TrendingDown, DollarSign } from "lucide-react";
+import { Receipt, Calendar, TrendingDown, DollarSign, Repeat, Clock } from "lucide-react";
 import { Expense } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
@@ -31,6 +31,15 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
 
   // Calculate monthly total
   const monthlyTotal = monthlyExpenses.reduce((sum: number, expense: Expense) => 
+    sum + parseFloat(expense.amount), 0);
+
+  // Separate recurring and one-time expenses
+  const recurringExpenses = monthlyExpenses.filter((expense: Expense) => expense.isRecurring);
+  const oneTimeExpenses = monthlyExpenses.filter((expense: Expense) => !expense.isRecurring);
+  
+  const recurringTotal = recurringExpenses.reduce((sum: number, expense: Expense) => 
+    sum + parseFloat(expense.amount), 0);
+  const oneTimeTotal = oneTimeExpenses.reduce((sum: number, expense: Expense) => 
     sum + parseFloat(expense.amount), 0);
 
   // Calculate spending by category this month
@@ -116,9 +125,9 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
           </div>
         ) : (
           <>
-            {/* Monthly Total */}
+            {/* Monthly Total with Breakdown */}
             <div className="bg-red-50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-sm font-medium text-neutral-500">This Month</div>
                   <div className="text-2xl font-bold text-red-600" data-testid="text-monthly-expenses">
@@ -132,6 +141,34 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                   </div>
                   <div className="text-xs text-neutral-500 mt-1">
                     {currentDate.toLocaleDateString('en-US', { month: 'long' })}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recurring vs One-time Breakdown */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-red-200">
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1 mb-1">
+                    <Repeat size={14} className="text-blue-600" />
+                    <span className="text-xs font-medium text-neutral-600">Recurring</span>
+                  </div>
+                  <div className="text-sm font-semibold text-blue-600" data-testid="text-recurring-total">
+                    {formatCurrency(recurringTotal)}
+                  </div>
+                  <div className="text-xs text-neutral-500">
+                    {recurringExpenses.length} bills
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1 mb-1">
+                    <Clock size={14} className="text-green-600" />
+                    <span className="text-xs font-medium text-neutral-600">One-time</span>
+                  </div>
+                  <div className="text-sm font-semibold text-green-600" data-testid="text-onetime-total">
+                    {formatCurrency(oneTimeTotal)}
+                  </div>
+                  <div className="text-xs text-neutral-500">
+                    {oneTimeExpenses.length} purchases
                   </div>
                 </div>
               </div>
@@ -188,8 +225,13 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                         {getCategoryIcon(expense.category)}
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-neutral-900" data-testid={`expense-description-${expense.id}`}>
-                          {expense.description}
+                        <div className="flex items-center space-x-2">
+                          <div className="text-sm font-medium text-neutral-900" data-testid={`expense-description-${expense.id}`}>
+                            {expense.description}
+                          </div>
+                          {expense.isRecurring && (
+                            <Repeat size={12} className="text-blue-500" title="Recurring expense" />
+                          )}
                         </div>
                         <div className="text-xs text-neutral-500">
                           {new Date(expense.expenseDate).toLocaleDateString('en-US', { 
