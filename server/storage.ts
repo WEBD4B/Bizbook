@@ -5,7 +5,11 @@ import {
   type MonthlyPayment, type InsertMonthlyPayment,
   type Income, type InsertIncome,
   type Payment, type InsertPayment,
-  type Expense, type InsertExpense
+  type Expense, type InsertExpense,
+  type SavingsGoal, type InsertSavingsGoal,
+  type Budget, type InsertBudget,
+  type Investment, type InsertInvestment,
+  type Asset, type InsertAsset
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -56,6 +60,34 @@ export interface IStorage {
   updateExpense(id: string, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
   getExpensesByDateRange(startDate: string, endDate: string): Promise<Expense[]>;
+
+  // Savings Goals
+  getSavingsGoals(): Promise<SavingsGoal[]>;
+  getSavingsGoal(id: string): Promise<SavingsGoal | undefined>;
+  createSavingsGoal(goal: InsertSavingsGoal): Promise<SavingsGoal>;
+  updateSavingsGoal(id: string, goal: Partial<InsertSavingsGoal>): Promise<SavingsGoal | undefined>;
+  deleteSavingsGoal(id: string): Promise<boolean>;
+
+  // Budgets
+  getBudgets(): Promise<Budget[]>;
+  getBudget(id: string): Promise<Budget | undefined>;
+  createBudget(budget: InsertBudget): Promise<Budget>;
+  updateBudget(id: string, budget: Partial<InsertBudget>): Promise<Budget | undefined>;
+  deleteBudget(id: string): Promise<boolean>;
+
+  // Investments
+  getInvestments(): Promise<Investment[]>;
+  getInvestment(id: string): Promise<Investment | undefined>;
+  createInvestment(investment: InsertInvestment): Promise<Investment>;
+  updateInvestment(id: string, investment: Partial<InsertInvestment>): Promise<Investment | undefined>;
+  deleteInvestment(id: string): Promise<boolean>;
+
+  // Assets
+  getAssets(): Promise<Asset[]>;
+  getAsset(id: string): Promise<Asset | undefined>;
+  createAsset(asset: InsertAsset): Promise<Asset>;
+  updateAsset(id: string, asset: Partial<InsertAsset>): Promise<Asset | undefined>;
+  deleteAsset(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -66,6 +98,10 @@ export class MemStorage implements IStorage {
   private incomes: Map<string, Income>;
   private payments: Map<string, Payment>;
   private expenses: Map<string, Expense>;
+  private savingsGoals: Map<string, SavingsGoal>;
+  private budgets: Map<string, Budget>;
+  private investments: Map<string, Investment>;
+  private assets: Map<string, Asset>;
 
   constructor() {
     this.users = new Map();
@@ -75,6 +111,10 @@ export class MemStorage implements IStorage {
     this.incomes = new Map();
     this.payments = new Map();
     this.expenses = new Map();
+    this.savingsGoals = new Map();
+    this.budgets = new Map();
+    this.investments = new Map();
+    this.assets = new Map();
   }
 
   // Users
@@ -284,6 +324,153 @@ export class MemStorage implements IStorage {
       const end = new Date(endDate);
       return expenseDate >= start && expenseDate <= end;
     });
+  }
+
+  // Savings Goals
+  async getSavingsGoals(): Promise<SavingsGoal[]> {
+    return Array.from(this.savingsGoals.values());
+  }
+
+  async getSavingsGoal(id: string): Promise<SavingsGoal | undefined> {
+    return this.savingsGoals.get(id);
+  }
+
+  async createSavingsGoal(insertGoal: InsertSavingsGoal): Promise<SavingsGoal> {
+    const id = randomUUID();
+    const goal: SavingsGoal = { 
+      ...insertGoal, 
+      id,
+      currentAmount: insertGoal.currentAmount ?? "0",
+      monthlyContribution: insertGoal.monthlyContribution ?? "0",
+      isActive: insertGoal.isActive ?? true,
+      targetDate: insertGoal.targetDate ?? null,
+      createdAt: new Date()
+    };
+    this.savingsGoals.set(id, goal);
+    return goal;
+  }
+
+  async updateSavingsGoal(id: string, updates: Partial<InsertSavingsGoal>): Promise<SavingsGoal | undefined> {
+    const existing = this.savingsGoals.get(id);
+    if (!existing) return undefined;
+    
+    const updated: SavingsGoal = { ...existing, ...updates };
+    this.savingsGoals.set(id, updated);
+    return updated;
+  }
+
+  async deleteSavingsGoal(id: string): Promise<boolean> {
+    return this.savingsGoals.delete(id);
+  }
+
+  // Budgets
+  async getBudgets(): Promise<Budget[]> {
+    return Array.from(this.budgets.values());
+  }
+
+  async getBudget(id: string): Promise<Budget | undefined> {
+    return this.budgets.get(id);
+  }
+
+  async createBudget(insertBudget: InsertBudget): Promise<Budget> {
+    const id = randomUUID();
+    const budget: Budget = { 
+      ...insertBudget, 
+      id,
+      currentSpent: insertBudget.currentSpent ?? "0",
+      alertThreshold: insertBudget.alertThreshold ?? "80",
+      isActive: insertBudget.isActive ?? true
+    };
+    this.budgets.set(id, budget);
+    return budget;
+  }
+
+  async updateBudget(id: string, updates: Partial<InsertBudget>): Promise<Budget | undefined> {
+    const existing = this.budgets.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Budget = { ...existing, ...updates };
+    this.budgets.set(id, updated);
+    return updated;
+  }
+
+  async deleteBudget(id: string): Promise<boolean> {
+    return this.budgets.delete(id);
+  }
+
+  // Investments
+  async getInvestments(): Promise<Investment[]> {
+    return Array.from(this.investments.values());
+  }
+
+  async getInvestment(id: string): Promise<Investment | undefined> {
+    return this.investments.get(id);
+  }
+
+  async createInvestment(insertInvestment: InsertInvestment): Promise<Investment> {
+    const id = randomUUID();
+    const investment: Investment = { 
+      ...insertInvestment, 
+      id,
+      contributionAmount: insertInvestment.contributionAmount ?? "0",
+      contributionFrequency: insertInvestment.contributionFrequency ?? "monthly",
+      employerMatch: insertInvestment.employerMatch ?? "0",
+      riskLevel: insertInvestment.riskLevel ?? "moderate",
+      expectedReturn: insertInvestment.expectedReturn ?? "7",
+      lastUpdated: new Date()
+    };
+    this.investments.set(id, investment);
+    return investment;
+  }
+
+  async updateInvestment(id: string, updates: Partial<InsertInvestment>): Promise<Investment | undefined> {
+    const existing = this.investments.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Investment = { ...existing, ...updates, lastUpdated: new Date() };
+    this.investments.set(id, updated);
+    return updated;
+  }
+
+  async deleteInvestment(id: string): Promise<boolean> {
+    return this.investments.delete(id);
+  }
+
+  // Assets
+  async getAssets(): Promise<Asset[]> {
+    return Array.from(this.assets.values());
+  }
+
+  async getAsset(id: string): Promise<Asset | undefined> {
+    return this.assets.get(id);
+  }
+
+  async createAsset(insertAsset: InsertAsset): Promise<Asset> {
+    const id = randomUUID();
+    const asset: Asset = { 
+      ...insertAsset, 
+      id,
+      purchasePrice: insertAsset.purchasePrice ?? null,
+      purchaseDate: insertAsset.purchaseDate ?? null,
+      appreciationRate: insertAsset.appreciationRate ?? "0",
+      isLiquid: insertAsset.isLiquid ?? false,
+      lastUpdated: new Date()
+    };
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async updateAsset(id: string, updates: Partial<InsertAsset>): Promise<Asset | undefined> {
+    const existing = this.assets.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Asset = { ...existing, ...updates, lastUpdated: new Date() };
+    this.assets.set(id, updated);
+    return updated;
+  }
+
+  async deleteAsset(id: string): Promise<boolean> {
+    return this.assets.delete(id);
   }
 }
 

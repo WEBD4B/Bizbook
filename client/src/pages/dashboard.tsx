@@ -1,20 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  AlertTriangle, 
-  Calendar, 
-  Percent, 
-  Target,
+  Home,
   CreditCard as CreditCardIcon,
   Building2,
-  Edit,
   DollarSign,
   Menu,
   TrendingUp,
-  PiggyBank
+  Target,
+  PieChart,
+  BarChart3,
+  Receipt
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -24,6 +22,10 @@ import { IncomeOverview } from "@/components/income-overview";
 import { PaymentDialog } from "@/components/payment-dialog";
 import { ExpenseForm } from "@/components/expense-form";
 import { ExpenseOverview } from "@/components/expense-overview";
+import { NetWorthSummary } from "@/components/net-worth-summary";
+import { SavingsGoals } from "@/components/savings-goals";
+import { BudgetTracker } from "@/components/budget-tracker";
+import { InvestmentTracker } from "@/components/investment-tracker";
 import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
 import { 
   formatCurrency, 

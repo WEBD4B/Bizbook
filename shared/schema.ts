@@ -11,6 +11,15 @@ export const creditCards = pgTable("credit_cards", {
   interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull(),
   minimumPayment: decimal("minimum_payment", { precision: 10, scale: 2 }).notNull(),
   dueDate: integer("due_date").notNull(), // day of month (1-31)
+  paymentFrequency: text("payment_frequency").default("monthly"), // monthly, biweekly, weekly
+  accountOpeningDate: date("account_opening_date"),
+  introAprEndDate: date("intro_apr_end_date"),
+  annualFee: decimal("annual_fee", { precision: 10, scale: 2 }).default("0"),
+  lateFees: decimal("late_fees", { precision: 10, scale: 2 }).default("0"),
+  promotionalOffers: text("promotional_offers"),
+  utilizationThreshold: decimal("utilization_threshold", { precision: 5, scale: 2 }).default("30"), // recommended utilization %
+  lastPaymentDate: date("last_payment_date"),
+  interestAccrued: decimal("interest_accrued", { precision: 10, scale: 2 }).default("0"),
 });
 
 export const loans = pgTable("loans", {
@@ -23,6 +32,14 @@ export const loans = pgTable("loans", {
   termMonths: integer("term_months").notNull(),
   dueDate: integer("due_date").notNull(), // day of month (1-31)
   loanType: text("loan_type").notNull(), // 'personal', 'auto', 'student', 'mortgage'
+  paymentFrequency: text("payment_frequency").default("monthly"), // monthly, biweekly, weekly
+  accountOpeningDate: date("account_opening_date"),
+  targetPayoffDate: date("target_payoff_date"),
+  payoffStrategy: text("payoff_strategy").default("standard"), // snowball, avalanche, custom
+  earlyPayoffPenalty: boolean("early_payoff_penalty").default(false),
+  lastPaymentDate: date("last_payment_date"),
+  interestAccrued: decimal("interest_accrued", { precision: 10, scale: 2 }).default("0"),
+  principalPaid: decimal("principal_paid", { precision: 10, scale: 2 }).default("0"),
 });
 
 export const monthlyPayments = pgTable("monthly_payments", {
@@ -40,6 +57,11 @@ export const income = pgTable("income", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // 'weekly', 'biweekly', 'monthly', 'yearly'
   nextPayDate: date("next_pay_date").notNull(),
+  incomeType: text("income_type").default("active"), // active, passive, side_hustle, investments
+  grossAmount: decimal("gross_amount", { precision: 10, scale: 2 }),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }),
+  taxWithheld: decimal("tax_withheld", { precision: 10, scale: 2 }).default("0"),
+  isRecurring: boolean("is_recurring").default(true),
 });
 
 export const payments = pgTable("payments", {
@@ -107,6 +129,10 @@ export const expenses = pgTable("expenses", {
   paymentMethod: text("payment_method"), // cash, credit-card, debit-card, check
   notes: text("notes"),
   isRecurring: boolean("is_recurring").default(false), // Track if this is a recurring expense
+  tags: text("tags"), // JSON string of tags like "Business", "Medical", "Pet", "Vacation"
+  taxDeductible: boolean("tax_deductible").default(false),
+  businessExpense: boolean("business_expense").default(false),
+  receiptUrl: text("receipt_url"), // For storing receipt images/documents
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -117,3 +143,82 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
 
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
+
+// Savings Goals and Financial Targets
+export const savingsGoals = pgTable("savings_goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goalName: text("goal_name").notNull(),
+  targetAmount: decimal("target_amount", { precision: 12, scale: 2 }).notNull(),
+  currentAmount: decimal("current_amount", { precision: 12, scale: 2 }).default("0"),
+  targetDate: date("target_date"),
+  goalType: text("goal_type").notNull(), // emergency_fund, vacation, house, car, retirement
+  monthlyContribution: decimal("monthly_contribution", { precision: 10, scale: 2 }).default("0"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Budget Categories and Allocation
+export const budgets = pgTable("budgets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(),
+  monthlyAllocation: decimal("monthly_allocation", { precision: 10, scale: 2 }).notNull(),
+  currentSpent: decimal("current_spent", { precision: 10, scale: 2 }).default("0"),
+  budgetMonth: text("budget_month").notNull(), // YYYY-MM format
+  alertThreshold: decimal("alert_threshold", { precision: 5, scale: 2 }).default("80"), // % of budget
+  isActive: boolean("is_active").default(true),
+});
+
+// Investment Accounts and Holdings
+export const investments = pgTable("investments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountName: text("account_name").notNull(),
+  accountType: text("account_type").notNull(), // 401k, ira, roth_ira, brokerage, crypto
+  balance: decimal("balance", { precision: 15, scale: 2 }).notNull(),
+  contributionAmount: decimal("contribution_amount", { precision: 10, scale: 2 }).default("0"),
+  contributionFrequency: text("contribution_frequency").default("monthly"),
+  employerMatch: decimal("employer_match", { precision: 5, scale: 2 }).default("0"), // % match
+  riskLevel: text("risk_level").default("moderate"), // conservative, moderate, aggressive
+  expectedReturn: decimal("expected_return", { precision: 5, scale: 2 }).default("7"), // % annual
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+// Net Worth Calculation Components
+export const assets = pgTable("assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assetName: text("asset_name").notNull(),
+  assetType: text("asset_type").notNull(), // real_estate, vehicle, cash, investment, other
+  currentValue: decimal("current_value", { precision: 15, scale: 2 }).notNull(),
+  purchasePrice: decimal("purchase_price", { precision: 15, scale: 2 }),
+  purchaseDate: date("purchase_date"),
+  appreciationRate: decimal("appreciation_rate", { precision: 5, scale: 2 }).default("0"), // % annual
+  isLiquid: boolean("is_liquid").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+export const insertSavingsGoalSchema = createInsertSchema(savingsGoals).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBudgetSchema = createInsertSchema(budgets).omit({
+  id: true,
+});
+
+export const insertInvestmentSchema = createInsertSchema(investments).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+export const insertAssetSchema = createInsertSchema(assets).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+export type InsertSavingsGoal = z.infer<typeof insertSavingsGoalSchema>;
+export type SavingsGoal = typeof savingsGoals.$inferSelect;
+export type InsertBudget = z.infer<typeof insertBudgetSchema>;
+export type Budget = typeof budgets.$inferSelect;
+export type InsertInvestment = z.infer<typeof insertInvestmentSchema>;
+export type Investment = typeof investments.$inferSelect;
+export type InsertAsset = z.infer<typeof insertAssetSchema>;
+export type Asset = typeof assets.$inferSelect;

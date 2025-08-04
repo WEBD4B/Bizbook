@@ -7,7 +7,11 @@ import {
   insertMonthlyPaymentSchema,
   insertIncomeSchema,
   insertPaymentSchema,
-  insertExpenseSchema
+  insertExpenseSchema,
+  insertSavingsGoalSchema,
+  insertBudgetSchema,
+  insertInvestmentSchema,
+  insertAssetSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -371,6 +375,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate payoff" });
+    }
+  });
+
+  // Savings Goals routes
+  app.get("/api/savings-goals", async (req, res) => {
+    try {
+      const goals = await storage.getSavingsGoals();
+      res.json(goals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch savings goals" });
+    }
+  });
+
+  app.post("/api/savings-goals", async (req, res) => {
+    try {
+      const validatedData = insertSavingsGoalSchema.parse(req.body);
+      const goal = await storage.createSavingsGoal(validatedData);
+      res.status(201).json(goal);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid savings goal data" });
+    }
+  });
+
+  app.put("/api/savings-goals/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const goal = await storage.updateSavingsGoal(id, req.body);
+      if (!goal) {
+        return res.status(404).json({ error: "Savings goal not found" });
+      }
+      res.json(goal);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update savings goal" });
+    }
+  });
+
+  app.delete("/api/savings-goals/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSavingsGoal(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Savings goal not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete savings goal" });
+    }
+  });
+
+  // Budget routes
+  app.get("/api/budgets", async (req, res) => {
+    try {
+      const budgets = await storage.getBudgets();
+      res.json(budgets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch budgets" });
+    }
+  });
+
+  app.post("/api/budgets", async (req, res) => {
+    try {
+      const validatedData = insertBudgetSchema.parse(req.body);
+      const budget = await storage.createBudget(validatedData);
+      res.status(201).json(budget);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid budget data" });
+    }
+  });
+
+  app.put("/api/budgets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const budget = await storage.updateBudget(id, req.body);
+      if (!budget) {
+        return res.status(404).json({ error: "Budget not found" });
+      }
+      res.json(budget);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update budget" });
+    }
+  });
+
+  app.delete("/api/budgets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteBudget(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Budget not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete budget" });
+    }
+  });
+
+  // Investment routes
+  app.get("/api/investments", async (req, res) => {
+    try {
+      const investments = await storage.getInvestments();
+      res.json(investments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch investments" });
+    }
+  });
+
+  app.post("/api/investments", async (req, res) => {
+    try {
+      const validatedData = insertInvestmentSchema.parse(req.body);
+      const investment = await storage.createInvestment(validatedData);
+      res.status(201).json(investment);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid investment data" });
+    }
+  });
+
+  app.put("/api/investments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const investment = await storage.updateInvestment(id, req.body);
+      if (!investment) {
+        return res.status(404).json({ error: "Investment not found" });
+      }
+      res.json(investment);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update investment" });
+    }
+  });
+
+  app.delete("/api/investments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteInvestment(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Investment not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete investment" });
+    }
+  });
+
+  // Asset routes
+  app.get("/api/assets", async (req, res) => {
+    try {
+      const assets = await storage.getAssets();
+      res.json(assets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch assets" });
+    }
+  });
+
+  app.post("/api/assets", async (req, res) => {
+    try {
+      const validatedData = insertAssetSchema.parse(req.body);
+      const asset = await storage.createAsset(validatedData);
+      res.status(201).json(asset);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid asset data" });
+    }
+  });
+
+  app.put("/api/assets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const asset = await storage.updateAsset(id, req.body);
+      if (!asset) {
+        return res.status(404).json({ error: "Asset not found" });
+      }
+      res.json(asset);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update asset" });
+    }
+  });
+
+  app.delete("/api/assets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteAsset(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Asset not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete asset" });
     }
   });
 

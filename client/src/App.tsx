@@ -3,17 +3,17 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Dashboard from "@/pages/dashboard";
+import ComprehensiveDashboard from "@/pages/comprehensive-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/credit-cards" component={Dashboard} />
-      <Route path="/loans" component={Dashboard} />
-      <Route path="/schedule" component={Dashboard} />
-      <Route path="/analytics" component={Dashboard} />
+      <Route path="/" component={ComprehensiveDashboard} />
+      <Route path="/credit-cards" component={ComprehensiveDashboard} />
+      <Route path="/loans" component={ComprehensiveDashboard} />
+      <Route path="/schedule" component={ComprehensiveDashboard} />
+      <Route path="/analytics" component={ComprehensiveDashboard} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
