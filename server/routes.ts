@@ -11,7 +11,9 @@ import {
   insertSavingsGoalSchema,
   insertBudgetSchema,
   insertInvestmentSchema,
-  insertAssetSchema
+  insertAssetSchema,
+  insertLiabilitySchema,
+  insertNetWorthSnapshotSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -559,6 +561,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete asset" });
+    }
+  });
+
+  // Liability routes
+  app.get("/api/liabilities", async (req, res) => {
+    try {
+      const liabilities = await storage.getLiabilities();
+      res.json(liabilities);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch liabilities" });
+    }
+  });
+
+  app.post("/api/liabilities", async (req, res) => {
+    try {
+      const validatedData = insertLiabilitySchema.parse(req.body);
+      const liability = await storage.createLiability(validatedData);
+      res.status(201).json(liability);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(400).json({ error: "Invalid liability data" });
+    }
+  });
+
+  app.put("/api/liabilities/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const liability = await storage.updateLiability(id, req.body);
+      if (!liability) {
+        return res.status(404).json({ error: "Liability not found" });
+      }
+      res.json(liability);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update liability" });
+    }
+  });
+
+  app.delete("/api/liabilities/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteLiability(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Liability not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete liability" });
+    }
+  });
+
+  // Net Worth Snapshot routes
+  app.get("/api/net-worth-snapshots", async (req, res) => {
+    try {
+      const snapshots = await storage.getNetWorthSnapshots();
+      res.json(snapshots);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch net worth snapshots" });
+    }
+  });
+
+  app.get("/api/net-worth-snapshots/latest", async (req, res) => {
+    try {
+      const snapshot = await storage.getLatestNetWorthSnapshot();
+      if (!snapshot) {
+        return res.status(404).json({ error: "No net worth snapshots found" });
+      }
+      res.json(snapshot);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch latest net worth snapshot" });
+    }
+  });
+
+  app.post("/api/net-worth-snapshots", async (req, res) => {
+    try {
+      const validatedData = insertNetWorthSnapshotSchema.parse(req.body);
+      const snapshot = await storage.createNetWorthSnapshot(validatedData);
+      res.status(201).json(snapshot);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(400).json({ error: "Invalid net worth snapshot data" });
+    }
+  });
+
+  // Calculate Net Worth endpoint
+  app.post("/api/calculate-net-worth", async (req, res) => {
+    try {
+      const assets = await storage.getAssets();
+      const liabilities = await storage.getLiabilities();
+
+      // Calculate total assets by category
+      const assetsByCategory = assets.reduce((acc, asset) => {
+        const value = parseFloat(asset.currentValue) || 0;
+        const adjustedValue = value * (parseFloat(asset.ownershipPercentage || "100") / 100);
+        
+        switch (asset.assetType) {
+          case 'cash_liquid':
+            acc.cashLiquidAssets += adjustedValue;
+            break;
+          case 'investments':
+            acc.investmentAssets += adjustedValue;
+            break;
+          case 'real_estate':
+            acc.realEstateAssets += adjustedValue;
+            break;
+          case 'vehicles':
+            acc.vehicleAssets += adjustedValue;
+            break;
+          case 'personal_property':
+            acc.personalPropertyAssets += adjustedValue;
+            break;
+          case 'business':
+            acc.businessAssets += adjustedValue;
+            break;
+        }
+        return acc;
+      }, {
+        cashLiquidAssets: 0,
+        investmentAssets: 0,
+        realEstateAssets: 0,
+        vehicleAssets: 0,
+        personalPropertyAssets: 0,
+        businessAssets: 0
+      });
+
+      // Calculate total liabilities by category
+      const liabilitiesByCategory = liabilities.reduce((acc, liability) => {
+        const balance = parseFloat(liability.currentBalance) || 0;
+        
+        switch (liability.liabilityType) {
+          case 'consumer_debt':
+            acc.consumerDebt += balance;
+            break;
+          case 'vehicle_loans':
+            acc.vehicleLoans += balance;
+            break;
+          case 'real_estate':
+            acc.realEstateDebt += balance;
+            break;
+          case 'education':
+            acc.educationDebt += balance;
+            break;
+          case 'business':
+            acc.businessDebt += balance;
+            break;
+          case 'taxes_bills':
+            acc.taxesBills += balance;
+            break;
+        }
+        return acc;
+      }, {
+        consumerDebt: 0,
+        vehicleLoans: 0,
+        realEstateDebt: 0,
+        educationDebt: 0,
+        businessDebt: 0,
+        taxesBills: 0
+      });
+
+      const totalAssets = Object.values(assetsByCategory).reduce((sum, value) => sum + value, 0);
+      const totalLiabilities = Object.values(liabilitiesByCategory).reduce((sum, value) => sum + value, 0);
+      const netWorth = totalAssets - totalLiabilities;
+
+      const calculation = {
+        totalAssets: totalAssets.toFixed(2),
+        totalLiabilities: totalLiabilities.toFixed(2),
+        netWorth: netWorth.toFixed(2),
+        ...Object.fromEntries(
+          Object.entries(assetsByCategory).map(([key, value]) => [key, value.toFixed(2)])
+        ),
+        ...Object.fromEntries(
+          Object.entries(liabilitiesByCategory).map(([key, value]) => [key, value.toFixed(2)])
+        )
+      };
+
+      res.json(calculation);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to calculate net worth" });
     }
   });
 

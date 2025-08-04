@@ -182,17 +182,82 @@ export const investments = pgTable("investments", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
-// Net Worth Calculation Components
+// Comprehensive Assets for Net Worth Calculation
 export const assets = pgTable("assets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   assetName: text("asset_name").notNull(),
-  assetType: text("asset_type").notNull(), // real_estate, vehicle, cash, investment, other
+  assetType: text("asset_type").notNull(), // cash_liquid, investments, real_estate, vehicles, personal_property, business, receivables
+  subcategory: text("subcategory"), // checking, savings, emergency_fund, stocks, crypto, primary_home, rental_property, auto, jewelry, etc.
   currentValue: decimal("current_value", { precision: 15, scale: 2 }).notNull(),
   purchasePrice: decimal("purchase_price", { precision: 15, scale: 2 }),
   purchaseDate: date("purchase_date"),
   appreciationRate: decimal("appreciation_rate", { precision: 5, scale: 2 }).default("0"), // % annual
+  depreciationRate: decimal("depreciation_rate", { precision: 5, scale: 2 }).default("0"), // % annual for vehicles
+  ownershipPercentage: decimal("ownership_percentage", { precision: 5, scale: 2 }).default("100"),
   isLiquid: boolean("is_liquid").default(false),
+  institution: text("institution"), // bank name, brokerage, etc.
+  accountNumber: text("account_number"),
+  maturityDate: date("maturity_date"), // for CDs, bonds
+  expectedReturn: decimal("expected_return", { precision: 5, scale: 2 }), // % annual
+  riskLevel: text("risk_level"), // conservative, moderate, aggressive
+  marketValue: decimal("market_value", { precision: 15, scale: 2 }), // current market value if different from book value
+  notes: text("notes"),
   lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Comprehensive Liabilities for Net Worth Calculation
+export const liabilities = pgTable("liabilities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  liabilityName: text("liability_name").notNull(),
+  liabilityType: text("liability_type").notNull(), // consumer_debt, vehicle_loans, real_estate, education, business, taxes_bills
+  subcategory: text("subcategory"), // credit_card, bnpl, auto_loan, mortgage, heloc, student_loan, business_loan, unpaid_taxes, medical_bills
+  currentBalance: decimal("current_balance", { precision: 15, scale: 2 }).notNull(),
+  originalAmount: decimal("original_amount", { precision: 15, scale: 2 }),
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }),
+  minimumPayment: decimal("minimum_payment", { precision: 10, scale: 2 }),
+  monthlyPayment: decimal("monthly_payment", { precision: 10, scale: 2 }),
+  dueDate: date("due_date"),
+  paymentFrequency: text("payment_frequency").default("monthly"),
+  lender: text("lender"), // institution name
+  accountNumber: text("account_number"),
+  loanTerm: integer("loan_term"), // total months
+  remainingTerm: integer("remaining_term"), // months left
+  payoffStrategy: text("payoff_strategy"), // minimum, avalanche, snowball
+  isSecured: boolean("is_secured").default(false),
+  collateral: text("collateral"), // what secures the loan
+  taxDeductible: boolean("tax_deductible").default(false),
+  creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }), // for credit cards/lines of credit
+  notes: text("notes"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Net Worth Snapshots for historical tracking
+export const netWorthSnapshots = pgTable("net_worth_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  snapshotDate: date("snapshot_date").notNull(),
+  totalAssets: decimal("total_assets", { precision: 15, scale: 2 }).notNull(),
+  totalLiabilities: decimal("total_liabilities", { precision: 15, scale: 2 }).notNull(),
+  netWorth: decimal("net_worth", { precision: 15, scale: 2 }).notNull(),
+  // Asset category breakdowns
+  cashLiquidAssets: decimal("cash_liquid_assets", { precision: 15, scale: 2 }).default("0"),
+  investmentAssets: decimal("investment_assets", { precision: 15, scale: 2 }).default("0"),
+  realEstateAssets: decimal("real_estate_assets", { precision: 15, scale: 2 }).default("0"),
+  vehicleAssets: decimal("vehicle_assets", { precision: 15, scale: 2 }).default("0"),
+  personalPropertyAssets: decimal("personal_property_assets", { precision: 15, scale: 2 }).default("0"),
+  businessAssets: decimal("business_assets", { precision: 15, scale: 2 }).default("0"),
+  // Liability category breakdowns
+  consumerDebt: decimal("consumer_debt", { precision: 15, scale: 2 }).default("0"),
+  vehicleLoans: decimal("vehicle_loans", { precision: 15, scale: 2 }).default("0"),
+  realEstateDebt: decimal("real_estate_debt", { precision: 15, scale: 2 }).default("0"),
+  educationDebt: decimal("education_debt", { precision: 15, scale: 2 }).default("0"),
+  businessDebt: decimal("business_debt", { precision: 15, scale: 2 }).default("0"),
+  taxesBills: decimal("taxes_bills", { precision: 15, scale: 2 }).default("0"),
+  // Changes over time
+  monthOverMonthChange: decimal("month_over_month_change", { precision: 15, scale: 2 }),
+  yearOverYearChange: decimal("year_over_year_change", { precision: 15, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertSavingsGoalSchema = createInsertSchema(savingsGoals).omit({
@@ -212,6 +277,18 @@ export const insertInvestmentSchema = createInsertSchema(investments).omit({
 export const insertAssetSchema = createInsertSchema(assets).omit({
   id: true,
   lastUpdated: true,
+  createdAt: true,
+});
+
+export const insertLiabilitySchema = createInsertSchema(liabilities).omit({
+  id: true,
+  lastUpdated: true,
+  createdAt: true,
+});
+
+export const insertNetWorthSnapshotSchema = createInsertSchema(netWorthSnapshots).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertSavingsGoal = z.infer<typeof insertSavingsGoalSchema>;
@@ -222,3 +299,7 @@ export type InsertInvestment = z.infer<typeof insertInvestmentSchema>;
 export type Investment = typeof investments.$inferSelect;
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
 export type Asset = typeof assets.$inferSelect;
+export type InsertLiability = z.infer<typeof insertLiabilitySchema>;
+export type Liability = typeof liabilities.$inferSelect;
+export type InsertNetWorthSnapshot = z.infer<typeof insertNetWorthSnapshotSchema>;
+export type NetWorthSnapshot = typeof netWorthSnapshots.$inferSelect;

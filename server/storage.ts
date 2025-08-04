@@ -9,7 +9,9 @@ import {
   type SavingsGoal, type InsertSavingsGoal,
   type Budget, type InsertBudget,
   type Investment, type InsertInvestment,
-  type Asset, type InsertAsset
+  type Asset, type InsertAsset,
+  type Liability, type InsertLiability,
+  type NetWorthSnapshot, type InsertNetWorthSnapshot
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -88,6 +90,19 @@ export interface IStorage {
   createAsset(asset: InsertAsset): Promise<Asset>;
   updateAsset(id: string, asset: Partial<InsertAsset>): Promise<Asset | undefined>;
   deleteAsset(id: string): Promise<boolean>;
+
+  // Liabilities
+  getLiabilities(): Promise<Liability[]>;
+  getLiability(id: string): Promise<Liability | undefined>;
+  createLiability(liability: InsertLiability): Promise<Liability>;
+  updateLiability(id: string, liability: Partial<InsertLiability>): Promise<Liability | undefined>;
+  deleteLiability(id: string): Promise<boolean>;
+
+  // Net Worth Snapshots
+  getNetWorthSnapshots(): Promise<NetWorthSnapshot[]>;
+  getNetWorthSnapshot(id: string): Promise<NetWorthSnapshot | undefined>;
+  createNetWorthSnapshot(snapshot: InsertNetWorthSnapshot): Promise<NetWorthSnapshot>;
+  getLatestNetWorthSnapshot(): Promise<NetWorthSnapshot | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -102,6 +117,8 @@ export class MemStorage implements IStorage {
   private budgets: Map<string, Budget>;
   private investments: Map<string, Investment>;
   private assets: Map<string, Asset>;
+  private liabilities: Map<string, Liability>;
+  private netWorthSnapshots: Map<string, NetWorthSnapshot>;
 
   constructor() {
     this.users = new Map();
@@ -115,6 +132,8 @@ export class MemStorage implements IStorage {
     this.budgets = new Map();
     this.investments = new Map();
     this.assets = new Map();
+    this.liabilities = new Map();
+    this.netWorthSnapshots = new Map();
   }
 
   // Users
@@ -453,8 +472,18 @@ export class MemStorage implements IStorage {
       purchasePrice: insertAsset.purchasePrice ?? null,
       purchaseDate: insertAsset.purchaseDate ?? null,
       appreciationRate: insertAsset.appreciationRate ?? "0",
+      depreciationRate: insertAsset.depreciationRate ?? "0",
+      ownershipPercentage: insertAsset.ownershipPercentage ?? "100",
       isLiquid: insertAsset.isLiquid ?? false,
-      lastUpdated: new Date()
+      institution: insertAsset.institution ?? null,
+      accountNumber: insertAsset.accountNumber ?? null,
+      maturityDate: insertAsset.maturityDate ?? null,
+      expectedReturn: insertAsset.expectedReturn ?? null,
+      riskLevel: insertAsset.riskLevel ?? null,
+      marketValue: insertAsset.marketValue ?? null,
+      notes: insertAsset.notes ?? null,
+      lastUpdated: new Date(),
+      createdAt: new Date()
     };
     this.assets.set(id, asset);
     return asset;
@@ -471,6 +500,97 @@ export class MemStorage implements IStorage {
 
   async deleteAsset(id: string): Promise<boolean> {
     return this.assets.delete(id);
+  }
+
+  // Liabilities
+  async getLiabilities(): Promise<Liability[]> {
+    return Array.from(this.liabilities.values());
+  }
+
+  async getLiability(id: string): Promise<Liability | undefined> {
+    return this.liabilities.get(id);
+  }
+
+  async createLiability(insertLiability: InsertLiability): Promise<Liability> {
+    const id = randomUUID();
+    const liability: Liability = { 
+      ...insertLiability, 
+      id,
+      originalAmount: insertLiability.originalAmount ?? null,
+      interestRate: insertLiability.interestRate ?? null,
+      minimumPayment: insertLiability.minimumPayment ?? null,
+      monthlyPayment: insertLiability.monthlyPayment ?? null,
+      dueDate: insertLiability.dueDate ?? null,
+      paymentFrequency: insertLiability.paymentFrequency ?? "monthly",
+      lender: insertLiability.lender ?? null,
+      accountNumber: insertLiability.accountNumber ?? null,
+      loanTerm: insertLiability.loanTerm ?? null,
+      remainingTerm: insertLiability.remainingTerm ?? null,
+      payoffStrategy: insertLiability.payoffStrategy ?? null,
+      isSecured: insertLiability.isSecured ?? false,
+      collateral: insertLiability.collateral ?? null,
+      taxDeductible: insertLiability.taxDeductible ?? false,
+      creditLimit: insertLiability.creditLimit ?? null,
+      notes: insertLiability.notes ?? null,
+      lastUpdated: new Date(),
+      createdAt: new Date()
+    };
+    this.liabilities.set(id, liability);
+    return liability;
+  }
+
+  async updateLiability(id: string, updates: Partial<InsertLiability>): Promise<Liability | undefined> {
+    const existing = this.liabilities.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Liability = { ...existing, ...updates, lastUpdated: new Date() };
+    this.liabilities.set(id, updated);
+    return updated;
+  }
+
+  async deleteLiability(id: string): Promise<boolean> {
+    return this.liabilities.delete(id);
+  }
+
+  // Net Worth Snapshots
+  async getNetWorthSnapshots(): Promise<NetWorthSnapshot[]> {
+    return Array.from(this.netWorthSnapshots.values()).sort((a, b) => 
+      new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime()
+    );
+  }
+
+  async getNetWorthSnapshot(id: string): Promise<NetWorthSnapshot | undefined> {
+    return this.netWorthSnapshots.get(id);
+  }
+
+  async createNetWorthSnapshot(insertSnapshot: InsertNetWorthSnapshot): Promise<NetWorthSnapshot> {
+    const id = randomUUID();
+    const snapshot: NetWorthSnapshot = { 
+      ...insertSnapshot, 
+      id,
+      cashLiquidAssets: insertSnapshot.cashLiquidAssets ?? "0",
+      investmentAssets: insertSnapshot.investmentAssets ?? "0",
+      realEstateAssets: insertSnapshot.realEstateAssets ?? "0",
+      vehicleAssets: insertSnapshot.vehicleAssets ?? "0",
+      personalPropertyAssets: insertSnapshot.personalPropertyAssets ?? "0",
+      businessAssets: insertSnapshot.businessAssets ?? "0",
+      consumerDebt: insertSnapshot.consumerDebt ?? "0",
+      vehicleLoans: insertSnapshot.vehicleLoans ?? "0",
+      realEstateDebt: insertSnapshot.realEstateDebt ?? "0",
+      educationDebt: insertSnapshot.educationDebt ?? "0",
+      businessDebt: insertSnapshot.businessDebt ?? "0",
+      taxesBills: insertSnapshot.taxesBills ?? "0",
+      monthOverMonthChange: insertSnapshot.monthOverMonthChange ?? null,
+      yearOverYearChange: insertSnapshot.yearOverYearChange ?? null,
+      createdAt: new Date()
+    };
+    this.netWorthSnapshots.set(id, snapshot);
+    return snapshot;
+  }
+
+  async getLatestNetWorthSnapshot(): Promise<NetWorthSnapshot | undefined> {
+    const snapshots = await this.getNetWorthSnapshots();
+    return snapshots.length > 0 ? snapshots[0] : undefined;
   }
 }
 

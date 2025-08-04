@@ -26,6 +26,7 @@ import { NetWorthSummary } from "@/components/net-worth-summary";
 import { SavingsGoals } from "@/components/savings-goals";
 import { BudgetTracker } from "@/components/budget-tracker";
 import { InvestmentTracker } from "@/components/investment-tracker";
+import { ComprehensiveNetWorth } from "@/components/comprehensive-net-worth";
 import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
 import { 
   formatCurrency, 
@@ -120,10 +121,14 @@ export default function ComprehensiveDashboard() {
           </div>
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 lg:w-fit">
+            <TabsList className="grid w-full grid-cols-7 lg:w-fit">
               <TabsTrigger value="overview" className="flex items-center gap-2" data-testid="tab-overview">
                 <Home className="h-4 w-4" />
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="net-worth" className="flex items-center gap-2" data-testid="tab-net-worth">
+                <TrendingUp className="h-4 w-4" />
+                Net Worth
               </TabsTrigger>
               <TabsTrigger value="debt" className="flex items-center gap-2" data-testid="tab-debt">
                 <CreditCardIcon className="h-4 w-4" />
@@ -225,6 +230,10 @@ export default function ComprehensiveDashboard() {
                 <IncomeOverview />
                 <ExpenseOverview />
               </div>
+            </TabsContent>
+
+            <TabsContent value="net-worth" className="space-y-6">
+              <ComprehensiveNetWorth />
             </TabsContent>
 
             <TabsContent value="debt" className="space-y-6">
