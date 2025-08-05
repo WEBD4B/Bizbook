@@ -275,7 +275,7 @@ export function AssetForm({ onSuccess, asset }: AssetFormProps) {
                   <FormItem>
                     <FormLabel>Purchase Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} data-testid="input-purchase-date" />
+                      <Input type="date" {...field} value={field.value || ""} data-testid="input-purchase-date" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
