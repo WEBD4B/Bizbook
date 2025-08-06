@@ -21,7 +21,9 @@ import {
   BarChart3,
   Receipt,
   Wallet,
-  Download
+  Download,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -39,6 +41,7 @@ import { BudgetTracker } from "@/components/budget-tracker";
 import { InvestmentTracker } from "@/components/investment-tracker";
 import { ComprehensiveNetWorth } from "@/components/comprehensive-net-worth";
 import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 import { 
   formatCurrency, 
   calculateCreditUtilization
@@ -54,8 +57,8 @@ export default function ComprehensiveDashboard() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
-  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
 
   const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery<CreditCard[]>({
     queryKey: ["/api/credit-cards"],
@@ -1277,6 +1280,289 @@ export default function ComprehensiveDashboard() {
     );
   };
 
+  // Credit card and loan form components
+  const CreditCardForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      balance: '',
+      creditLimit: '',
+      interestRate: '',
+      minimumPayment: '',
+      dueDate: 30
+    });
+
+    const createCreditCardMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/credit-cards", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Credit card added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add credit card",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      createCreditCardMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="card-name">Card Name</Label>
+          <Input
+            id="card-name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g., Chase Sapphire"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="balance">Current Balance</Label>
+            <Input
+              id="balance"
+              type="number"
+              step="0.01"
+              value={formData.balance}
+              onChange={(e) => setFormData(prev => ({ ...prev, balance: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="credit-limit">Credit Limit</Label>
+            <Input
+              id="credit-limit"
+              type="number"
+              step="0.01"
+              value={formData.creditLimit}
+              onChange={(e) => setFormData(prev => ({ ...prev, creditLimit: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="interest-rate">Interest Rate (%)</Label>
+            <Input
+              id="interest-rate"
+              type="number"
+              step="0.01"
+              value={formData.interestRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="min-payment">Minimum Payment</Label>
+            <Input
+              id="min-payment"
+              type="number"
+              step="0.01"
+              value={formData.minimumPayment}
+              onChange={(e) => setFormData(prev => ({ ...prev, minimumPayment: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={createCreditCardMutation.isPending}>
+            {createCreditCardMutation.isPending ? "Adding..." : "Add Card"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const LoanForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      balance: '',
+      interestRate: '',
+      monthlyPayment: '',
+      termMonths: '',
+      originalAmount: '',
+      loanType: 'personal',
+      dueDate: 30
+    });
+
+    const createLoanMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/loans", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Loan added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add loan",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      createLoanMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="loan-name">Loan Name</Label>
+          <Input
+            id="loan-name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g., Auto Loan, Mortgage"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="loan-balance">Current Balance</Label>
+            <Input
+              id="loan-balance"
+              type="number"
+              step="0.01"
+              value={formData.balance}
+              onChange={(e) => setFormData(prev => ({ ...prev, balance: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="original-amount">Original Amount</Label>
+            <Input
+              id="original-amount"
+              type="number"
+              step="0.01"
+              value={formData.originalAmount}
+              onChange={(e) => setFormData(prev => ({ ...prev, originalAmount: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="loan-interest-rate">Interest Rate (%)</Label>
+            <Input
+              id="loan-interest-rate"
+              type="number"
+              step="0.01"
+              value={formData.interestRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="monthly-payment">Monthly Payment</Label>
+            <Input
+              id="monthly-payment"
+              type="number"
+              step="0.01"
+              value={formData.monthlyPayment}
+              onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="term-months">Term (Months)</Label>
+            <Input
+              id="term-months"
+              type="number"
+              value={formData.termMonths}
+              onChange={(e) => setFormData(prev => ({ ...prev, termMonths: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="loan-type">Loan Type</Label>
+            <Select value={formData.loanType} onValueChange={(value) => setFormData(prev => ({ ...prev, loanType: value }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="personal">Personal Loan</SelectItem>
+                <SelectItem value="auto">Auto Loan</SelectItem>
+                <SelectItem value="mortgage">Mortgage</SelectItem>
+                <SelectItem value="student">Student Loan</SelectItem>
+                <SelectItem value="business">Business Loan</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={createLoanMutation.isPending}>
+            {createLoanMutation.isPending ? "Adding..." : "Add Loan"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Delete functions
+  const deleteCreditCard = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/credit-cards/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Credit card deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete credit card",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteLoan = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/loans/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Loan deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete loan",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
@@ -1347,47 +1633,23 @@ export default function ComprehensiveDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Personal Finance Center</h1>
           </div>
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-9 lg:w-fit mb-6">
-              <TabsTrigger value="overview" className="flex items-center gap-2" data-testid="tab-overview">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 lg:w-fit mb-6">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2" data-testid="tab-dashboard">
                 <Home className="h-4 w-4" />
-                Overview
+                Dashboard
               </TabsTrigger>
-              <TabsTrigger value="net-worth" className="flex items-center gap-2" data-testid="tab-net-worth">
-                <TrendingUp className="h-4 w-4" />
-                Net Worth
-              </TabsTrigger>
-              <TabsTrigger value="debt" className="flex items-center gap-2" data-testid="tab-debt">
+              <TabsTrigger value="credit-cards-loans" className="flex items-center gap-2" data-testid="tab-credit-cards-loans">
                 <CreditCardIcon className="h-4 w-4" />
-                Debt
+                Credit Cards & Loans
               </TabsTrigger>
-              <TabsTrigger value="expenses" className="flex items-center gap-2" data-testid="tab-expenses">
+              <TabsTrigger value="payment-schedule" className="flex items-center gap-2" data-testid="tab-payment-schedule">
                 <Receipt className="h-4 w-4" />
-                Expenses
-              </TabsTrigger>
-              <TabsTrigger value="budget" className="flex items-center gap-2" data-testid="tab-budget">
-                <PieChart className="h-4 w-4" />
-                Budget
-              </TabsTrigger>
-              <TabsTrigger value="savings" className="flex items-center gap-2" data-testid="tab-savings">
-                <Target className="h-4 w-4" />
-                Savings
-              </TabsTrigger>
-              <TabsTrigger value="investments" className="flex items-center gap-2" data-testid="tab-investments">
-                <BarChart3 className="h-4 w-4" />
-                Investments
-              </TabsTrigger>
-              <TabsTrigger value="business" className="flex items-center gap-2" data-testid="tab-business">
-                <Building2 className="h-4 w-4" />
-                Business
-              </TabsTrigger>
-              <TabsTrigger value="taxes" className="flex items-center gap-2" data-testid="tab-taxes">
-                <Receipt className="h-4 w-4" />
-                Taxes
+                Payment Schedule
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6 mt-8">
+            <TabsContent value="dashboard" className="space-y-6 mt-8">
               {/* Full Width Visual Chart at Top */}
               <FinancialOverviewChart 
                 creditCards={creditCards} 
@@ -1507,380 +1769,204 @@ export default function ComprehensiveDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="net-worth" className="space-y-6">
-              <ComprehensiveNetWorth />
-            </TabsContent>
-
-            <TabsContent value="debt" className="space-y-6">
+            <TabsContent value="credit-cards-loans" className="space-y-6 mt-8">
               <div className="grid gap-6 lg:grid-cols-2">
-                <div className="space-y-6">
-                  <AccountForm />
-                  <IncomeOverview />
-                </div>
-                <div className="space-y-6">
-                  <DebtChart creditCards={creditCards} loans={loans} />
-                  <UpcomingPayments />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="expenses" className="space-y-6 mt-8">
-              <div className="grid gap-6 lg:grid-cols-2">
-                <ExpenseForm />
-                <ExpenseOverview />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="budget" className="space-y-6 mt-8">
-              <BudgetTracker />
-            </TabsContent>
-
-            <TabsContent value="savings" className="space-y-6 mt-8">
-              <SavingsGoals />
-            </TabsContent>
-
-            <TabsContent value="investments" className="space-y-6 mt-8">
-              <InvestmentTracker />
-            </TabsContent>
-
-            <TabsContent value="business" className="space-y-6 mt-8">
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Business Dashboard</h2>
-                    <p className="text-muted-foreground">Manage business expenses, revenue, and payouts</p>
-                  </div>
-                  <div className="flex gap-2">
+                {/* Credit Cards Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCardIcon className="h-5 w-5" />
+                      Credit Cards
+                    </CardTitle>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <Building2 className="h-4 w-4 mr-2" />
-                          Business Settings
+                        <Button size="sm" data-testid="button-add-credit-card">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Card
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Business Settings</DialogTitle>
+                          <DialogTitle>Add Credit Card</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
-                                  <Building2 className="h-6 w-6" />
-                                  <span>Business Info</span>
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Business Information</DialogTitle>
-                                </DialogHeader>
-                                <BusinessInfoForm onClose={() => {}} />
-                              </DialogContent>
-                            </Dialog>
-
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
-                                  <CreditCardIcon className="h-6 w-6" />
-                                  <span>Payment Methods</span>
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Add Payment Method</DialogTitle>
-                                </DialogHeader>
-                                <PaymentMethodForm onClose={() => {}} />
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </div>
+                        <CreditCardForm onClose={() => {}} />
                       </DialogContent>
                     </Dialog>
-                  </div>
-                </div>
-
-                {/* Business Summary Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <Card data-testid="card-business-revenue">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-green-600" data-testid="text-business-revenue">$0.00</div>
-                      <p className="text-xs text-muted-foreground">Sales & income</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-business-expenses">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Business Expenses</CardTitle>
-                      <Receipt className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-red-600" data-testid="text-business-expenses">$0.00</div>
-                      <p className="text-xs text-muted-foreground">Deductible expenses</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-net-profit">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold" data-testid="text-net-profit">$0.00</div>
-                      <p className="text-xs text-muted-foreground">Revenue - expenses</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-sales-tax-owed">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Sales Tax Owed</CardTitle>
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-orange-600" data-testid="text-sales-tax-owed">$0.00</div>
-                      <p className="text-xs text-muted-foreground">Quarterly estimate</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Business Management Sections */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Card data-testid="card-business-transactions">
-                    <CardHeader>
-                      <CardTitle>Recent Business Transactions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-6 text-neutral-500" data-testid="empty-state-business-transactions">
-                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No business transactions yet</p>
-                        <div className="flex gap-2 justify-center">
-                          <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm" data-testid="button-add-revenue">Add Revenue</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Add Business Revenue</DialogTitle>
-                              </DialogHeader>
-                              <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
-                            </DialogContent>
-                          </Dialog>
-
-                          <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="outline" data-testid="button-add-business-expense">Add Expense</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Add Business Expense</DialogTitle>
-                              </DialogHeader>
-                              <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-business-reports">
-                    <CardHeader>
-                      <CardTitle>QuickBooks-Style Reports</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <Button variant="outline" className="w-full justify-start" data-testid="button-profit-loss">
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Profit & Loss Statement
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start" data-testid="button-cash-flow-report">
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Cash Flow Report
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-report">
-                          <Target className="h-4 w-4 mr-2" />
-                          Sales Tax Report
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start" data-testid="button-1099-generation">
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          1099 Generation
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="taxes" className="space-y-6 mt-8">
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Tax Management</h2>
-                    <p className="text-muted-foreground">Sales tax tracking and document generation</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" data-testid="button-import-shopify">
-                      <Receipt className="h-4 w-4 mr-2" />
-                      Import from Shopify
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Tax Summary */}
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Card data-testid="card-quarterly-sales-tax">
-                    <CardHeader>
-                      <CardTitle>Current Quarter Sales Tax</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-orange-600" data-testid="text-quarterly-sales-tax">$0.00</div>
-                      <p className="text-sm text-muted-foreground mt-2">Q1 2024 - Due April 30</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-ytd-deductions">
-                    <CardHeader>
-                      <CardTitle>YTD Business Deductions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-green-600" data-testid="text-ytd-deductions">$0.00</div>
-                      <p className="text-sm text-muted-foreground mt-2">Tax-deductible expenses</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-estimated-tax-savings">
-                    <CardHeader>
-                      <CardTitle>Estimated Tax Savings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-blue-600" data-testid="text-estimated-tax-savings">$0.00</div>
-                      <p className="text-sm text-muted-foreground mt-2">Based on 25% tax rate</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Sales Tax Management */}
-                <Card data-testid="card-sales-tax-settings">
-                  <CardHeader>
-                    <CardTitle>Sales Tax Settings by State</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-6 text-neutral-500" data-testid="empty-state-tax-settings">
-                      <Target size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">Configure sales tax rates for each state you sell in</p>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button data-testid="button-add-tax-rate">Add Tax Rate</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Add Sales Tax Rate</DialogTitle>
-                          </DialogHeader>
-                          <SalesTaxForm />
-                        </DialogContent>
-                      </Dialog>
-                    </div>
+                    {creditCards.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No credit cards added yet</p>
+                        <p className="text-sm">Add your credit cards to track balances and payments</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {creditCards.map((card: any) => (
+                          <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-medium">{card.name}</h3>
+                                <Badge variant="outline">{card.interestRate}% APR</Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
+                                <div>Credit Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
+                                <div>Min Payment: <span className="font-medium">{formatCurrency(parseFloat(card.minimumPayment))}</span></div>
+                                <div>Due: {new Date(Date.now() + card.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAccount(card);
+                                  setSelectedAccountType('credit-card');
+                                  setPaymentDialogOpen(true);
+                                }}
+                                data-testid={`button-pay-${card.id}`}
+                              >
+                                Pay
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => deleteCreditCard(card.id)}
+                                data-testid={`button-delete-${card.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Tax Document Generation */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Card data-testid="card-tax-documents">
-                    <CardHeader>
-                      <CardTitle>Generate Tax Documents</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-return">
-                            <Receipt className="h-4 w-4 mr-2" />
-                            Sales Tax Return (Quarterly)
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Generate Sales Tax Return</DialogTitle>
-                          </DialogHeader>
-                          <SalesTaxReturnForm />
-                        </DialogContent>
-                      </Dialog>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start" data-testid="button-1099-forms">
-                            <Building2 className="h-4 w-4 mr-2" />
-                            1099-NEC Forms
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Generate 1099-NEC Form</DialogTitle>
-                          </DialogHeader>
-                          <TaxDocumentForm />
-                        </DialogContent>
-                      </Dialog>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start" data-testid="button-expense-report">
-                            <TrendingUp className="h-4 w-4 mr-2" />
-                            Business Expense Report
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Generate Business Expense Report</DialogTitle>
-                          </DialogHeader>
-                          <ExpenseReportForm />
-                        </DialogContent>
-                      </Dialog>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start" data-testid="button-schedule-c">
-                            <Target className="h-4 w-4 mr-2" />
-                            Schedule C Preview
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Schedule C Tax Form Preview</DialogTitle>
-                          </DialogHeader>
-                          <ScheduleCForm />
-                        </DialogContent>
-                      </Dialog>
-                    </CardContent>
-                  </Card>
-
-                  <Card data-testid="card-shopify-integration">
-                    <CardHeader>
-                      <CardTitle>Shopify Integration</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                          Import sales data from Shopify to automatically calculate sales tax
-                        </p>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button className="w-full" data-testid="button-connect-shopify">Connect Shopify Store</Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Connect Shopify Store</DialogTitle>
-                            </DialogHeader>
-                            <ShopifyIntegrationForm />
-                          </DialogContent>
-                        </Dialog>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Upload sales data for automatic tax calculations</p>
-                        </div>
+                {/* Loans Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5" />
+                      Loans
+                    </CardTitle>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-loan">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Loan
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Loan</DialogTitle>
+                        </DialogHeader>
+                        <LoanForm onClose={() => {}} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    {loans.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No loans added yet</p>
+                        <p className="text-sm">Add your loans to track balances and payments</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {loans.map((loan: any) => (
+                          <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-medium">{loan.name}</h3>
+                                <Badge variant="outline">{loan.interestRate}% Rate</Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
+                                <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
+                                <div>Term: {loan.termMonths} months</div>
+                                <div>Due: {new Date(Date.now() + loan.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedAccount(loan);
+                                  setSelectedAccountType('loan');
+                                  setPaymentDialogOpen(true);
+                                }}
+                                data-testid={`button-pay-loan-${loan.id}`}
+                              >
+                                Pay
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => deleteLoan(loan.id)}
+                                data-testid={`button-delete-loan-${loan.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
+
+              {/* Summary Stats */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Credit Card Debt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Loan Debt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(loans.reduce((sum, loan) => sum + parseFloat(loan.balance), 0))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Available Credit</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">
+                      {formatCurrency(availableCredit)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Credit Utilization</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {creditUtilization.toFixed(1)}%
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="payment-schedule" className="space-y-6 mt-8">
+              <UpcomingPayments />
             </TabsContent>
           </Tabs>
 
