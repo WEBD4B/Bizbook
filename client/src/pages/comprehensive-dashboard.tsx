@@ -142,7 +142,7 @@ export default function ComprehensiveDashboard() {
           </div>
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 lg:w-fit">
+            <TabsList className="grid w-full grid-cols-9 lg:w-fit mb-6">
               <TabsTrigger value="overview" className="flex items-center gap-2" data-testid="tab-overview">
                 <Home className="h-4 w-4" />
                 Overview
@@ -181,7 +181,7 @@ export default function ComprehensiveDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-6 mt-8">
               {/* Full Width Visual Chart at Top */}
               <FinancialOverviewChart 
                 creditCards={creditCards} 
@@ -318,26 +318,26 @@ export default function ComprehensiveDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="expenses" className="space-y-6">
+            <TabsContent value="expenses" className="space-y-6 mt-8">
               <div className="grid gap-6 lg:grid-cols-2">
                 <ExpenseForm />
                 <ExpenseOverview />
               </div>
             </TabsContent>
 
-            <TabsContent value="budget" className="space-y-6">
+            <TabsContent value="budget" className="space-y-6 mt-8">
               <BudgetTracker />
             </TabsContent>
 
-            <TabsContent value="savings" className="space-y-6">
+            <TabsContent value="savings" className="space-y-6 mt-8">
               <SavingsGoals />
             </TabsContent>
 
-            <TabsContent value="investments" className="space-y-6">
+            <TabsContent value="investments" className="space-y-6 mt-8">
               <InvestmentTracker />
             </TabsContent>
 
-            <TabsContent value="business" className="space-y-6">
+            <TabsContent value="business" className="space-y-6 mt-8">
               <div className="grid gap-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -446,7 +446,7 @@ export default function ComprehensiveDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="taxes" className="space-y-6">
+            <TabsContent value="taxes" className="space-y-6 mt-8">
               <div className="grid gap-6">
                 <div className="flex items-center justify-between">
                   <div>
