@@ -1,12 +1,19 @@
-# Finance Tracker Application
+# Comprehensive SaaS Finance Platform
 
 ## Overview
 
-This is a full-stack financial management application built with React frontend and Express backend. The application helps users track credit cards and loans, visualize debt distribution, and calculate payoff scenarios. It uses PostgreSQL for persistence, Drizzle ORM for database operations, and shadcn/ui for the user interface components.
+This is a comprehensive SaaS financial management platform that serves both personal users and business owners. The application features personal finance tracking, business expense management, tax document generation, sales tax tracking with Shopify integration, and QuickBooks-style financial reporting. It uses PostgreSQL for persistence, Drizzle ORM for database operations, and modern React with TypeScript.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (August 2025)
+- **Major Scope Expansion**: Transformed from personal finance tracker to comprehensive SaaS platform
+- **Business Features**: Added business expense tracking, revenue management, and payout tracking
+- **Tax Management**: Implemented sales tax tracking, tax document generation, and Shopify integration
+- **Enhanced Dashboard**: Full-width layout with comprehensive financial metrics including available cash, available credit, and total liquidity
+- **Modern Architecture**: Maintained TypeScript-first approach with shadcn/ui components
 
 ## System Architecture
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, integer, date, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, integer, date, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -118,6 +118,138 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Business-related tables
+export const businessExpenses = pgTable("business_expenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  expenseName: varchar("expense_name").notNull(),
+  category: varchar("category").notNull(), // office-supplies, travel, meals, utilities, etc.
+  amount: varchar("amount").notNull(),
+  expenseDate: timestamp("expense_date").notNull(),
+  vendor: varchar("vendor"),
+  description: text("description"),
+  receipt: varchar("receipt_url"), // for receipt storage
+  taxDeductible: boolean("tax_deductible").default(true),
+  businessUnit: varchar("business_unit"), // for multi-unit businesses
+  paymentMethod: varchar("payment_method"), // cash, credit, check, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const businessRevenue = pgTable("business_revenue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  source: varchar("source").notNull(), // shopify, manual, stripe, etc.
+  amount: varchar("amount").notNull(),
+  saleDate: timestamp("sale_date").notNull(),
+  customer: varchar("customer"),
+  product: varchar("product"),
+  taxRate: varchar("tax_rate").default("0"), // sales tax rate applied
+  salesTax: varchar("sales_tax").default("0"), // calculated sales tax
+  state: varchar("state"), // for state-specific tax tracking
+  invoiceNumber: varchar("invoice_number"),
+  paymentStatus: varchar("payment_status").default("paid"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const businessPayouts = pgTable("business_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  payoutType: varchar("payout_type").notNull(), // salary, contractor, vendor, dividend, etc.
+  recipient: varchar("recipient").notNull(),
+  amount: varchar("amount").notNull(),
+  payoutDate: timestamp("payout_date").notNull(),
+  taxWithholding: varchar("tax_withholding").default("0"),
+  category: varchar("category").notNull(), // compensation, services, supplies, etc.
+  description: text("description"),
+  taxForm: varchar("tax_form"), // 1099, W2, etc.
+  businessUnit: varchar("business_unit"),
+  paymentMethod: varchar("payment_method"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const taxDocuments = pgTable("tax_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentType: varchar("document_type").notNull(), // 1099, profit-loss, sales-tax-report, etc.
+  taxYear: varchar("tax_year").notNull(),
+  quarter: varchar("quarter"), // for quarterly reports
+  generatedDate: timestamp("generated_date").defaultNow(),
+  documentData: jsonb("document_data").notNull(), // JSON data for the document
+  status: varchar("status").default("draft"), // draft, final, filed
+  filePath: varchar("file_path"), // for PDF storage
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const salesTaxSettings = pgTable("sales_tax_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  state: varchar("state").notNull(),
+  taxRate: varchar("tax_rate").notNull(),
+  effectiveDate: timestamp("effective_date").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const userPreferences = pgTable("user_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  businessMode: boolean("business_mode").default(false),
+  combinedView: boolean("combined_view").default(false), // show personal + business together
+  defaultBusinessUnit: varchar("default_business_unit"),
+  taxYear: varchar("tax_year").default("2024"),
+  businessName: varchar("business_name"),
+  businessType: varchar("business_type"), // llc, corp, sole-prop, etc.
+  ein: varchar("ein"), // employer identification number
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Types for business tables
+export const insertBusinessExpenseSchema = createInsertSchema(businessExpenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertBusinessExpense = z.infer<typeof insertBusinessExpenseSchema>;
+export type BusinessExpense = typeof businessExpenses.$inferSelect;
+
+export const insertBusinessRevenueSchema = createInsertSchema(businessRevenue).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertBusinessRevenue = z.infer<typeof insertBusinessRevenueSchema>;
+export type BusinessRevenue = typeof businessRevenue.$inferSelect;
+
+export const insertBusinessPayoutSchema = createInsertSchema(businessPayouts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertBusinessPayout = z.infer<typeof insertBusinessPayoutSchema>;
+export type BusinessPayout = typeof businessPayouts.$inferSelect;
+
+export const insertTaxDocumentSchema = createInsertSchema(taxDocuments).omit({
+  id: true,
+  createdAt: true
+});
+export type InsertTaxDocument = z.infer<typeof insertTaxDocumentSchema>;
+export type TaxDocument = typeof taxDocuments.$inferSelect;
+
+export const insertSalesTaxSettingSchema = createInsertSchema(salesTaxSettings).omit({
+  id: true,
+  createdAt: true
+});
+export type InsertSalesTaxSetting = z.infer<typeof insertSalesTaxSettingSchema>;
+export type SalesTaxSetting = typeof salesTaxSettings.$inferSelect;
+
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+export type UserPreferences = typeof userPreferences.$inferSelect;
 
 // Expense tracking for individual purchases and bills
 export const expenses = pgTable("expenses", {

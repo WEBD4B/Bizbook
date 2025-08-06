@@ -171,6 +171,14 @@ export default function ComprehensiveDashboard() {
                 <BarChart3 className="h-4 w-4" />
                 Investments
               </TabsTrigger>
+              <TabsTrigger value="business" className="flex items-center gap-2" data-testid="tab-business">
+                <Building2 className="h-4 w-4" />
+                Business
+              </TabsTrigger>
+              <TabsTrigger value="taxes" className="flex items-center gap-2" data-testid="tab-taxes">
+                <Receipt className="h-4 w-4" />
+                Taxes
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -327,6 +335,223 @@ export default function ComprehensiveDashboard() {
 
             <TabsContent value="investments" className="space-y-6">
               <InvestmentTracker />
+            </TabsContent>
+
+            <TabsContent value="business" className="space-y-6">
+              <div className="grid gap-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Business Dashboard</h2>
+                    <p className="text-muted-foreground">Manage business expenses, revenue, and payouts</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Business Settings
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Business Summary Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card data-testid="card-business-revenue">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-green-600" data-testid="text-business-revenue">$0.00</div>
+                      <p className="text-xs text-muted-foreground">Sales & income</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-business-expenses">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Business Expenses</CardTitle>
+                      <Receipt className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-red-600" data-testid="text-business-expenses">$0.00</div>
+                      <p className="text-xs text-muted-foreground">Deductible expenses</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-net-profit">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-net-profit">$0.00</div>
+                      <p className="text-xs text-muted-foreground">Revenue - expenses</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-sales-tax-owed">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Sales Tax Owed</CardTitle>
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-orange-600" data-testid="text-sales-tax-owed">$0.00</div>
+                      <p className="text-xs text-muted-foreground">Quarterly estimate</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Business Management Sections */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <Card data-testid="card-business-transactions">
+                    <CardHeader>
+                      <CardTitle>Recent Business Transactions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-6 text-neutral-500" data-testid="empty-state-business-transactions">
+                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No business transactions yet</p>
+                        <div className="flex gap-2 justify-center">
+                          <Button size="sm" data-testid="button-add-revenue">Add Revenue</Button>
+                          <Button size="sm" variant="outline" data-testid="button-add-business-expense">Add Expense</Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-business-reports">
+                    <CardHeader>
+                      <CardTitle>QuickBooks-Style Reports</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <Button variant="outline" className="w-full justify-start" data-testid="button-profit-loss">
+                          <Receipt className="h-4 w-4 mr-2" />
+                          Profit & Loss Statement
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" data-testid="button-cash-flow-report">
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Cash Flow Report
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-report">
+                          <Target className="h-4 w-4 mr-2" />
+                          Sales Tax Report
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" data-testid="button-1099-generation">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          1099 Generation
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="taxes" className="space-y-6">
+              <div className="grid gap-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Tax Management</h2>
+                    <p className="text-muted-foreground">Sales tax tracking and document generation</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" data-testid="button-import-shopify">
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Import from Shopify
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tax Summary */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card data-testid="card-quarterly-sales-tax">
+                    <CardHeader>
+                      <CardTitle>Current Quarter Sales Tax</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-orange-600" data-testid="text-quarterly-sales-tax">$0.00</div>
+                      <p className="text-sm text-muted-foreground mt-2">Q1 2024 - Due April 30</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-ytd-deductions">
+                    <CardHeader>
+                      <CardTitle>YTD Business Deductions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-green-600" data-testid="text-ytd-deductions">$0.00</div>
+                      <p className="text-sm text-muted-foreground mt-2">Tax-deductible expenses</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-estimated-tax-savings">
+                    <CardHeader>
+                      <CardTitle>Estimated Tax Savings</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-blue-600" data-testid="text-estimated-tax-savings">$0.00</div>
+                      <p className="text-sm text-muted-foreground mt-2">Based on 25% tax rate</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Sales Tax Management */}
+                <Card data-testid="card-sales-tax-settings">
+                  <CardHeader>
+                    <CardTitle>Sales Tax Settings by State</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-6 text-neutral-500" data-testid="empty-state-tax-settings">
+                      <Target size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">Configure sales tax rates for each state you sell in</p>
+                      <Button data-testid="button-add-tax-rate">Add Tax Rate</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Tax Document Generation */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <Card data-testid="card-tax-documents">
+                    <CardHeader>
+                      <CardTitle>Generate Tax Documents</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-return">
+                        <Receipt className="h-4 w-4 mr-2" />
+                        Sales Tax Return (Quarterly)
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" data-testid="button-1099-forms">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        1099-NEC Forms
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" data-testid="button-expense-report">
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Business Expense Report
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" data-testid="button-schedule-c">
+                        <Target className="h-4 w-4 mr-2" />
+                        Schedule C Preview
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-shopify-integration">
+                    <CardHeader>
+                      <CardTitle>Shopify Integration</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Import sales data from Shopify to automatically calculate sales tax
+                        </p>
+                        <Button className="w-full" data-testid="button-connect-shopify">Connect Shopify Store</Button>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Or manually upload CSV</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
 
