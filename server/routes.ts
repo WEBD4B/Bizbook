@@ -796,6 +796,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tax document routes
+  app.get("/api/tax-documents", async (req, res) => {
+    try {
+      const documents = await storage.getTaxDocuments();
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tax documents" });
+    }
+  });
+
+  app.post("/api/tax-documents", async (req, res) => {
+    try {
+      const document = await storage.createTaxDocument(req.body);
+      res.status(201).json(document);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create tax document" });
+    }
+  });
+
+  // Sales tax settings routes
+  app.get("/api/sales-tax-settings", async (req, res) => {
+    try {
+      const settings = await storage.getSalesTaxSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sales tax settings" });
+    }
+  });
+
+  app.post("/api/sales-tax-settings", async (req, res) => {
+    try {
+      const setting = await storage.createSalesTaxSetting(req.body);
+      res.status(201).json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create sales tax setting" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -295,6 +295,241 @@ export default function ComprehensiveDashboard() {
     );
   };
 
+  // Tax form components
+  const TaxDocumentForm = () => {
+    const [formData, setFormData] = useState({
+      taxYear: new Date().getFullYear().toString(),
+      documentType: '1099-NEC',
+      recipientName: '',
+      recipientTin: '',
+      recipientAddress: '',
+      totalPayments: ''
+    });
+
+    const taxDocMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/tax-documents", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Tax document generated successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/tax-documents"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to generate tax document",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      taxDocMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="tax-year">Tax Year</Label>
+          <Select value={formData.taxYear} onValueChange={(value) => setFormData(prev => ({ ...prev, taxYear: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="2023">2023</SelectItem>
+              <SelectItem value="2022">2022</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="document-type">Document Type</Label>
+          <Select value={formData.documentType} onValueChange={(value) => setFormData(prev => ({ ...prev, documentType: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1099-NEC">1099-NEC</SelectItem>
+              <SelectItem value="1099-MISC">1099-MISC</SelectItem>
+              <SelectItem value="Schedule C">Schedule C</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="recipient-name">Recipient Name</Label>
+          <Input
+            id="recipient-name"
+            value={formData.recipientName}
+            onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="recipient-tin">Tax ID Number</Label>
+          <Input
+            id="recipient-tin"
+            value={formData.recipientTin}
+            onChange={(e) => setFormData(prev => ({ ...prev, recipientTin: e.target.value }))}
+            placeholder="XXX-XX-XXXX or XX-XXXXXXX"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="recipient-address">Address</Label>
+          <Textarea
+            id="recipient-address"
+            value={formData.recipientAddress}
+            onChange={(e) => setFormData(prev => ({ ...prev, recipientAddress: e.target.value }))}
+            placeholder="Full address including zip code"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="total-payments">Total Payments</Label>
+          <Input
+            id="total-payments"
+            type="number"
+            step="0.01"
+            value={formData.totalPayments}
+            onChange={(e) => setFormData(prev => ({ ...prev, totalPayments: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={taxDocMutation.isPending}>
+            {taxDocMutation.isPending ? "Generating..." : "Generate Document"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const SalesTaxForm = () => {
+    const [formData, setFormData] = useState({
+      state: '',
+      taxRate: '',
+      locality: '',
+      localTaxRate: '',
+      effectiveDate: new Date().toISOString().split('T')[0],
+      nexusType: 'physical'
+    });
+
+    const salesTaxMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/sales-tax-settings", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Sales tax setting added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/sales-tax-settings"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add sales tax setting",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      salesTaxMutation.mutate(formData);
+    };
+
+    const states = [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+      'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+      'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+    ];
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="state">State</Label>
+          <Select value={formData.state} onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select state" />
+            </SelectTrigger>
+            <SelectContent>
+              {states.map(state => (
+                <SelectItem key={state} value={state}>{state}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="tax-rate">State Tax Rate (%)</Label>
+          <Input
+            id="tax-rate"
+            type="number"
+            step="0.001"
+            value={formData.taxRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, taxRate: e.target.value }))}
+            placeholder="e.g., 6.25"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="locality">City/County (Optional)</Label>
+          <Input
+            id="locality"
+            value={formData.locality}
+            onChange={(e) => setFormData(prev => ({ ...prev, locality: e.target.value }))}
+            placeholder="e.g., Los Angeles"
+          />
+        </div>
+        <div>
+          <Label htmlFor="local-tax-rate">Local Tax Rate (%) - Optional</Label>
+          <Input
+            id="local-tax-rate"
+            type="number"
+            step="0.001"
+            value={formData.localTaxRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, localTaxRate: e.target.value }))}
+            placeholder="e.g., 1.5"
+          />
+        </div>
+        <div>
+          <Label htmlFor="nexus-type">Nexus Type</Label>
+          <Select value={formData.nexusType} onValueChange={(value) => setFormData(prev => ({ ...prev, nexusType: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="physical">Physical Presence</SelectItem>
+              <SelectItem value="economic">Economic Nexus</SelectItem>
+              <SelectItem value="click-through">Click-through Nexus</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="effective-date">Effective Date</Label>
+          <Input
+            id="effective-date"
+            type="date"
+            value={formData.effectiveDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, effectiveDate: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={salesTaxMutation.isPending}>
+            {salesTaxMutation.isPending ? "Adding..." : "Add Tax Setting"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
@@ -748,7 +983,17 @@ export default function ComprehensiveDashboard() {
                     <div className="text-center py-6 text-neutral-500" data-testid="empty-state-tax-settings">
                       <Target size={48} className="mx-auto mb-4 text-neutral-300" />
                       <p className="mb-4">Configure sales tax rates for each state you sell in</p>
-                      <Button data-testid="button-add-tax-rate">Add Tax Rate</Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button data-testid="button-add-tax-rate">Add Tax Rate</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Sales Tax Rate</DialogTitle>
+                          </DialogHeader>
+                          <SalesTaxForm />
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </CardContent>
                 </Card>
@@ -764,10 +1009,20 @@ export default function ComprehensiveDashboard() {
                         <Receipt className="h-4 w-4 mr-2" />
                         Sales Tax Return (Quarterly)
                       </Button>
-                      <Button variant="outline" className="w-full justify-start" data-testid="button-1099-forms">
-                        <Building2 className="h-4 w-4 mr-2" />
-                        1099-NEC Forms
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start" data-testid="button-1099-forms">
+                            <Building2 className="h-4 w-4 mr-2" />
+                            1099-NEC Forms
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Generate 1099-NEC Form</DialogTitle>
+                          </DialogHeader>
+                          <TaxDocumentForm />
+                        </DialogContent>
+                      </Dialog>
                       <Button variant="outline" className="w-full justify-start" data-testid="button-expense-report">
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Business Expense Report

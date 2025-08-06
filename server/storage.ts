@@ -682,6 +682,57 @@ export class MemStorage implements IStorage {
   async deleteBusinessPayout(id: string): Promise<void> {
     this.businessPayouts.delete(id);
   }
+
+  // Tax document methods
+  private taxDocuments = new Map<string, any>();
+  
+  async getTaxDocuments(): Promise<any[]> {
+    return Array.from(this.taxDocuments.values());
+  }
+
+  async createTaxDocument(document: any): Promise<any> {
+    const newDocument = {
+      id: randomUUID(),
+      ...document,
+      createdAt: new Date().toISOString(),
+    };
+    this.taxDocuments.set(newDocument.id, newDocument);
+    return newDocument;
+  }
+
+  async deleteTaxDocument(id: string): Promise<void> {
+    this.taxDocuments.delete(id);
+  }
+
+  // Sales tax settings methods
+  private salesTaxSettings = new Map<string, any>();
+  
+  async getSalesTaxSettings(): Promise<any[]> {
+    return Array.from(this.salesTaxSettings.values());
+  }
+
+  async createSalesTaxSetting(setting: any): Promise<any> {
+    const newSetting = {
+      id: randomUUID(),
+      ...setting,
+      createdAt: new Date().toISOString(),
+    };
+    this.salesTaxSettings.set(newSetting.id, newSetting);
+    return newSetting;
+  }
+
+  async updateSalesTaxSetting(id: string, setting: any): Promise<any> {
+    const existing = this.salesTaxSettings.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...setting };
+    this.salesTaxSettings.set(id, updated);
+    return updated;
+  }
+
+  async deleteSalesTaxSetting(id: string): Promise<void> {
+    this.salesTaxSettings.delete(id);
+  }
 }
 
 export const storage = new MemStorage();
