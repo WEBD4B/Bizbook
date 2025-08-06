@@ -240,6 +240,7 @@ export const netWorthSnapshots = pgTable("net_worth_snapshots", {
   totalAssets: decimal("total_assets", { precision: 15, scale: 2 }).notNull(),
   totalLiabilities: decimal("total_liabilities", { precision: 15, scale: 2 }).notNull(),
   netWorth: decimal("net_worth", { precision: 15, scale: 2 }).notNull(),
+  buyingPower: decimal("buying_power", { precision: 15, scale: 2 }).notNull().default("0"),
   // Asset category breakdowns
   cashLiquidAssets: decimal("cash_liquid_assets", { precision: 15, scale: 2 }).default("0"),
   investmentAssets: decimal("investment_assets", { precision: 15, scale: 2 }).default("0"),

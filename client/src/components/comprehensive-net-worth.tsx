@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown, DollarSign, Building, Car, Briefcase, CreditCard, GraduationCap, Receipt } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, Building, Car, Briefcase, CreditCard, GraduationCap, Receipt, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from "recharts";
 import { apiRequest } from "@/lib/queryClient";
@@ -100,6 +100,7 @@ export function ComprehensiveNetWorth() {
         totalAssets: netWorthCalculation.totalAssets,
         totalLiabilities: netWorthCalculation.totalLiabilities,
         netWorth: netWorthCalculation.netWorth,
+        buyingPower: netWorthCalculation.buyingPower,
         cashLiquidAssets: netWorthCalculation.cashLiquidAssets,
         investmentAssets: netWorthCalculation.investmentAssets,
         realEstateAssets: netWorthCalculation.realEstateAssets,
@@ -137,7 +138,7 @@ export function ComprehensiveNetWorth() {
   return (
     <div className="space-y-6">
       {/* Net Worth Summary */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
@@ -183,6 +184,21 @@ export function ComprehensiveNetWorth() {
                 {createSnapshotMutation.isPending ? "Saving..." : "Save Snapshot"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Buying Power</CardTitle>
+            <Wallet className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600" data-testid="text-buying-power">
+              {formatCurrency(netWorthCalculation?.buyingPower || "0")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Liquid assets + available credit
+            </p>
           </CardContent>
         </Card>
       </div>

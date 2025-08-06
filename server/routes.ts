@@ -726,11 +726,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalAssets = Object.values(assetsByCategory).reduce((sum, value) => sum + value, 0);
       const totalLiabilities = Object.values(liabilitiesByCategory).reduce((sum, value) => sum + value, 0);
       const netWorth = totalAssets - totalLiabilities;
+      
+      // Calculate buying power: liquid assets + available credit from credit cards
+      const creditCards = await storage.getCreditCards();
+      const availableCredit = creditCards.reduce((sum, card) => {
+        const limit = parseFloat(card.creditLimit || "0");
+        const balance = parseFloat(card.balance || "0");
+        return sum + Math.max(0, limit - balance);
+      }, 0);
+      
+      const buyingPower = assetsByCategory.cashLiquidAssets + availableCredit;
 
       const calculation = {
         totalAssets: totalAssets.toFixed(2),
         totalLiabilities: totalLiabilities.toFixed(2),
         netWorth: netWorth.toFixed(2),
+        buyingPower: buyingPower.toFixed(2),
+        liquidAssets: assetsByCategory.cashLiquidAssets.toFixed(2),
+        availableCredit: availableCredit.toFixed(2),
         ...Object.fromEntries(
           Object.entries(assetsByCategory).map(([key, value]) => [key, value.toFixed(2)])
         ),
