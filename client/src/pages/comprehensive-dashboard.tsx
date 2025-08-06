@@ -18,6 +18,7 @@ import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
 import { Sidebar } from "@/components/sidebar";
 import { UpcomingPayments } from "@/components/upcoming-payments";
+import { UpcomingIncomes } from "@/components/upcoming-incomes";
 import { IncomeOverview } from "@/components/income-overview";
 import { PaymentDialog } from "@/components/payment-dialog";
 import { ExpenseForm } from "@/components/expense-form";
@@ -219,16 +220,19 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Charts and Overview */}
+              {/* Charts */}
               <div className="grid gap-6 md:grid-cols-2">
                 <DebtChart creditCards={creditCards} loans={loans} />
-                <UpcomingPayments />
+                <div className="grid gap-6 lg:grid-cols-1">
+                  <IncomeOverview />
+                  <ExpenseOverview />
+                </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                <IncomeOverview />
-                <ExpenseOverview />
+              {/* Full Width Payment and Income Sections */}
+              <div className="space-y-6">
+                <UpcomingPayments />
+                <UpcomingIncomes />
               </div>
             </TabsContent>
 
