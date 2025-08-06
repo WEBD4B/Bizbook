@@ -140,6 +140,10 @@ export const businessRevenue = pgTable("business_revenue", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   source: varchar("source").notNull(), // shopify, manual, stripe, etc.
   amount: varchar("amount").notNull(),
+  description: varchar("description"),
+  category: varchar("category"),
+  revenueType: varchar("revenue_type").default("one-time"), // one-time, subscription
+  frequency: varchar("frequency"), // weekly, monthly, quarterly, yearly (for subscriptions)
   saleDate: timestamp("sale_date").notNull(),
   customer: varchar("customer"),
   product: varchar("product"),

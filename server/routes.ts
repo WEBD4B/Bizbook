@@ -13,7 +13,8 @@ import {
   insertInvestmentSchema,
   insertAssetSchema,
   insertLiabilitySchema,
-  insertNetWorthSnapshotSchema
+  insertNetWorthSnapshotSchema,
+  insertBusinessRevenueSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -789,9 +790,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/business-revenue", async (req, res) => {
     try {
-      const revenue = await storage.createBusinessRevenue(req.body);
+      const validatedData = insertBusinessRevenueSchema.parse(req.body);
+      const revenue = await storage.createBusinessRevenue(validatedData);
       res.status(201).json(revenue);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
       res.status(500).json({ error: "Failed to create business revenue" });
     }
   });

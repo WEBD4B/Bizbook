@@ -93,6 +93,8 @@ export default function ComprehensiveDashboard() {
       description: '',
       source: '',
       category: '',
+      revenueType: '',
+      frequency: '',
       date: new Date().toISOString().split('T')[0]
     });
 
@@ -154,6 +156,36 @@ export default function ComprehensiveDashboard() {
           />
         </div>
         <div>
+          <Label htmlFor="revenue-type">Revenue Type</Label>
+          <Select value={formData.revenueType} onValueChange={(value) => setFormData(prev => ({ ...prev, revenueType: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select revenue type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="one-time">One-Time Payment</SelectItem>
+              <SelectItem value="subscription">Subscription</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {formData.revenueType === 'subscription' && (
+          <div>
+            <Label htmlFor="revenue-frequency">Billing Frequency</Label>
+            <Select value={formData.frequency} onValueChange={(value) => setFormData(prev => ({ ...prev, frequency: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        <div>
           <Label htmlFor="revenue-category">Category</Label>
           <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
             <SelectTrigger>
@@ -163,6 +195,7 @@ export default function ComprehensiveDashboard() {
               <SelectItem value="services">Services</SelectItem>
               <SelectItem value="products">Products</SelectItem>
               <SelectItem value="consulting">Consulting</SelectItem>
+              <SelectItem value="saas">SaaS/Software</SelectItem>
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
