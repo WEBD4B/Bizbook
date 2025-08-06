@@ -834,6 +834,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business info routes
+  app.get("/api/business-info", async (req, res) => {
+    try {
+      const info = await storage.getBusinessInfo();
+      res.json(info);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business info" });
+    }
+  });
+
+  app.post("/api/business-info", async (req, res) => {
+    try {
+      const info = await storage.createBusinessInfo(req.body);
+      res.status(201).json(info);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create business info" });
+    }
+  });
+
+  // Payment methods routes
+  app.get("/api/payment-methods", async (req, res) => {
+    try {
+      const methods = await storage.getPaymentMethods();
+      res.json(methods);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payment methods" });
+    }
+  });
+
+  app.post("/api/payment-methods", async (req, res) => {
+    try {
+      const method = await storage.createPaymentMethod(req.body);
+      res.status(201).json(method);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create payment method" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

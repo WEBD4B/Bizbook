@@ -733,6 +733,66 @@ export class MemStorage implements IStorage {
   async deleteSalesTaxSetting(id: string): Promise<void> {
     this.salesTaxSettings.delete(id);
   }
+
+  // Business info methods
+  private businessInfo = new Map<string, any>();
+  
+  async getBusinessInfo(): Promise<any[]> {
+    return Array.from(this.businessInfo.values());
+  }
+
+  async createBusinessInfo(info: any): Promise<any> {
+    const newInfo = {
+      id: randomUUID(),
+      ...info,
+      createdAt: new Date().toISOString(),
+    };
+    this.businessInfo.set(newInfo.id, newInfo);
+    return newInfo;
+  }
+
+  async updateBusinessInfo(id: string, info: any): Promise<any> {
+    const existing = this.businessInfo.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...info };
+    this.businessInfo.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessInfo(id: string): Promise<void> {
+    this.businessInfo.delete(id);
+  }
+
+  // Payment methods methods
+  private paymentMethods = new Map<string, any>();
+  
+  async getPaymentMethods(): Promise<any[]> {
+    return Array.from(this.paymentMethods.values());
+  }
+
+  async createPaymentMethod(method: any): Promise<any> {
+    const newMethod = {
+      id: randomUUID(),
+      ...method,
+      createdAt: new Date().toISOString(),
+    };
+    this.paymentMethods.set(newMethod.id, newMethod);
+    return newMethod;
+  }
+
+  async updatePaymentMethod(id: string, method: any): Promise<any> {
+    const existing = this.paymentMethods.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...method };
+    this.paymentMethods.set(id, updated);
+    return updated;
+  }
+
+  async deletePaymentMethod(id: string): Promise<void> {
+    this.paymentMethods.delete(id);
+  }
 }
 
 export const storage = new MemStorage();

@@ -530,6 +530,239 @@ export default function ComprehensiveDashboard() {
     );
   };
 
+  // Business settings form components
+  const BusinessInfoForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      businessName: '',
+      businessType: '',
+      taxId: '',
+      address: '',
+      phone: '',
+      email: '',
+      website: ''
+    });
+
+    const businessInfoMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/business-info", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Business information updated successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/business-info"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to update business information",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      businessInfoMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="business-name">Business Name</Label>
+          <Input
+            id="business-name"
+            value={formData.businessName}
+            onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="business-type">Business Type</Label>
+          <Select value={formData.businessType} onValueChange={(value) => setFormData(prev => ({ ...prev, businessType: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select business type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sole-proprietorship">Sole Proprietorship</SelectItem>
+              <SelectItem value="llc">LLC</SelectItem>
+              <SelectItem value="corporation">Corporation</SelectItem>
+              <SelectItem value="partnership">Partnership</SelectItem>
+              <SelectItem value="s-corp">S-Corp</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="tax-id">Tax ID / EIN</Label>
+          <Input
+            id="tax-id"
+            value={formData.taxId}
+            onChange={(e) => setFormData(prev => ({ ...prev, taxId: e.target.value }))}
+            placeholder="XX-XXXXXXX"
+          />
+        </div>
+        <div>
+          <Label htmlFor="address">Business Address</Label>
+          <Textarea
+            id="address"
+            value={formData.address}
+            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+            placeholder="Full business address"
+          />
+        </div>
+        <div>
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            placeholder="(555) 123-4567"
+          />
+        </div>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="business@example.com"
+          />
+        </div>
+        <div>
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            value={formData.website}
+            onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+            placeholder="https://example.com"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={businessInfoMutation.isPending}>
+            {businessInfoMutation.isPending ? "Saving..." : "Save Information"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const PaymentMethodForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      type: 'bank-account',
+      accountName: '',
+      accountNumber: '',
+      routingNumber: '',
+      bankName: '',
+      accountType: 'checking'
+    });
+
+    const paymentMethodMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/payment-methods", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Payment method added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add payment method",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      paymentMethodMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="payment-type">Payment Method Type</Label>
+          <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bank-account">Bank Account</SelectItem>
+              <SelectItem value="paypal">PayPal</SelectItem>
+              <SelectItem value="stripe">Stripe</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {formData.type === 'bank-account' && (
+          <>
+            <div>
+              <Label htmlFor="account-name">Account Name</Label>
+              <Input
+                id="account-name"
+                value={formData.accountName}
+                onChange={(e) => setFormData(prev => ({ ...prev, accountName: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="account-number">Account Number</Label>
+              <Input
+                id="account-number"
+                value={formData.accountNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="routing-number">Routing Number</Label>
+              <Input
+                id="routing-number"
+                value={formData.routingNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, routingNumber: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="bank-name">Bank Name</Label>
+              <Input
+                id="bank-name"
+                value={formData.bankName}
+                onChange={(e) => setFormData(prev => ({ ...prev, bankName: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="account-type">Account Type</Label>
+              <Select value={formData.accountType} onValueChange={(value) => setFormData(prev => ({ ...prev, accountType: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="checking">Checking</SelectItem>
+                  <SelectItem value="savings">Savings</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={paymentMethodMutation.isPending}>
+            {paymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
@@ -804,10 +1037,52 @@ export default function ComprehensiveDashboard() {
                     <p className="text-muted-foreground">Manage business expenses, revenue, and payouts</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Business Settings
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Building2 className="h-4 w-4 mr-2" />
+                          Business Settings
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Business Settings</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
+                                  <Building2 className="h-6 w-6" />
+                                  <span>Business Info</span>
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Business Information</DialogTitle>
+                                </DialogHeader>
+                                <BusinessInfoForm onClose={() => {}} />
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2">
+                                  <CreditCardIcon className="h-6 w-6" />
+                                  <span>Payment Methods</span>
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Add Payment Method</DialogTitle>
+                                </DialogHeader>
+                                <PaymentMethodForm onClose={() => {}} />
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
 
