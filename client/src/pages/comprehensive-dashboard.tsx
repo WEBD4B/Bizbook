@@ -12,7 +12,8 @@ import {
   Target,
   PieChart,
   BarChart3,
-  Receipt
+  Receipt,
+  Wallet
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -60,11 +61,11 @@ export default function ComprehensiveDashboard() {
     queryKey: ["/api/income"],
   });
 
-  const { data: assets = [], isLoading: assetsLoading } = useQuery({
+  const { data: assets = [], isLoading: assetsLoading } = useQuery<any[]>({
     queryKey: ["/api/assets"],
   });
 
-  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery<any[]>({
     queryKey: ["/api/expenses"],
   });
 
@@ -98,6 +99,16 @@ export default function ComprehensiveDashboard() {
   };
 
   const totalMonthlyIncome = calculateMonthlyIncome(incomes);
+
+  // Calculate available cash and credit metrics
+  const availableCash = assets
+    .filter((asset: any) => ['cash', 'checking', 'savings'].includes(asset.category?.toLowerCase() || ''))
+    .reduce((sum: number, asset: any) => sum + parseFloat(asset.value || asset.currentValue || "0"), 0);
+
+  const totalCreditLimit = creditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit || "0"), 0);
+  const totalCreditUsed = creditCards.reduce((sum, card) => sum + parseFloat(card.balance || "0"), 0);
+  const availableCredit = totalCreditLimit - totalCreditUsed;
+  const totalLiquidity = availableCash + availableCredit;
 
   if (isLoading) {
     return (
@@ -176,7 +187,7 @@ export default function ComprehensiveDashboard() {
               <NetWorthSummary />
 
               {/* Financial Summary Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card data-testid="card-total-debt">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Debt</CardTitle>
@@ -222,21 +233,56 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card data-testid="card-credit-utilization">
+                <Card data-testid="card-available-cash">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Credit Utilization</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Available Cash</CardTitle>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${creditUtilization > 30 ? 'text-red-600' : 'text-green-600'}`} data-testid="text-credit-utilization">
-                      {creditUtilization.toFixed(1)}%
+                    <div className="text-2xl font-bold text-green-600" data-testid="text-available-cash">
+                      {formatCurrency(availableCash)}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {creditUtilization > 30 ? 'Above recommended' : 'Good utilization'}
+                      Liquid assets
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card data-testid="card-available-credit">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Available Credit</CardTitle>
+                    <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600" data-testid="text-available-credit">
+                      {formatCurrency(availableCredit)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {creditUtilization.toFixed(1)}% utilization
                     </p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Total Liquidity Card - Full Width */}
+              <Card data-testid="card-total-liquidity">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-lg font-medium">Total Liquidity (Available Cash + Credit)</CardTitle>
+                  <Target className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-purple-600" data-testid="text-total-liquidity">
+                    {formatCurrency(totalLiquidity)}
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <span>Cash: {formatCurrency(availableCash)}</span>
+                    <span>•</span>
+                    <span>Credit: {formatCurrency(availableCredit)}</span>
+                    <span>•</span>
+                    <span>Total buying power available</span>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Full Width Sections */}
               <div className="space-y-6">
