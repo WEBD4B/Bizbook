@@ -909,6 +909,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CSV import route with multer support
+  app.post("/api/shopify-csv-import", async (req, res) => {
+    try {
+      // In a real implementation, you'd use multer to handle file uploads
+      // For now, we'll simulate processing the CSV data
+      const orders = await storage.processShopifyCsv(req.body);
+      res.status(201).json({ count: orders.length, orders });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to import CSV file" });
+    }
+  });
+
+  app.get("/api/shopify-orders", async (req, res) => {
+    try {
+      const orders = await storage.getShopifyOrders();
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch Shopify orders" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

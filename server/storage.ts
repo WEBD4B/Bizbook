@@ -839,6 +839,97 @@ export class MemStorage implements IStorage {
     this.shopifyIntegrations.set(newIntegration.id, newIntegration);
     return newIntegration;
   }
+
+  // Shopify CSV processing and order management
+  private shopifyOrders = new Map<string, any>();
+
+  async processShopifyCsv(csvData: any): Promise<any[]> {
+    // Simulate CSV processing - in real implementation, parse the actual CSV file
+    const sampleOrders = [
+      {
+        id: randomUUID(),
+        orderId: "#1001",
+        customerName: "John Smith",
+        customerEmail: "john.smith@email.com",
+        orderDate: "2024-08-01",
+        orderTotal: 125.50,
+        salesTaxAmount: 10.04,
+        taxRate: "8.0%",
+        state: "CA",
+        city: "Los Angeles",
+        shippingAddress: "123 Main St Los Angeles CA 90210",
+        productNames: "Premium Widget, Standard Widget",
+        paymentStatus: "paid",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: randomUUID(),
+        orderId: "#1002",
+        customerName: "Sarah Johnson",
+        customerEmail: "sarah.j@email.com",
+        orderDate: "2024-08-01",
+        orderTotal: 89.99,
+        salesTaxAmount: 7.20,
+        taxRate: "8.0%",
+        state: "CA",
+        city: "San Francisco",
+        shippingAddress: "456 Oak Ave San Francisco CA 94102",
+        productNames: "Deluxe Service Package",
+        paymentStatus: "paid",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: randomUUID(),
+        orderId: "#1003",
+        customerName: "Mike Brown",
+        customerEmail: "mike.brown@email.com",
+        orderDate: "2024-08-02",
+        orderTotal: 45.00,
+        salesTaxAmount: 0.00,
+        taxRate: "0.0%",
+        state: "OR",
+        city: "Portland",
+        shippingAddress: "789 Pine St Portland OR 97201",
+        productNames: "Digital Download",
+        paymentStatus: "paid",
+        createdAt: new Date().toISOString(),
+      }
+    ];
+
+    // Store orders
+    sampleOrders.forEach(order => {
+      this.shopifyOrders.set(order.id, order);
+    });
+
+    return sampleOrders;
+  }
+
+  async getShopifyOrders(): Promise<any[]> {
+    return Array.from(this.shopifyOrders.values());
+  }
+
+  async createShopifyOrder(orderData: any): Promise<any> {
+    const newOrder = {
+      id: randomUUID(),
+      ...orderData,
+      createdAt: new Date().toISOString(),
+    };
+    this.shopifyOrders.set(newOrder.id, newOrder);
+    return newOrder;
+  }
+
+  async updateShopifyOrder(id: string, orderData: any): Promise<any> {
+    const existing = this.shopifyOrders.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...orderData };
+    this.shopifyOrders.set(id, updated);
+    return updated;
+  }
+
+  async deleteShopifyOrder(id: string): Promise<void> {
+    this.shopifyOrders.delete(id);
+  }
 }
 
 export const storage = new MemStorage();

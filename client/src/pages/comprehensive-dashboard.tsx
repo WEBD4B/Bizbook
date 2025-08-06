@@ -20,7 +20,8 @@ import {
   PieChart,
   BarChart3,
   Receipt,
-  Wallet
+  Wallet,
+  Download
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -1045,6 +1046,8 @@ export default function ComprehensiveDashboard() {
   };
 
   const ShopifyIntegrationForm = () => {
+    const [activeTab, setActiveTab] = useState<'api' | 'csv'>('csv');
+    const [csvFile, setCsvFile] = useState<File | null>(null);
     const [formData, setFormData] = useState({
       storeName: '',
       apiKey: '',
@@ -1073,71 +1076,204 @@ export default function ComprehensiveDashboard() {
       }
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const csvImportMutation = useMutation({
+      mutationFn: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch('/api/shopify-csv-import', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) throw new Error('Upload failed');
+        return response.json();
+      },
+      onSuccess: (data) => {
+        toast({
+          title: "Success",
+          description: `Imported ${data.count} orders successfully`
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/shopify-orders"] });
+        setCsvFile(null);
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to import CSV file",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const downloadTemplate = () => {
+      const csvContent = `Order ID,Customer Name,Customer Email,Order Date,Order Total,Sales Tax Amount,Tax Rate,State,City,Shipping Address,Product Names,Payment Status
+#1001,John Smith,john.smith@email.com,2024-08-01,125.50,10.04,8.0%,CA,Los Angeles,"123 Main St Los Angeles CA 90210","Premium Widget, Standard Widget",paid
+#1002,Sarah Johnson,sarah.j@email.com,2024-08-01,89.99,7.20,8.0%,CA,San Francisco,"456 Oak Ave San Francisco CA 94102",Deluxe Service Package,paid
+#1003,Mike Brown,mike.brown@email.com,2024-08-02,45.00,0.00,0.0%,OR,Portland,"789 Pine St Portland OR 97201",Digital Download,paid`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'shopify_orders_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    };
+
+    const handleApiSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       shopifyMutation.mutate(formData);
     };
 
+    const handleCsvSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (csvFile) {
+        csvImportMutation.mutate(csvFile);
+      }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type === 'text/csv') {
+        setCsvFile(file);
+      } else {
+        toast({
+          title: "Invalid file",
+          description: "Please select a CSV file",
+          variant: "destructive"
+        });
+      }
+    };
+
     return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="store-name">Store Name</Label>
-          <Input
-            id="store-name"
-            value={formData.storeName}
-            onChange={(e) => setFormData(prev => ({ ...prev, storeName: e.target.value }))}
-            placeholder="your-store.myshopify.com"
-            required
-          />
+      <div className="space-y-4">
+        <div className="flex border-b">
+          <button
+            className={`px-4 py-2 ${activeTab === 'csv' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('csv')}
+          >
+            CSV Import
+          </button>
+          <button
+            className={`px-4 py-2 ${activeTab === 'api' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('api')}
+          >
+            API Connection
+          </button>
         </div>
-        <div>
-          <Label htmlFor="api-key">API Key</Label>
-          <Input
-            id="api-key"
-            value={formData.apiKey}
-            onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="api-secret">API Secret</Label>
-          <Input
-            id="api-secret"
-            type="password"
-            value={formData.apiSecret}
-            onChange={(e) => setFormData(prev => ({ ...prev, apiSecret: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="access-token">Access Token</Label>
-          <Input
-            id="access-token"
-            type="password"
-            value={formData.accessToken}
-            onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="sync-frequency">Sync Frequency</Label>
-          <Select value={formData.syncFrequency} onValueChange={(value) => setFormData(prev => ({ ...prev, syncFrequency: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="hourly">Hourly</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="submit" disabled={shopifyMutation.isPending}>
-            {shopifyMutation.isPending ? "Connecting..." : "Connect Store"}
-          </Button>
-        </div>
-      </form>
+
+        {activeTab === 'csv' && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">CSV Import Instructions</h4>
+              <p className="text-sm text-blue-800 mb-3">
+                Import your Shopify orders using our CSV template. The file should include customer info, order details, and sales tax data.
+              </p>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={downloadTemplate}
+                className="bg-white"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download CSV Template
+              </Button>
+            </div>
+
+            <form onSubmit={handleCsvSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="csv-file">Upload CSV File</Label>
+                <Input
+                  id="csv-file"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  required
+                />
+                {csvFile && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Selected: {csvFile.name}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded text-xs text-gray-600">
+                <strong>Required columns:</strong> Order ID, Customer Name, Customer Email, Order Date, Order Total, Sales Tax Amount, Tax Rate, State, City
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="submit" disabled={!csvFile || csvImportMutation.isPending}>
+                  {csvImportMutation.isPending ? "Importing..." : "Import Orders"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'api' && (
+          <form onSubmit={handleApiSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="store-name">Store Name</Label>
+              <Input
+                id="store-name"
+                value={formData.storeName}
+                onChange={(e) => setFormData(prev => ({ ...prev, storeName: e.target.value }))}
+                placeholder="your-store.myshopify.com"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="api-key">API Key</Label>
+              <Input
+                id="api-key"
+                value={formData.apiKey}
+                onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="api-secret">API Secret</Label>
+              <Input
+                id="api-secret"
+                type="password"
+                value={formData.apiSecret}
+                onChange={(e) => setFormData(prev => ({ ...prev, apiSecret: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="access-token">Access Token</Label>
+              <Input
+                id="access-token"
+                type="password"
+                value={formData.accessToken}
+                onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="sync-frequency">Sync Frequency</Label>
+              <Select value={formData.syncFrequency} onValueChange={(value) => setFormData(prev => ({ ...prev, syncFrequency: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hourly">Hourly</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="submit" disabled={shopifyMutation.isPending}>
+                {shopifyMutation.isPending ? "Connecting..." : "Connect Store"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
     );
   };
 
@@ -1738,7 +1874,7 @@ export default function ComprehensiveDashboard() {
                           </DialogContent>
                         </Dialog>
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Or manually upload CSV</p>
+                          <p className="text-xs text-muted-foreground">Upload sales data for automatic tax calculations</p>
                         </div>
                       </div>
                     </CardContent>
