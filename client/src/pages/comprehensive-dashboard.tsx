@@ -763,6 +763,384 @@ export default function ComprehensiveDashboard() {
     );
   };
 
+  // Additional tax form components
+  const SalesTaxReturnForm = () => {
+    const [formData, setFormData] = useState({
+      quarter: 'Q1',
+      year: new Date().getFullYear().toString(),
+      grossSales: '',
+      taxableAmount: '',
+      taxRate: '',
+      taxDue: '',
+      previousBalance: '',
+      penalties: '',
+      interest: ''
+    });
+
+    const salesTaxReturnMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/sales-tax-returns", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Sales tax return generated successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/sales-tax-returns"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to generate sales tax return",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      salesTaxReturnMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="quarter">Quarter</Label>
+            <Select value={formData.quarter} onValueChange={(value) => setFormData(prev => ({ ...prev, quarter: value }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Q1">Q1 (Jan-Mar)</SelectItem>
+                <SelectItem value="Q2">Q2 (Apr-Jun)</SelectItem>
+                <SelectItem value="Q3">Q3 (Jul-Sep)</SelectItem>
+                <SelectItem value="Q4">Q4 (Oct-Dec)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="year">Year</Label>
+            <Input
+              id="year"
+              type="number"
+              value={formData.year}
+              onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="gross-sales">Gross Sales</Label>
+          <Input
+            id="gross-sales"
+            type="number"
+            step="0.01"
+            value={formData.grossSales}
+            onChange={(e) => setFormData(prev => ({ ...prev, grossSales: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="taxable-amount">Taxable Amount</Label>
+          <Input
+            id="taxable-amount"
+            type="number"
+            step="0.01"
+            value={formData.taxableAmount}
+            onChange={(e) => setFormData(prev => ({ ...prev, taxableAmount: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={salesTaxReturnMutation.isPending}>
+            {salesTaxReturnMutation.isPending ? "Generating..." : "Generate Return"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const ExpenseReportForm = () => {
+    const [formData, setFormData] = useState({
+      reportType: 'quarterly',
+      startDate: '',
+      endDate: '',
+      categories: [] as string[],
+      includeTaxDeductible: true,
+      groupByCategory: true
+    });
+
+    const expenseReportMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/expense-reports", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Expense report generated successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/expense-reports"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to generate expense report",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      expenseReportMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="report-type">Report Type</Label>
+          <Select value={formData.reportType} onValueChange={(value) => setFormData(prev => ({ ...prev, reportType: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="quarterly">Quarterly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
+              <SelectItem value="custom">Custom Date Range</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {formData.reportType === 'custom' && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+        )}
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={expenseReportMutation.isPending}>
+            {expenseReportMutation.isPending ? "Generating..." : "Generate Report"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const ScheduleCForm = () => {
+    const [formData, setFormData] = useState({
+      businessName: '',
+      businessCode: '',
+      grossReceipts: '',
+      totalExpenses: '',
+      netProfit: '',
+      employeeNumber: '0',
+      accountingMethod: 'cash'
+    });
+
+    const scheduleCMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/schedule-c", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Schedule C form generated successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/schedule-c"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to generate Schedule C form",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      scheduleCMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="business-name">Business Name</Label>
+          <Input
+            id="business-name"
+            value={formData.businessName}
+            onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="business-code">Business Code</Label>
+          <Input
+            id="business-code"
+            value={formData.businessCode}
+            onChange={(e) => setFormData(prev => ({ ...prev, businessCode: e.target.value }))}
+            placeholder="6-digit NAICS code"
+          />
+        </div>
+        <div>
+          <Label htmlFor="gross-receipts">Gross Receipts</Label>
+          <Input
+            id="gross-receipts"
+            type="number"
+            step="0.01"
+            value={formData.grossReceipts}
+            onChange={(e) => setFormData(prev => ({ ...prev, grossReceipts: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="total-expenses">Total Expenses</Label>
+          <Input
+            id="total-expenses"
+            type="number"
+            step="0.01"
+            value={formData.totalExpenses}
+            onChange={(e) => setFormData(prev => ({ ...prev, totalExpenses: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="accounting-method">Accounting Method</Label>
+          <Select value={formData.accountingMethod} onValueChange={(value) => setFormData(prev => ({ ...prev, accountingMethod: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">Cash</SelectItem>
+              <SelectItem value="accrual">Accrual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={scheduleCMutation.isPending}>
+            {scheduleCMutation.isPending ? "Generating..." : "Generate Schedule C"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const ShopifyIntegrationForm = () => {
+    const [formData, setFormData] = useState({
+      storeName: '',
+      apiKey: '',
+      apiSecret: '',
+      accessToken: '',
+      syncFrequency: 'daily'
+    });
+
+    const shopifyMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/shopify-integration", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Shopify store connected successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/shopify-integration"] });
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to connect Shopify store",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      shopifyMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="store-name">Store Name</Label>
+          <Input
+            id="store-name"
+            value={formData.storeName}
+            onChange={(e) => setFormData(prev => ({ ...prev, storeName: e.target.value }))}
+            placeholder="your-store.myshopify.com"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="api-key">API Key</Label>
+          <Input
+            id="api-key"
+            value={formData.apiKey}
+            onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="api-secret">API Secret</Label>
+          <Input
+            id="api-secret"
+            type="password"
+            value={formData.apiSecret}
+            onChange={(e) => setFormData(prev => ({ ...prev, apiSecret: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="access-token">Access Token</Label>
+          <Input
+            id="access-token"
+            type="password"
+            value={formData.accessToken}
+            onChange={(e) => setFormData(prev => ({ ...prev, accessToken: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="sync-frequency">Sync Frequency</Label>
+          <Select value={formData.syncFrequency} onValueChange={(value) => setFormData(prev => ({ ...prev, syncFrequency: value }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hourly">Hourly</SelectItem>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="submit" disabled={shopifyMutation.isPending}>
+            {shopifyMutation.isPending ? "Connecting..." : "Connect Store"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
@@ -1280,10 +1658,20 @@ export default function ComprehensiveDashboard() {
                       <CardTitle>Generate Tax Documents</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-return">
-                        <Receipt className="h-4 w-4 mr-2" />
-                        Sales Tax Return (Quarterly)
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start" data-testid="button-sales-tax-return">
+                            <Receipt className="h-4 w-4 mr-2" />
+                            Sales Tax Return (Quarterly)
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Generate Sales Tax Return</DialogTitle>
+                          </DialogHeader>
+                          <SalesTaxReturnForm />
+                        </DialogContent>
+                      </Dialog>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="outline" className="w-full justify-start" data-testid="button-1099-forms">
@@ -1298,14 +1686,34 @@ export default function ComprehensiveDashboard() {
                           <TaxDocumentForm />
                         </DialogContent>
                       </Dialog>
-                      <Button variant="outline" className="w-full justify-start" data-testid="button-expense-report">
-                        <TrendingUp className="h-4 w-4 mr-2" />
-                        Business Expense Report
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start" data-testid="button-schedule-c">
-                        <Target className="h-4 w-4 mr-2" />
-                        Schedule C Preview
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start" data-testid="button-expense-report">
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Business Expense Report
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Generate Business Expense Report</DialogTitle>
+                          </DialogHeader>
+                          <ExpenseReportForm />
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full justify-start" data-testid="button-schedule-c">
+                            <Target className="h-4 w-4 mr-2" />
+                            Schedule C Preview
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Schedule C Tax Form Preview</DialogTitle>
+                          </DialogHeader>
+                          <ScheduleCForm />
+                        </DialogContent>
+                      </Dialog>
                     </CardContent>
                   </Card>
 
@@ -1318,7 +1726,17 @@ export default function ComprehensiveDashboard() {
                         <p className="text-sm text-muted-foreground">
                           Import sales data from Shopify to automatically calculate sales tax
                         </p>
-                        <Button className="w-full" data-testid="button-connect-shopify">Connect Shopify Store</Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button className="w-full" data-testid="button-connect-shopify">Connect Shopify Store</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Connect Shopify Store</DialogTitle>
+                            </DialogHeader>
+                            <ShopifyIntegrationForm />
+                          </DialogContent>
+                        </Dialog>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">Or manually upload CSV</p>
                         </div>

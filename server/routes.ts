@@ -872,6 +872,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Additional tax routes
+  app.post("/api/sales-tax-returns", async (req, res) => {
+    try {
+      const returnDoc = await storage.createSalesTaxReturn(req.body);
+      res.status(201).json(returnDoc);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create sales tax return" });
+    }
+  });
+
+  app.post("/api/expense-reports", async (req, res) => {
+    try {
+      const report = await storage.createExpenseReport(req.body);
+      res.status(201).json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create expense report" });
+    }
+  });
+
+  app.post("/api/schedule-c", async (req, res) => {
+    try {
+      const scheduleC = await storage.createScheduleC(req.body);
+      res.status(201).json(scheduleC);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create Schedule C" });
+    }
+  });
+
+  app.post("/api/shopify-integration", async (req, res) => {
+    try {
+      const integration = await storage.createShopifyIntegration(req.body);
+      res.status(201).json(integration);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to connect Shopify store" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

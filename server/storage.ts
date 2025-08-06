@@ -793,6 +793,52 @@ export class MemStorage implements IStorage {
   async deletePaymentMethod(id: string): Promise<void> {
     this.paymentMethods.delete(id);
   }
+
+  // Additional tax management methods
+  private salesTaxReturns = new Map<string, any>();
+  private expenseReports = new Map<string, any>();
+  private scheduleCForms = new Map<string, any>();
+  private shopifyIntegrations = new Map<string, any>();
+
+  async createSalesTaxReturn(returnData: any): Promise<any> {
+    const newReturn = {
+      id: randomUUID(),
+      ...returnData,
+      createdAt: new Date().toISOString(),
+    };
+    this.salesTaxReturns.set(newReturn.id, newReturn);
+    return newReturn;
+  }
+
+  async createExpenseReport(reportData: any): Promise<any> {
+    const newReport = {
+      id: randomUUID(),
+      ...reportData,
+      createdAt: new Date().toISOString(),
+    };
+    this.expenseReports.set(newReport.id, newReport);
+    return newReport;
+  }
+
+  async createScheduleC(scheduleCData: any): Promise<any> {
+    const newScheduleC = {
+      id: randomUUID(),
+      ...scheduleCData,
+      createdAt: new Date().toISOString(),
+    };
+    this.scheduleCForms.set(newScheduleC.id, newScheduleC);
+    return newScheduleC;
+  }
+
+  async createShopifyIntegration(integrationData: any): Promise<any> {
+    const newIntegration = {
+      id: randomUUID(),
+      ...integrationData,
+      createdAt: new Date().toISOString(),
+    };
+    this.shopifyIntegrations.set(newIntegration.id, newIntegration);
+    return newIntegration;
+  }
 }
 
 export const storage = new MemStorage();
