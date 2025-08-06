@@ -20,6 +20,7 @@ import { Sidebar } from "@/components/sidebar";
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
 import { IncomeOverview } from "@/components/income-overview";
+import { FinancialOverviewChart } from "@/components/financial-overview-chart";
 import { PaymentDialog } from "@/components/payment-dialog";
 import { ExpenseForm } from "@/components/expense-form";
 import { ExpenseOverview } from "@/components/expense-overview";
@@ -59,7 +60,15 @@ export default function ComprehensiveDashboard() {
     queryKey: ["/api/income"],
   });
 
-  const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading;
+  const { data: assets = [], isLoading: assetsLoading } = useQuery({
+    queryKey: ["/api/assets"],
+  });
+
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ["/api/expenses"],
+  });
+
+  const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
@@ -154,7 +163,16 @@ export default function ComprehensiveDashboard() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              {/* Net Worth Summary */}
+              {/* Full Width Visual Chart at Top */}
+              <FinancialOverviewChart 
+                creditCards={creditCards} 
+                loans={loans} 
+                incomes={incomes} 
+                assets={assets} 
+                expenses={expenses} 
+              />
+
+              {/* Net Worth Summary - Full Width */}
               <NetWorthSummary />
 
               {/* Financial Summary Cards */}
@@ -220,17 +238,10 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Charts */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <DebtChart creditCards={creditCards} loans={loans} />
-                <div className="grid gap-6 lg:grid-cols-1">
-                  <IncomeOverview />
-                  <ExpenseOverview />
-                </div>
-              </div>
-
-              {/* Full Width Payment and Income Sections */}
+              {/* Full Width Sections */}
               <div className="space-y-6">
+                <IncomeOverview />
+                <ExpenseOverview />
                 <UpcomingPayments />
                 <UpcomingIncomes />
               </div>

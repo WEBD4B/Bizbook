@@ -72,10 +72,12 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
             <TrendingUp className="text-secondary" size={20} />
             <span>Income Overview</span>
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={onAddIncome} data-testid="button-add-income">
-            <Plus size={16} className="mr-1" />
-            Add Income
-          </Button>
+          {onAddIncome && (
+            <Button variant="outline" size="sm" onClick={onAddIncome} data-testid="button-add-income">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Income
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -84,10 +86,12 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
             <TrendingUp size={48} className="mx-auto mb-4 text-neutral-300" />
             <p className="text-lg font-medium mb-2">No income sources</p>
             <p className="text-sm mb-4">Add your income sources to track your cash flow</p>
-            <Button onClick={onAddIncome} data-testid="button-add-first-income">
-              <Plus size={16} className="mr-2" />
-              Add First Income Source
-            </Button>
+            {onAddIncome && (
+              <Button onClick={onAddIncome} data-testid="button-add-first-income">
+                <Plus size={16} className="mr-2" />
+                Add First Income Source
+              </Button>
+            )}
           </div>
         ) : (
           <>

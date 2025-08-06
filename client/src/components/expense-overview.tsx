@@ -108,9 +108,11 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
             <Receipt className="text-primary" size={20} />
             <span>Monthly Expenses</span>
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={onAddExpense} data-testid="button-add-expense-overview">
-            Add Expense
-          </Button>
+          {onAddExpense && (
+            <Button variant="outline" size="sm" onClick={onAddExpense} data-testid="button-add-expense-overview">
+              Add Expense
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -119,9 +121,11 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
             <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
             <p className="text-lg font-medium mb-2">No expenses this month</p>
             <p className="text-sm mb-4">Start tracking your spending to see where your money goes</p>
-            <Button onClick={onAddExpense} data-testid="button-add-first-expense">
-              Add First Expense
-            </Button>
+            {onAddExpense && (
+              <Button onClick={onAddExpense} data-testid="button-add-first-expense">
+                Add First Expense
+              </Button>
+            )}
           </div>
         ) : (
           <>
