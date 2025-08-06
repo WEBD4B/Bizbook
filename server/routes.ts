@@ -758,6 +758,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business expense routes
+  app.get("/api/business-expenses", async (req, res) => {
+    try {
+      const expenses = await storage.getBusinessExpenses();
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business expenses" });
+    }
+  });
+
+  app.post("/api/business-expenses", async (req, res) => {
+    try {
+      const expense = await storage.createBusinessExpense(req.body);
+      res.status(201).json(expense);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create business expense" });
+    }
+  });
+
+  // Business revenue routes
+  app.get("/api/business-revenue", async (req, res) => {
+    try {
+      const revenue = await storage.getBusinessRevenue();
+      res.json(revenue);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business revenue" });
+    }
+  });
+
+  app.post("/api/business-revenue", async (req, res) => {
+    try {
+      const revenue = await storage.createBusinessRevenue(req.body);
+      res.status(201).json(revenue);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create business revenue" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

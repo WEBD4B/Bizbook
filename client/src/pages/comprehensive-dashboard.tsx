@@ -1,6 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Home,
@@ -41,9 +48,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function ComprehensiveDashboard() {
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
+  const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
 
   const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery<CreditCard[]>({
     queryKey: ["/api/credit-cards"],
@@ -70,6 +81,219 @@ export default function ComprehensiveDashboard() {
   });
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
+
+  // Business form components
+  const BusinessRevenueForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      amount: '',
+      description: '',
+      source: '',
+      category: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+
+    const revenueMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/business-revenue", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Business revenue added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/business-revenue"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add business revenue",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      revenueMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="revenue-amount">Amount</Label>
+          <Input
+            id="revenue-amount"
+            type="number"
+            step="0.01"
+            value={formData.amount}
+            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="revenue-description">Description</Label>
+          <Input
+            id="revenue-description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="revenue-source">Source</Label>
+          <Input
+            id="revenue-source"
+            value={formData.source}
+            onChange={(e) => setFormData(prev => ({ ...prev, source: e.target.value }))}
+            placeholder="e.g., Client payment, Product sales"
+          />
+        </div>
+        <div>
+          <Label htmlFor="revenue-category">Category</Label>
+          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="services">Services</SelectItem>
+              <SelectItem value="products">Products</SelectItem>
+              <SelectItem value="consulting">Consulting</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="revenue-date">Date</Label>
+          <Input
+            id="revenue-date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={revenueMutation.isPending}>
+            {revenueMutation.isPending ? "Adding..." : "Add Revenue"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const BusinessExpenseForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      amount: '',
+      description: '',
+      vendor: '',
+      category: '',
+      date: new Date().toISOString().split('T')[0],
+      notes: ''
+    });
+
+    const expenseMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/business-expenses", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Business expense added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/business-expenses"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to add business expense",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      expenseMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="expense-amount">Amount</Label>
+          <Input
+            id="expense-amount"
+            type="number"
+            step="0.01"
+            value={formData.amount}
+            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="expense-description">Description</Label>
+          <Input
+            id="expense-description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="expense-vendor">Vendor</Label>
+          <Input
+            id="expense-vendor"
+            value={formData.vendor}
+            onChange={(e) => setFormData(prev => ({ ...prev, vendor: e.target.value }))}
+            placeholder="e.g., Office supply store, Software company"
+          />
+        </div>
+        <div>
+          <Label htmlFor="expense-category">Category</Label>
+          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="office-supplies">Office Supplies</SelectItem>
+              <SelectItem value="software">Software</SelectItem>
+              <SelectItem value="travel">Travel</SelectItem>
+              <SelectItem value="meals">Meals & Entertainment</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="expense-date">Date</Label>
+          <Input
+            id="expense-date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="expense-notes">Notes</Label>
+          <Textarea
+            id="expense-notes"
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Additional notes (optional)"
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={expenseMutation.isPending}>
+            {expenseMutation.isPending ? "Adding..." : "Add Expense"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
 
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
@@ -410,8 +634,29 @@ export default function ComprehensiveDashboard() {
                         <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
                         <p className="mb-4">No business transactions yet</p>
                         <div className="flex gap-2 justify-center">
-                          <Button size="sm" data-testid="button-add-revenue">Add Revenue</Button>
-                          <Button size="sm" variant="outline" data-testid="button-add-business-expense">Add Expense</Button>
+                          <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" data-testid="button-add-revenue">Add Revenue</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Add Business Revenue</DialogTitle>
+                              </DialogHeader>
+                              <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
+                            </DialogContent>
+                          </Dialog>
+
+                          <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" data-testid="button-add-business-expense">Add Expense</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Add Business Expense</DialogTitle>
+                              </DialogHeader>
+                              <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </div>
                     </CardContent>

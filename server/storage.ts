@@ -592,6 +592,96 @@ export class MemStorage implements IStorage {
     const snapshots = await this.getNetWorthSnapshots();
     return snapshots.length > 0 ? snapshots[0] : undefined;
   }
+
+  // Business Expense methods
+  private businessExpenses = new Map<string, any>();
+  
+  async getBusinessExpenses(): Promise<any[]> {
+    return Array.from(this.businessExpenses.values());
+  }
+
+  async createBusinessExpense(expense: any): Promise<any> {
+    const newExpense = {
+      id: randomUUID(),
+      ...expense,
+      createdAt: new Date().toISOString(),
+    };
+    this.businessExpenses.set(newExpense.id, newExpense);
+    return newExpense;
+  }
+
+  async updateBusinessExpense(id: string, expense: any): Promise<any> {
+    const existing = this.businessExpenses.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...expense };
+    this.businessExpenses.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessExpense(id: string): Promise<void> {
+    this.businessExpenses.delete(id);
+  }
+
+  // Business Revenue methods
+  private businessRevenue = new Map<string, any>();
+  
+  async getBusinessRevenue(): Promise<any[]> {
+    return Array.from(this.businessRevenue.values());
+  }
+
+  async createBusinessRevenue(revenue: any): Promise<any> {
+    const newRevenue = {
+      id: randomUUID(),
+      ...revenue,
+      createdAt: new Date().toISOString(),
+    };
+    this.businessRevenue.set(newRevenue.id, newRevenue);
+    return newRevenue;
+  }
+
+  async updateBusinessRevenue(id: string, revenue: any): Promise<any> {
+    const existing = this.businessRevenue.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...revenue };
+    this.businessRevenue.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessRevenue(id: string): Promise<void> {
+    this.businessRevenue.delete(id);
+  }
+
+  // Business Payout methods
+  private businessPayouts = new Map<string, any>();
+  
+  async getBusinessPayouts(): Promise<any[]> {
+    return Array.from(this.businessPayouts.values());
+  }
+
+  async createBusinessPayout(payout: any): Promise<any> {
+    const newPayout = {
+      id: randomUUID(),
+      ...payout,
+      createdAt: new Date().toISOString(),
+    };
+    this.businessPayouts.set(newPayout.id, newPayout);
+    return newPayout;
+  }
+
+  async updateBusinessPayout(id: string, payout: any): Promise<any> {
+    const existing = this.businessPayouts.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...payout };
+    this.businessPayouts.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessPayout(id: string): Promise<void> {
+    this.businessPayouts.delete(id);
+  }
 }
 
 export const storage = new MemStorage();
