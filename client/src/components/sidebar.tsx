@@ -14,7 +14,6 @@ const navigation = [
   { name: "Credit Cards", href: "/credit-cards", icon: CreditCard },
   { name: "Loans", href: "/loans", icon: Building2 },
   { name: "Payment Schedule", href: "/schedule", icon: Calendar },
-  { name: "Analytics", href: "/analytics", icon: PieChart },
 ];
 
 export function Sidebar() {
