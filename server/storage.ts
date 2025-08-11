@@ -16,7 +16,8 @@ import {
   type PurchaseOrder, type InsertPurchaseOrder,
   type PurchaseOrderItem, type InsertPurchaseOrderItem,
   type BusinessCreditCard, type InsertBusinessCreditCard,
-  type BusinessLoan, type InsertBusinessLoan
+  type BusinessLoan, type InsertBusinessLoan,
+  type Vendor, type InsertVendor
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -155,6 +156,13 @@ export interface IStorage {
   createBusinessLoan(loan: InsertBusinessLoan): Promise<BusinessLoan>;
   updateBusinessLoan(id: string, loan: Partial<InsertBusinessLoan>): Promise<BusinessLoan | undefined>;
   deleteBusinessLoan(id: string): Promise<boolean>;
+
+  // Vendor Management
+  getVendors(): Promise<any[]>;
+  getVendor(id: string): Promise<any | undefined>;
+  createVendor(vendor: any): Promise<any>;
+  updateVendor(id: string, vendor: any): Promise<any>;
+  deleteVendor(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -176,6 +184,7 @@ export class MemStorage implements IStorage {
   private purchaseOrderItems: Map<string, PurchaseOrderItem>;
   private businessCreditCards: Map<string, BusinessCreditCard>;
   private businessLoans: Map<string, BusinessLoan>;
+  private vendors: Map<string, any>;
 
   constructor() {
     this.users = new Map();
@@ -196,6 +205,7 @@ export class MemStorage implements IStorage {
     this.purchaseOrderItems = new Map();
     this.businessCreditCards = new Map();
     this.businessLoans = new Map();
+    this.vendors = new Map();
   }
 
   // Users
@@ -1180,6 +1190,43 @@ export class MemStorage implements IStorage {
 
   async deleteBusinessLoan(id: string): Promise<boolean> {
     return this.businessLoans.delete(id);
+  }
+
+  // Vendor Management
+  async getVendors(): Promise<any[]> {
+    return Array.from(this.vendors.values());
+  }
+
+  async getVendor(id: string): Promise<any | undefined> {
+    return this.vendors.get(id);
+  }
+
+  async createVendor(vendor: any): Promise<any> {
+    const newVendor = {
+      ...vendor,
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.vendors.set(newVendor.id, newVendor);
+    return newVendor;
+  }
+
+  async updateVendor(id: string, vendor: any): Promise<any> {
+    const existing = this.vendors.get(id);
+    if (!existing) return undefined;
+    
+    const updated = {
+      ...existing,
+      ...vendor,
+      updatedAt: new Date().toISOString(),
+    };
+    this.vendors.set(id, updated);
+    return updated;
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    return this.vendors.delete(id);
   }
 }
 

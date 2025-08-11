@@ -139,9 +139,10 @@ export const businessProfiles = pgTable("business_profiles", {
 export const purchaseOrders = pgTable("purchase_orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   businessProfileId: varchar("business_profile_id").references(() => businessProfiles.id).notNull(),
+  vendorId: varchar("vendor_id").references(() => vendors.id),
   poNumber: varchar("po_number").notNull(),
   date: timestamp("date").defaultNow(),
-  vendorName: varchar("vendor_name").notNull(),
+  vendorName: varchar("vendor_name").notNull(), // Keep for backward compatibility
   vendorAddress: varchar("vendor_address").notNull(),
   vendorPhone: varchar("vendor_phone"),
   shipToName: varchar("ship_to_name"),
@@ -156,7 +157,7 @@ export const purchaseOrders = pgTable("purchase_orders", {
   shippingHandling: varchar("shipping_handling").default("0"),
   totalDue: varchar("total_due").notNull(),
   specialInstructions: text("special_instructions"),
-  status: varchar("status").default("pending"), // pending, sent, received, cancelled
+  status: varchar("status").default("pending"), // pending, sent, received, cancelled, emailed
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -175,6 +176,33 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
 
 export type BusinessProfile = typeof businessProfiles.$inferSelect;
 export type InsertBusinessProfile = typeof businessProfiles.$inferInsert;
+
+// Vendor management table
+export const vendors = pgTable("vendors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: varchar("company_name").notNull(),
+  contactPerson: varchar("contact_person"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  city: varchar("city"),
+  state: varchar("state"),
+  zipCode: varchar("zip_code"),
+  country: varchar("country").default("US"),
+  website: varchar("website"),
+  taxId: varchar("tax_id"), // EIN or SSN
+  vendorType: varchar("vendor_type"), // supplier, service, contractor, etc.
+  paymentTerms: varchar("payment_terms").default("net_30"), // net_15, net_30, net_60, due_on_receipt
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export type Vendor = typeof vendors.$inferSelect;
+export type InsertVendor = typeof vendors.$inferInsert;
+
+export const insertVendorSchema = createInsertSchema(vendors);
 
 // Business Credit Cards - separate from personal
 export const businessCreditCards = pgTable("business_credit_cards", {

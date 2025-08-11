@@ -112,6 +112,11 @@ export default function ComprehensiveDashboard() {
     queryKey: ["/api/business-loans"],
   });
 
+  // Vendor management
+  const { data: vendors = [], isLoading: vendorsLoading } = useQuery<any[]>({
+    queryKey: ["/api/vendors"],
+  });
+
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
   // Business form components
