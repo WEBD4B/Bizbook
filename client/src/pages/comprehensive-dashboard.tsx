@@ -1797,6 +1797,69 @@ export default function ComprehensiveDashboard() {
               <div className="space-y-6">
                 <IncomeOverview />
                 <ExpenseOverview />
+                
+                {/* Business Revenue Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Business Revenue
+                    </CardTitle>
+                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-revenue">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Revenue
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Business Revenue</DialogTitle>
+                        </DialogHeader>
+                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-500">
+                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">Track your business revenue</p>
+                      <p className="text-sm">Add one-time payments and recurring subscriptions</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Business Expenses Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Receipt className="h-5 w-5" />
+                      Business Expenses
+                    </CardTitle>
+                    <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-expense">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Expense
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Business Expense</DialogTitle>
+                        </DialogHeader>
+                        <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-500">
+                      <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">Track your business expenses</p>
+                      <p className="text-sm">Manage vendor payments and business costs</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 <UpcomingPayments />
                 <UpcomingIncomes />
               </div>
@@ -1865,7 +1928,7 @@ export default function ComprehensiveDashboard() {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => deleteCreditCard(card.id)}
+                                onClick={() => deleteCreditCard.mutate(card.id)}
                                 data-testid={`button-delete-${card.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1939,7 +2002,7 @@ export default function ComprehensiveDashboard() {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => deleteLoan(loan.id)}
+                                onClick={() => deleteLoan.mutate(loan.id)}
                                 data-testid={`button-delete-loan-${loan.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
