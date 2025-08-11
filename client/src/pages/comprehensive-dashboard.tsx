@@ -532,13 +532,14 @@ export default function ComprehensiveDashboard() {
         const salesTax = subtotal * 0.08; // 8% tax
         const totalDue = subtotal + salesTax;
 
-        const order = await apiRequest("POST", "/api/purchase-orders", {
+        const orderResponse = await apiRequest("POST", "/api/purchase-orders", {
           ...orderData,
           subtotal: subtotal.toString(),
           salesTax: salesTax.toString(),
           shippingHandling: "0",
           totalDue: totalDue.toString()
         });
+        const order = await orderResponse.json();
 
         // Create order items
         for (const item of items) {
@@ -2297,7 +2298,7 @@ export default function ComprehensiveDashboard() {
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-medium">{card.name}</h3>
                                 <Badge variant="outline">
-                                  {calculateCreditUtilization(parseFloat(card.balance), parseFloat(card.creditLimit))}% Used
+                                  {Math.round((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100)}% Used
                                 </Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
@@ -2441,7 +2442,7 @@ export default function ComprehensiveDashboard() {
                     <div className="text-2xl font-bold text-orange-600">
                       {creditCards.length > 0 
                         ? Math.round(creditCards.reduce((sum, card) => 
-                            sum + calculateCreditUtilization(parseFloat(card.balance), parseFloat(card.creditLimit)), 0
+                            sum + ((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100), 0
                           ) / creditCards.length)
                         : 0}%
                     </div>
@@ -2462,25 +2463,25 @@ export default function ComprehensiveDashboard() {
 
             <TabsContent value="business" className="space-y-6 mt-8">
               <div className="grid gap-6 lg:grid-cols-2">
-                {/* Credit Cards Section */}
+                {/* Business Revenue Section */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <CreditCardIcon className="h-5 w-5" />
-                      Credit Cards
+                      <DollarSign className="h-5 w-5" />
+                      Business Revenue
                     </CardTitle>
-                    <Dialog>
+                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-credit-card">
+                        <Button size="sm" data-testid="button-add-revenue">
                           <Plus className="h-4 w-4 mr-2" />
-                          Add Card
+                          Add Revenue
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Add Credit Card</DialogTitle>
+                          <DialogTitle>Add Business Revenue</DialogTitle>
                         </DialogHeader>
-                        <CreditCardForm onClose={() => {}} />
+                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
