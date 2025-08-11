@@ -243,6 +243,20 @@ export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type InsertPurchaseOrderItem = typeof purchaseOrderItems.$inferInsert;
 
+// Business credit cards and loans types
+export type BusinessCreditCard = typeof businessCreditCards.$inferSelect;
+export type InsertBusinessCreditCard = typeof businessCreditCards.$inferInsert;
+export type BusinessLoan = typeof businessLoans.$inferSelect;
+export type InsertBusinessLoan = typeof businessLoans.$inferInsert;
+
+// Business financial types
+export type BusinessExpense = typeof businessExpenses.$inferSelect;
+export type InsertBusinessExpense = typeof businessExpenses.$inferInsert;
+export type BusinessRevenue = typeof businessRevenue.$inferSelect;
+export type InsertBusinessRevenue = typeof businessRevenue.$inferInsert;
+export type BusinessPayout = typeof businessPayouts.$inferSelect;
+export type InsertBusinessPayout = typeof businessPayouts.$inferInsert;
+
 // Business-related tables
 export const businessExpenses = pgTable("business_expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

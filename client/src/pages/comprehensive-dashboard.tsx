@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
+import { LoanForm } from "@/components/loan-form";
+import { BusinessExpenseForm } from "@/components/business-expense-form";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -41,7 +43,7 @@ import { SavingsGoals } from "@/components/savings-goals";
 import { BudgetTracker } from "@/components/budget-tracker";
 import { InvestmentTracker } from "@/components/investment-tracker";
 import { ComprehensiveNetWorth } from "@/components/comprehensive-net-worth";
-import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
+import type { CreditCard, Loan, MonthlyPayment, Income, BusinessCreditCard, BusinessLoan, BusinessExpense, BusinessRevenue } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { 
   formatCurrency, 
@@ -2477,6 +2479,39 @@ export default function ComprehensiveDashboard() {
             </TabsContent>
 
             <TabsContent value="business" className="space-y-6 mt-8">
+              {/* Business Cost vs Revenue Analysis Chart - moved to top */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart className="h-5 w-5" />
+                    Business Cost vs Revenue Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        {
+                          month: 'Current',
+                          revenue: businessRevenue.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0),
+                          expenses: businessExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0),
+                          netProfit: businessRevenue.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0) - 
+                                    businessExpenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
+                        }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, '']} />
+                        <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                        <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                        <Bar dataKey="netProfit" fill="#3b82f6" name="Net Profit" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Business Revenue Section */}
                 <Card>
@@ -2501,46 +2536,39 @@ export default function ComprehensiveDashboard() {
                     </Dialog>
                   </CardHeader>
                   <CardContent>
-                    {creditCards.length === 0 ? (
+                    {businessRevenue.length === 0 ? (
                       <div className="text-center py-8 text-neutral-500">
-                        <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No credit cards added yet</p>
-                        <p className="text-sm">Add your credit cards to track balances and payments</p>
+                        <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No business revenue added yet</p>
+                        <p className="text-sm">Track your business income and subscriptions</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {creditCards.map((card: any) => (
-                          <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        {businessRevenue.map((revenue: any) => (
+                          <div key={revenue.id} className="flex items-center justify-between p-4 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{card.name}</h3>
-                                <Badge variant="outline">{card.interestRate}% APR</Badge>
+                                <h3 className="font-medium">{revenue.description}</h3>
+                                <Badge variant="outline">{revenue.category}</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
-                                <div>Credit Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
-                                <div>Min Payment: <span className="font-medium">{formatCurrency(parseFloat(card.minimumPayment))}</span></div>
-                                <div>Due: {new Date(Date.now() + card.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                                <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
+                                <div>Source: <span className="font-medium">{revenue.source}</span></div>
+                                <div>Date: {new Date(revenue.date).toLocaleDateString()}</div>
                               </div>
                             </div>
                             <div className="flex gap-2">
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => {
-                                  setSelectedAccount(card);
-                                  setSelectedAccountType('credit-card');
-                                  setPaymentDialogOpen(true);
-                                }}
-                                data-testid={`button-pay-${card.id}`}
+                                data-testid={`button-edit-revenue-${revenue.id}`}
                               >
-                                Pay
+                                Edit
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => deleteCreditCard.mutate(card.id)}
-                                data-testid={`button-delete-${card.id}`}
+                                data-testid={`button-delete-revenue-${revenue.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -2670,117 +2698,41 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
 
-            <TabsContent value="business" className="space-y-6 mt-8">
+              {/* Business Credit Cards and Loans Section */}
               <div className="grid gap-6 lg:grid-cols-2">
-                {/* Business Revenue Section */}
+                {/* Business Credit Cards */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Business Revenue
+                      <CreditCardIcon className="h-5 w-5" />
+                      Business Credit Cards
                     </CardTitle>
-                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-revenue">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Revenue
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Revenue</DialogTitle>
-                        </DialogHeader>
-                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
+                    <Button size="sm" data-testid="button-add-business-credit-card">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Card
+                    </Button>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-8 text-neutral-500">
-                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">Track your business revenue</p>
-                      <p className="text-sm">Add one-time payments and recurring subscriptions</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Business Expenses Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Receipt className="h-5 w-5" />
-                      Business Expenses
-                    </CardTitle>
-                    <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-expense">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Expense
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Expense</DialogTitle>
-                        </DialogHeader>
-                        <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-neutral-500">
-                      <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">Track your business expenses</p>
-                      <p className="text-sm">Manage vendor payments and business costs</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Business Profiles and Purchase Orders Section */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Business Profiles Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Building className="h-5 w-5" />
-                      Business Profiles
-                    </CardTitle>
-                    <Dialog open={businessProfileDialogOpen} onOpenChange={setBusinessProfileDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-business-profile">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Profile
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-3xl">
-                        <DialogHeader>
-                          <DialogTitle>Create Business Profile</DialogTitle>
-                        </DialogHeader>
-                        <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    {businessProfiles.length === 0 ? (
+                    {businessCreditCards.length === 0 ? (
                       <div className="text-center py-8 text-neutral-500">
-                        <Building size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No business profiles yet</p>
-                        <p className="text-sm">Create a business profile for purchase orders</p>
+                        <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No business credit cards added yet</p>
+                        <p className="text-sm">Track your business credit cards separately from personal ones</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {businessProfiles.map((profile: any) => (
-                          <div key={profile.id} className="p-4 border rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold">{profile.businessName}</h3>
-                              <Badge variant="outline">Active</Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <div>{profile.address}</div>
-                              <div>{profile.city}, {profile.state} {profile.zipCode}</div>
-                              {profile.phone && <div>Phone: {profile.phone}</div>}
-                              {profile.email && <div>Email: {profile.email}</div>}
+                        {businessCreditCards.map((card: any) => (
+                          <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-medium">{card.name}</h3>
+                                <Badge variant="outline">{card.interestRate}% APR</Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
+                                <div>Credit Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2789,57 +2741,38 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Purchase Orders Section */}
+                {/* Business Loans */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Purchase Orders
+                      <Building2 className="h-5 w-5" />
+                      Business Loans
                     </CardTitle>
-                    <Dialog open={purchaseOrderDialogOpen} onOpenChange={setPurchaseOrderDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          data-testid="button-create-purchase-order"
-                          disabled={businessProfiles.length === 0}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create PO
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-5xl">
-                        <DialogHeader>
-                          <DialogTitle>Create Purchase Order</DialogTitle>
-                        </DialogHeader>
-                        <PurchaseOrderForm onClose={() => setPurchaseOrderDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
+                    <Button size="sm" data-testid="button-add-business-loan">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Loan
+                    </Button>
                   </CardHeader>
                   <CardContent>
-                    {businessProfiles.length === 0 ? (
+                    {businessLoans.length === 0 ? (
                       <div className="text-center py-8 text-neutral-500">
-                        <FileText size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">Create a business profile first</p>
-                        <p className="text-sm">Business profiles are required for purchase orders</p>
-                      </div>
-                    ) : purchaseOrders.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <FileText size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No purchase orders yet</p>
-                        <p className="text-sm">Create purchase orders for vendor transactions</p>
+                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No business loans added yet</p>
+                        <p className="text-sm">Track SBA loans, equipment financing, and business lines of credit</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {purchaseOrders.map((order: any) => (
-                          <div key={order.id} className="p-4 border rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold">PO #{order.poNumber}</h3>
-                              <Badge variant="outline">{order.status || 'Draft'}</Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <div>Vendor: {order.vendorName}</div>
-                              <div>Total: {formatCurrency(parseFloat(order.totalDue || '0'))}</div>
-                              <div>Created: {new Date(order.createdAt).toLocaleDateString()}</div>
+                        {businessLoans.map((loan: any) => (
+                          <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-medium">{loan.name}</h3>
+                                <Badge variant="outline">{loan.interestRate}% APR</Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
+                                <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment || 0))}</span></div>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2849,130 +2782,30 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Business Cost vs Revenue Chart */}
+              {/* Vendor Management Section - Coming Soon */}
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Business Cost vs Revenue Analysis
+                    <Building2 className="h-5 w-5" />
+                    Vendor Management
                   </CardTitle>
+                  <Button size="sm" variant="outline" disabled>
+                    Coming Soon
+                  </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 w-full">
-                    {businessRevenue.length === 0 && businessExpenses.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-neutral-500">
-                        <div className="text-center">
-                          <BarChart3 size={48} className="mx-auto mb-4 text-neutral-300" />
-                          <p className="mb-2">No business data yet</p>
-                          <p className="text-sm">Add revenue and expenses to see cost analysis</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <h3 className="text-sm font-medium text-green-800">Total Revenue</h3>
-                            <p className="text-2xl font-bold text-green-600">
-                              {formatCurrency(businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0))}
-                            </p>
-                          </div>
-                          <div className="text-center p-4 bg-red-50 rounded-lg">
-                            <h3 className="text-sm font-medium text-red-800">Total Expenses</h3>
-                            <p className="text-2xl font-bold text-red-600">
-                              {formatCurrency(businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0))}
-                            </p>
-                          </div>
-                          <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <h3 className="text-sm font-medium text-blue-800">Net Profit</h3>
-                            <p className="text-2xl font-bold text-blue-600">
-                              {formatCurrency(
-                                businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) -
-                                businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0)
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* Visual Business Chart */}
-                        <div className="h-80">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={[
-                                {
-                                  name: 'Current Period',
-                                  Revenue: businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0),
-                                  Expenses: businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0),
-                                  Profit: businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) - businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0)
-                                }
-                              ]}
-                            >
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="name" />
-                              <YAxis tickFormatter={(value) => {
-                                if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-                                return `$${value}`;
-                              }} />
-                              <Tooltip formatter={(value: any) => [formatCurrency(value), '']} />
-                              <Bar dataKey="Revenue" fill="#22c55e" name="Revenue" />
-                              <Bar dataKey="Expenses" fill="#ef4444" name="Expenses" />
-                              <Bar dataKey="Profit" fill={
-                                businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) - 
-                                businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) >= 0 
-                                  ? "#3b82f6" : "#f97316"
-                              } name="Net Profit" />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    )}
+                  <div className="text-center py-8 text-neutral-500">
+                    <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                    <p className="mb-4">Vendor Management</p>
+                    <p className="text-sm">Add vendors to create purchase orders and track business relationships</p>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Business Summary Stats */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">
-                      $0.00
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      $0.00
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      $0.00
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Monthly Recurring Revenue</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-purple-600">
-                      $0.00
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
+
+
+
+
           </Tabs>
 
           <PaymentDialog 
@@ -2986,3 +2819,5 @@ export default function ComprehensiveDashboard() {
     </div>
   );
 }
+
+
