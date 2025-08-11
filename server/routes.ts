@@ -14,7 +14,8 @@ import {
   insertAssetSchema,
   insertLiabilitySchema,
   insertNetWorthSnapshotSchema,
-  insertBusinessRevenueSchema
+  insertBusinessRevenueSchema,
+  insertBusinessExpenseSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1091,6 +1092,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete purchase order item" });
+    }
+  });
+
+  // Business Revenue routes
+  app.get("/api/business-revenue", async (req, res) => {
+    try {
+      const revenue = await storage.getAllBusinessRevenue();
+      res.json(revenue);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch business revenue" });
+    }
+  });
+
+  app.post("/api/business-revenue", async (req, res) => {
+    try {
+      const validatedData = insertBusinessRevenueSchema.parse(req.body);
+      const revenue = await storage.createBusinessRevenue(validatedData);
+      res.status(201).json(revenue);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create business revenue" });
+    }
+  });
+
+  // Business Expenses routes
+  app.get("/api/business-expenses", async (req, res) => {
+    try {
+      const expenses = await storage.getAllBusinessExpenses();
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch business expenses" });
+    }
+  });
+
+  app.post("/api/business-expenses", async (req, res) => {
+    try {
+      const validatedData = insertBusinessExpenseSchema.parse(req.body);
+      const expense = await storage.createBusinessExpense(validatedData);
+      res.status(201).json(expense);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create business expense" });
     }
   });
 

@@ -127,6 +127,18 @@ export interface IStorage {
   createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
   updatePurchaseOrderItem(id: string, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined>;
   deletePurchaseOrderItem(id: string): Promise<boolean>;
+
+  // Business Revenue
+  getAllBusinessRevenue(): Promise<any[]>;
+  createBusinessRevenue(revenue: any): Promise<any>;
+  updateBusinessRevenue(id: string, revenue: any): Promise<any>;
+  deleteBusinessRevenue(id: string): Promise<void>;
+
+  // Business Expenses
+  getAllBusinessExpenses(): Promise<any[]>;
+  createBusinessExpense(expense: any): Promise<any>;
+  updateBusinessExpense(id: string, expense: any): Promise<any>;
+  deleteBusinessExpense(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
