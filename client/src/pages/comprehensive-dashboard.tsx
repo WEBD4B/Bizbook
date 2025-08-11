@@ -91,6 +91,7 @@ export default function ComprehensiveDashboard() {
       description: '',
       source: '',
       category: '',
+      customCategory: '',
       revenueType: '',
       frequency: '',
       date: new Date().toISOString().split('T')[0]
@@ -198,6 +199,19 @@ export default function ComprehensiveDashboard() {
             </SelectContent>
           </Select>
         </div>
+        
+        {formData.category === 'other' && (
+          <div>
+            <Label htmlFor="custom-revenue-category">Custom Category</Label>
+            <Input
+              id="custom-revenue-category"
+              value={formData.customCategory}
+              onChange={(e) => setFormData(prev => ({ ...prev, customCategory: e.target.value }))}
+              placeholder="Enter custom category"
+              required
+            />
+          </div>
+        )}
         <div>
           <Label htmlFor="revenue-date">Date</Label>
           <Input
@@ -224,6 +238,7 @@ export default function ComprehensiveDashboard() {
       description: '',
       vendor: '',
       category: '',
+      customCategory: '',
       date: new Date().toISOString().split('T')[0],
       notes: ''
     });
@@ -301,6 +316,19 @@ export default function ComprehensiveDashboard() {
             </SelectContent>
           </Select>
         </div>
+        
+        {formData.category === 'other' && (
+          <div>
+            <Label htmlFor="custom-expense-category">Custom Category</Label>
+            <Input
+              id="custom-expense-category"
+              value={formData.customCategory}
+              onChange={(e) => setFormData(prev => ({ ...prev, customCategory: e.target.value }))}
+              placeholder="Enter custom category"
+              required
+            />
+          </div>
+        )}
         <div>
           <Label htmlFor="expense-date">Date</Label>
           <Input
