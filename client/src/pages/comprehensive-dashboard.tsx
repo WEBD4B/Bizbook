@@ -14,7 +14,7 @@ import {
   CreditCard as CreditCardIcon,
   Building2,
   DollarSign,
-  Menu,
+
   TrendingUp,
   Target,
   PieChart,
@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
-import { Sidebar } from "@/components/sidebar";
+
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
 import { IncomeOverview } from "@/components/income-overview";
@@ -47,11 +47,9 @@ import {
   calculateCreditUtilization
 } from "@/lib/financial-calculations";
 import { useState } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
 
 export default function ComprehensiveDashboard() {
-  const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -1644,23 +1642,8 @@ export default function ComprehensiveDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {!isMobile ? (
-        <Sidebar />
-      ) : (
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="fixed top-4 left-4 z-50">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0">
-            <Sidebar />
-          </SheetContent>
-        </Sheet>
-      )}
-
-      <main className="flex-1 p-4 overflow-auto">
+    <div className="min-h-screen bg-gray-50">
+      <main className="p-4">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Personal Finance Center</h1>
