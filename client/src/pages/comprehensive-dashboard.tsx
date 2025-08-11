@@ -1672,13 +1672,13 @@ export default function ComprehensiveDashboard() {
                 <Home className="h-4 w-4" />
                 Dashboard
               </TabsTrigger>
-              <TabsTrigger value="credit-cards-loans" className="flex items-center gap-2" data-testid="tab-credit-cards-loans">
+              <TabsTrigger value="credits" className="flex items-center gap-2" data-testid="tab-credits">
                 <CreditCardIcon className="h-4 w-4" />
-                Credit Cards & Loans
+                Credits
               </TabsTrigger>
-              <TabsTrigger value="payment-schedule" className="flex items-center gap-2" data-testid="tab-payment-schedule">
-                <Receipt className="h-4 w-4" />
-                Payment Schedule
+              <TabsTrigger value="business" className="flex items-center gap-2" data-testid="tab-business">
+                <Building2 className="h-4 w-4" />
+                Business
               </TabsTrigger>
             </TabsList>
 
@@ -1798,74 +1798,14 @@ export default function ComprehensiveDashboard() {
                 <IncomeOverview />
                 <ExpenseOverview />
                 
-                {/* Business Revenue Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Business Revenue
-                    </CardTitle>
-                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-revenue">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Revenue
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Revenue</DialogTitle>
-                        </DialogHeader>
-                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-neutral-500">
-                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">Track your business revenue</p>
-                      <p className="text-sm">Add one-time payments and recurring subscriptions</p>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* Business Expenses Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Receipt className="h-5 w-5" />
-                      Business Expenses
-                    </CardTitle>
-                    <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-expense">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Expense
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Expense</DialogTitle>
-                        </DialogHeader>
-                        <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-neutral-500">
-                      <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">Track your business expenses</p>
-                      <p className="text-sm">Manage vendor payments and business costs</p>
-                    </div>
-                  </CardContent>
-                </Card>
                 
                 <UpcomingPayments />
                 <UpcomingIncomes />
               </div>
             </TabsContent>
 
-            <TabsContent value="credit-cards-loans" className="space-y-6 mt-8">
+            <TabsContent value="credits" className="space-y-6 mt-8">
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Credit Cards Section */}
                 <Card>
@@ -2061,8 +2001,114 @@ export default function ComprehensiveDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="payment-schedule" className="space-y-6 mt-8">
-              <UpcomingPayments />
+            <TabsContent value="business" className="space-y-6 mt-8">
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Business Revenue Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Business Revenue
+                    </CardTitle>
+                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-revenue">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Revenue
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Business Revenue</DialogTitle>
+                        </DialogHeader>
+                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-500">
+                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">Track your business revenue</p>
+                      <p className="text-sm">Add one-time payments and recurring subscriptions</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Business Expenses Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Receipt className="h-5 w-5" />
+                      Business Expenses
+                    </CardTitle>
+                    <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-expense">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Expense
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Business Expense</DialogTitle>
+                        </DialogHeader>
+                        <BusinessExpenseForm onClose={() => setExpenseDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-500">
+                      <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">Track your business expenses</p>
+                      <p className="text-sm">Manage vendor payments and business costs</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Business Summary Stats */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">
+                      $0.00
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      $0.00
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      $0.00
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Monthly Recurring Revenue</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600">
+                      $0.00
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
 
