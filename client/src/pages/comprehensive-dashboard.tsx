@@ -103,6 +103,15 @@ export default function ComprehensiveDashboard() {
     queryKey: ["/api/business-expenses"],
   });
 
+  // Business credit cards and loans (separate from personal)
+  const { data: businessCreditCards = [], isLoading: businessCreditCardsLoading } = useQuery<any[]>({
+    queryKey: ["/api/business-credit-cards"],
+  });
+
+  const { data: businessLoans = [], isLoading: businessLoansLoading } = useQuery<any[]>({
+    queryKey: ["/api/business-loans"],
+  });
+
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
   // Business form components

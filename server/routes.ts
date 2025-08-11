@@ -15,6 +15,8 @@ import {
   insertLiabilitySchema,
   insertNetWorthSnapshotSchema,
   insertBusinessRevenueSchema,
+  insertBusinessCreditCardSchema,
+  insertBusinessLoanSchema,
   insertBusinessExpenseSchema
 } from "@shared/schema";
 import { z } from "zod";
@@ -799,6 +801,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ error: "Failed to create business revenue" });
+    }
+  });
+
+  // Business Credit Cards routes (separate from personal)
+  app.get("/api/business-credit-cards", async (req, res) => {
+    try {
+      const cards = await storage.getBusinessCreditCards();
+      res.json(cards);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business credit cards" });
+    }
+  });
+
+  app.post("/api/business-credit-cards", async (req, res) => {
+    try {
+      const validatedData = insertBusinessCreditCardSchema.parse(req.body);
+      const card = await storage.createBusinessCreditCard(validatedData);
+      res.status(201).json(card);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create business credit card" });
+    }
+  });
+
+  app.put("/api/business-credit-cards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const card = await storage.updateBusinessCreditCard(id, req.body);
+      if (!card) {
+        return res.status(404).json({ error: "Business credit card not found" });
+      }
+      res.json(card);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update business credit card" });
+    }
+  });
+
+  app.delete("/api/business-credit-cards/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteBusinessCreditCard(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Business credit card not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete business credit card" });
+    }
+  });
+
+  // Business Loans routes (separate from personal)
+  app.get("/api/business-loans", async (req, res) => {
+    try {
+      const loans = await storage.getBusinessLoans();
+      res.json(loans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business loans" });
+    }
+  });
+
+  app.post("/api/business-loans", async (req, res) => {
+    try {
+      const validatedData = insertBusinessLoanSchema.parse(req.body);
+      const loan = await storage.createBusinessLoan(validatedData);
+      res.status(201).json(loan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create business loan" });
+    }
+  });
+
+  app.put("/api/business-loans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const loan = await storage.updateBusinessLoan(id, req.body);
+      if (!loan) {
+        return res.status(404).json({ error: "Business loan not found" });
+      }
+      res.json(loan);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update business loan" });
+    }
+  });
+
+  app.delete("/api/business-loans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteBusinessLoan(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Business loan not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete business loan" });
     }
   });
 

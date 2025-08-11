@@ -175,6 +175,41 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
 
 export type BusinessProfile = typeof businessProfiles.$inferSelect;
 export type InsertBusinessProfile = typeof businessProfiles.$inferInsert;
+
+// Business Credit Cards - separate from personal
+export const businessCreditCards = pgTable("business_credit_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessProfileId: varchar("business_profile_id").references(() => businessProfiles.id),
+  name: text("name").notNull(),
+  balance: decimal("balance", { precision: 10, scale: 2 }).notNull(),
+  creditLimit: decimal("credit_limit", { precision: 10, scale: 2 }).notNull(),
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull(),
+  minimumPayment: decimal("minimum_payment", { precision: 10, scale: 2 }).notNull(),
+  dueDate: integer("due_date").notNull(), // day of month (1-31)
+  cardType: text("card_type").default("business"), // business, corporate
+  rewardsType: text("rewards_type"), // cash_back, points, miles
+  annualFee: decimal("annual_fee", { precision: 10, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Business Loans - separate from personal
+export const businessLoans = pgTable("business_loans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessProfileId: varchar("business_profile_id").references(() => businessProfiles.id),
+  name: text("name").notNull(),
+  balance: decimal("balance", { precision: 10, scale: 2 }).notNull(),
+  originalAmount: decimal("original_amount", { precision: 10, scale: 2 }).notNull(),
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }).notNull(),
+  monthlyPayment: decimal("monthly_payment", { precision: 10, scale: 2 }).notNull(),
+  termMonths: integer("term_months").notNull(),
+  dueDate: integer("due_date").notNull(), // day of month (1-31)
+  loanType: text("loan_type").notNull(), // 'equipment', 'working_capital', 'sba', 'line_of_credit'
+  lenderName: text("lender_name"),
+  purposeOfLoan: text("purpose_of_loan"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
@@ -307,6 +342,24 @@ export const insertSalesTaxSettingSchema = createInsertSchema(salesTaxSettings).
 });
 export type InsertSalesTaxSetting = z.infer<typeof insertSalesTaxSettingSchema>;
 export type SalesTaxSetting = typeof salesTaxSettings.$inferSelect;
+
+// Business credit cards and loans schemas
+export const insertBusinessCreditCardSchema = createInsertSchema(businessCreditCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertBusinessLoanSchema = createInsertSchema(businessLoans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertBusinessCreditCard = z.infer<typeof insertBusinessCreditCardSchema>;
+export type BusinessCreditCard = typeof businessCreditCards.$inferSelect;
+export type InsertBusinessLoan = z.infer<typeof insertBusinessLoanSchema>;
+export type BusinessLoan = typeof businessLoans.$inferSelect;
 
 export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
   id: true,

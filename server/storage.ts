@@ -14,7 +14,9 @@ import {
   type NetWorthSnapshot, type InsertNetWorthSnapshot,
   type BusinessProfile, type InsertBusinessProfile,
   type PurchaseOrder, type InsertPurchaseOrder,
-  type PurchaseOrderItem, type InsertPurchaseOrderItem
+  type PurchaseOrderItem, type InsertPurchaseOrderItem,
+  type BusinessCreditCard, type InsertBusinessCreditCard,
+  type BusinessLoan, type InsertBusinessLoan
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -139,6 +141,20 @@ export interface IStorage {
   createBusinessExpense(expense: any): Promise<any>;
   updateBusinessExpense(id: string, expense: any): Promise<any>;
   deleteBusinessExpense(id: string): Promise<void>;
+
+  // Business Credit Cards (separate from personal)
+  getBusinessCreditCards(): Promise<BusinessCreditCard[]>;
+  getBusinessCreditCard(id: string): Promise<BusinessCreditCard | undefined>;
+  createBusinessCreditCard(creditCard: InsertBusinessCreditCard): Promise<BusinessCreditCard>;
+  updateBusinessCreditCard(id: string, creditCard: Partial<InsertBusinessCreditCard>): Promise<BusinessCreditCard | undefined>;
+  deleteBusinessCreditCard(id: string): Promise<boolean>;
+
+  // Business Loans (separate from personal)
+  getBusinessLoans(): Promise<BusinessLoan[]>;
+  getBusinessLoan(id: string): Promise<BusinessLoan | undefined>;
+  createBusinessLoan(loan: InsertBusinessLoan): Promise<BusinessLoan>;
+  updateBusinessLoan(id: string, loan: Partial<InsertBusinessLoan>): Promise<BusinessLoan | undefined>;
+  deleteBusinessLoan(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -158,6 +174,8 @@ export class MemStorage implements IStorage {
   private businessProfiles: Map<string, BusinessProfile>;
   private purchaseOrders: Map<string, PurchaseOrder>;
   private purchaseOrderItems: Map<string, PurchaseOrderItem>;
+  private businessCreditCards: Map<string, BusinessCreditCard>;
+  private businessLoans: Map<string, BusinessLoan>;
 
   constructor() {
     this.users = new Map();
@@ -176,6 +194,8 @@ export class MemStorage implements IStorage {
     this.businessProfiles = new Map();
     this.purchaseOrders = new Map();
     this.purchaseOrderItems = new Map();
+    this.businessCreditCards = new Map();
+    this.businessLoans = new Map();
   }
 
   // Users
@@ -1084,6 +1104,82 @@ export class MemStorage implements IStorage {
 
   async deletePurchaseOrderItem(id: string): Promise<boolean> {
     return this.purchaseOrderItems.delete(id);
+  }
+
+  // Business Credit Cards
+  async getBusinessCreditCards(): Promise<BusinessCreditCard[]> {
+    return Array.from(this.businessCreditCards.values());
+  }
+
+  async getBusinessCreditCard(id: string): Promise<BusinessCreditCard | undefined> {
+    return this.businessCreditCards.get(id);
+  }
+
+  async createBusinessCreditCard(insertCard: InsertBusinessCreditCard): Promise<BusinessCreditCard> {
+    const id = randomUUID();
+    const card: BusinessCreditCard = {
+      ...insertCard,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.businessCreditCards.set(id, card);
+    return card;
+  }
+
+  async updateBusinessCreditCard(id: string, insertCard: Partial<InsertBusinessCreditCard>): Promise<BusinessCreditCard | undefined> {
+    const card = this.businessCreditCards.get(id);
+    if (!card) return undefined;
+    
+    const updated: BusinessCreditCard = { 
+      ...card, 
+      ...insertCard, 
+      updatedAt: new Date() 
+    };
+    this.businessCreditCards.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessCreditCard(id: string): Promise<boolean> {
+    return this.businessCreditCards.delete(id);
+  }
+
+  // Business Loans
+  async getBusinessLoans(): Promise<BusinessLoan[]> {
+    return Array.from(this.businessLoans.values());
+  }
+
+  async getBusinessLoan(id: string): Promise<BusinessLoan | undefined> {
+    return this.businessLoans.get(id);
+  }
+
+  async createBusinessLoan(insertLoan: InsertBusinessLoan): Promise<BusinessLoan> {
+    const id = randomUUID();
+    const loan: BusinessLoan = {
+      ...insertLoan,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.businessLoans.set(id, loan);
+    return loan;
+  }
+
+  async updateBusinessLoan(id: string, insertLoan: Partial<InsertBusinessLoan>): Promise<BusinessLoan | undefined> {
+    const loan = this.businessLoans.get(id);
+    if (!loan) return undefined;
+    
+    const updated: BusinessLoan = { 
+      ...loan, 
+      ...insertLoan, 
+      updatedAt: new Date() 
+    };
+    this.businessLoans.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessLoan(id: string): Promise<boolean> {
+    return this.businessLoans.delete(id);
   }
 }
 
