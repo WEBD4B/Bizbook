@@ -47,6 +47,7 @@ import {
   formatCurrency, 
   calculateCreditUtilization
 } from "@/lib/financial-calculations";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 
 
@@ -2853,8 +2854,8 @@ export default function ComprehensiveDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-3 gap-4">
                           <div className="text-center p-4 bg-green-50 rounded-lg">
                             <h3 className="text-sm font-medium text-green-800">Total Revenue</h3>
                             <p className="text-2xl font-bold text-green-600">
@@ -2867,15 +2868,46 @@ export default function ComprehensiveDashboard() {
                               {formatCurrency(businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0))}
                             </p>
                           </div>
+                          <div className="text-center p-4 bg-blue-50 rounded-lg">
+                            <h3 className="text-sm font-medium text-blue-800">Net Profit</h3>
+                            <p className="text-2xl font-bold text-blue-600">
+                              {formatCurrency(
+                                businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) -
+                                businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0)
+                              )}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                          <h3 className="text-sm font-medium text-blue-800">Net Profit</h3>
-                          <p className="text-2xl font-bold text-blue-600">
-                            {formatCurrency(
-                              businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) -
-                              businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0)
-                            )}
-                          </p>
+                        
+                        {/* Visual Business Chart */}
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={[
+                                {
+                                  name: 'Current Period',
+                                  Revenue: businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0),
+                                  Expenses: businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0),
+                                  Profit: businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) - businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0)
+                                }
+                              ]}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="name" />
+                              <YAxis tickFormatter={(value) => {
+                                if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+                                return `$${value}`;
+                              }} />
+                              <Tooltip formatter={(value: any) => [formatCurrency(value), '']} />
+                              <Bar dataKey="Revenue" fill="#22c55e" name="Revenue" />
+                              <Bar dataKey="Expenses" fill="#ef4444" name="Expenses" />
+                              <Bar dataKey="Profit" fill={
+                                businessRevenue.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) - 
+                                businessExpenses.reduce((sum: number, item: any) => sum + parseFloat(item.amount || '0'), 0) >= 0 
+                                  ? "#3b82f6" : "#f97316"
+                              } name="Net Profit" />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
                       </div>
                     )}
