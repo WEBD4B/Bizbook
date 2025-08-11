@@ -11,7 +11,10 @@ import {
   type Investment, type InsertInvestment,
   type Asset, type InsertAsset,
   type Liability, type InsertLiability,
-  type NetWorthSnapshot, type InsertNetWorthSnapshot
+  type NetWorthSnapshot, type InsertNetWorthSnapshot,
+  type BusinessProfile, type InsertBusinessProfile,
+  type PurchaseOrder, type InsertPurchaseOrder,
+  type PurchaseOrderItem, type InsertPurchaseOrderItem
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -103,6 +106,27 @@ export interface IStorage {
   getNetWorthSnapshot(id: string): Promise<NetWorthSnapshot | undefined>;
   createNetWorthSnapshot(snapshot: InsertNetWorthSnapshot): Promise<NetWorthSnapshot>;
   getLatestNetWorthSnapshot(): Promise<NetWorthSnapshot | undefined>;
+
+  // Business Profiles
+  getBusinessProfiles(): Promise<BusinessProfile[]>;
+  getBusinessProfile(id: string): Promise<BusinessProfile | undefined>;
+  createBusinessProfile(profile: InsertBusinessProfile): Promise<BusinessProfile>;
+  updateBusinessProfile(id: string, profile: Partial<InsertBusinessProfile>): Promise<BusinessProfile | undefined>;
+  deleteBusinessProfile(id: string): Promise<boolean>;
+
+  // Purchase Orders
+  getPurchaseOrders(): Promise<PurchaseOrder[]>;
+  getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined>;
+  createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder>;
+  updatePurchaseOrder(id: string, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined>;
+  deletePurchaseOrder(id: string): Promise<boolean>;
+  getPurchaseOrdersByBusiness(businessProfileId: string): Promise<PurchaseOrder[]>;
+
+  // Purchase Order Items
+  getPurchaseOrderItems(purchaseOrderId: string): Promise<PurchaseOrderItem[]>;
+  createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
+  updatePurchaseOrderItem(id: string, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined>;
+  deletePurchaseOrderItem(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -119,6 +143,9 @@ export class MemStorage implements IStorage {
   private assets: Map<string, Asset>;
   private liabilities: Map<string, Liability>;
   private netWorthSnapshots: Map<string, NetWorthSnapshot>;
+  private businessProfiles: Map<string, BusinessProfile>;
+  private purchaseOrders: Map<string, PurchaseOrder>;
+  private purchaseOrderItems: Map<string, PurchaseOrderItem>;
 
   constructor() {
     this.users = new Map();
@@ -134,6 +161,9 @@ export class MemStorage implements IStorage {
     this.assets = new Map();
     this.liabilities = new Map();
     this.netWorthSnapshots = new Map();
+    this.businessProfiles = new Map();
+    this.purchaseOrders = new Map();
+    this.purchaseOrderItems = new Map();
   }
 
   // Users
@@ -929,6 +959,119 @@ export class MemStorage implements IStorage {
 
   async deleteShopifyOrder(id: string): Promise<void> {
     this.shopifyOrders.delete(id);
+  }
+
+  // Business Profiles
+  async getBusinessProfiles(): Promise<BusinessProfile[]> {
+    return Array.from(this.businessProfiles.values());
+  }
+
+  async getBusinessProfile(id: string): Promise<BusinessProfile | undefined> {
+    return this.businessProfiles.get(id);
+  }
+
+  async createBusinessProfile(insertProfile: InsertBusinessProfile): Promise<BusinessProfile> {
+    const id = randomUUID();
+    const profile: BusinessProfile = { 
+      ...insertProfile, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.businessProfiles.set(id, profile);
+    return profile;
+  }
+
+  async updateBusinessProfile(id: string, insertProfile: Partial<InsertBusinessProfile>): Promise<BusinessProfile | undefined> {
+    const profile = this.businessProfiles.get(id);
+    if (!profile) return undefined;
+    
+    const updated: BusinessProfile = { 
+      ...profile, 
+      ...insertProfile,
+      updatedAt: new Date()
+    };
+    this.businessProfiles.set(id, updated);
+    return updated;
+  }
+
+  async deleteBusinessProfile(id: string): Promise<boolean> {
+    return this.businessProfiles.delete(id);
+  }
+
+  // Purchase Orders
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return Array.from(this.purchaseOrders.values());
+  }
+
+  async getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined> {
+    return this.purchaseOrders.get(id);
+  }
+
+  async createPurchaseOrder(insertOrder: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const id = randomUUID();
+    const order: PurchaseOrder = { 
+      ...insertOrder, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.purchaseOrders.set(id, order);
+    return order;
+  }
+
+  async updatePurchaseOrder(id: string, insertOrder: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined> {
+    const order = this.purchaseOrders.get(id);
+    if (!order) return undefined;
+    
+    const updated: PurchaseOrder = { 
+      ...order, 
+      ...insertOrder,
+      updatedAt: new Date()
+    };
+    this.purchaseOrders.set(id, updated);
+    return updated;
+  }
+
+  async deletePurchaseOrder(id: string): Promise<boolean> {
+    return this.purchaseOrders.delete(id);
+  }
+
+  async getPurchaseOrdersByBusiness(businessProfileId: string): Promise<PurchaseOrder[]> {
+    return Array.from(this.purchaseOrders.values()).filter(
+      order => order.businessProfileId === businessProfileId
+    );
+  }
+
+  // Purchase Order Items
+  async getPurchaseOrderItems(purchaseOrderId: string): Promise<PurchaseOrderItem[]> {
+    return Array.from(this.purchaseOrderItems.values()).filter(
+      item => item.purchaseOrderId === purchaseOrderId
+    );
+  }
+
+  async createPurchaseOrderItem(insertItem: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    const id = randomUUID();
+    const item: PurchaseOrderItem = { 
+      ...insertItem, 
+      id,
+      createdAt: new Date()
+    };
+    this.purchaseOrderItems.set(id, item);
+    return item;
+  }
+
+  async updatePurchaseOrderItem(id: string, insertItem: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined> {
+    const item = this.purchaseOrderItems.get(id);
+    if (!item) return undefined;
+    
+    const updated: PurchaseOrderItem = { ...item, ...insertItem };
+    this.purchaseOrderItems.set(id, updated);
+    return updated;
+  }
+
+  async deletePurchaseOrderItem(id: string): Promise<boolean> {
+    return this.purchaseOrderItems.delete(id);
   }
 }
 

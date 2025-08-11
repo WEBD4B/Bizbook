@@ -13,8 +13,9 @@ import {
   Home,
   CreditCard as CreditCardIcon,
   Building2,
+  Building,
+  FileText,
   DollarSign,
-
   TrendingUp,
   Target,
   PieChart,
@@ -57,6 +58,9 @@ export default function ComprehensiveDashboard() {
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [businessProfileDialogOpen, setBusinessProfileDialogOpen] = useState(false);
+  const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
+  const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
 
   const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery<CreditCard[]>({
     queryKey: ["/api/credit-cards"],
@@ -80,6 +84,14 @@ export default function ComprehensiveDashboard() {
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery<any[]>({
     queryKey: ["/api/expenses"],
+  });
+
+  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useQuery<any[]>({
+    queryKey: ["/api/business-profiles"],
+  });
+
+  const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = useQuery<any[]>({
+    queryKey: ["/api/purchase-orders"],
   });
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
@@ -352,6 +364,420 @@ export default function ComprehensiveDashboard() {
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={expenseMutation.isPending}>
             {expenseMutation.isPending ? "Adding..." : "Add Expense"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Business Profile Form
+  const BusinessProfileForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      businessName: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      phone: '',
+      fax: '',
+      email: '',
+      logoUrl: ''
+    });
+
+    const profileMutation = useMutation({
+      mutationFn: async (data: any) => {
+        return apiRequest("POST", "/api/business-profiles", data);
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Business profile created successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/business-profiles"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to create business profile",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      profileMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="business-name">Business Name</Label>
+            <Input
+              id="business-name"
+              value={formData.businessName}
+              onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-email">Email</Label>
+            <Input
+              id="business-email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="business-address">Address</Label>
+          <Input
+            id="business-address"
+            value={formData.address}
+            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="business-city">City</Label>
+            <Input
+              id="business-city"
+              value={formData.city}
+              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-state">State</Label>
+            <Input
+              id="business-state"
+              value={formData.state}
+              onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-zip">ZIP Code</Label>
+            <Input
+              id="business-zip"
+              value={formData.zipCode}
+              onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="business-phone">Phone</Label>
+            <Input
+              id="business-phone"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-fax">Fax</Label>
+            <Input
+              id="business-fax"
+              value={formData.fax}
+              onChange={(e) => setFormData(prev => ({ ...prev, fax: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={profileMutation.isPending}>
+            {profileMutation.isPending ? "Creating..." : "Create Profile"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Purchase Order Form 
+  const PurchaseOrderForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      businessProfileId: '',
+      poNumber: `PO-${Date.now()}`,
+      vendorName: '',
+      vendorAddress: '',
+      vendorPhone: '',
+      shipToName: '',
+      shipToAddress: '',
+      shipToPhone: '',
+      requisitioner: '',
+      shipVia: '',
+      fobPoint: '',
+      shippingTerms: '',
+      specialInstructions: '',
+      items: [{ itemNumber: '', description: '', quantity: '', unitPrice: '', total: '' }]
+    });
+
+    const orderMutation = useMutation({
+      mutationFn: async (data: any) => {
+        const { items, ...orderData } = data;
+        const subtotal = items.reduce((sum: number, item: any) => sum + parseFloat(item.total || '0'), 0);
+        const salesTax = subtotal * 0.08; // 8% tax
+        const totalDue = subtotal + salesTax;
+
+        const order = await apiRequest("POST", "/api/purchase-orders", {
+          ...orderData,
+          subtotal: subtotal.toString(),
+          salesTax: salesTax.toString(),
+          shippingHandling: "0",
+          totalDue: totalDue.toString()
+        });
+
+        // Create order items
+        for (const item of items) {
+          if (item.description) {
+            await apiRequest("POST", "/api/purchase-order-items", {
+              purchaseOrderId: order.id,
+              ...item
+            });
+          }
+        }
+
+        return order;
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Purchase order created successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+        onClose();
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to create purchase order",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formData.businessProfileId) {
+        toast({
+          title: "Error",
+          description: "Please select a business profile first",
+          variant: "destructive"
+        });
+        return;
+      }
+      orderMutation.mutate(formData);
+    };
+
+    const addItem = () => {
+      setFormData(prev => ({
+        ...prev,
+        items: [...prev.items, { itemNumber: '', description: '', quantity: '', unitPrice: '', total: '' }]
+      }));
+    };
+
+    const updateItem = (index: number, field: string, value: string) => {
+      const newItems = [...formData.items];
+      newItems[index] = { ...newItems[index], [field]: value };
+      
+      if (field === 'quantity' || field === 'unitPrice') {
+        const quantity = parseFloat(newItems[index].quantity || '0');
+        const unitPrice = parseFloat(newItems[index].unitPrice || '0');
+        newItems[index].total = (quantity * unitPrice).toFixed(2);
+      }
+      
+      setFormData(prev => ({ ...prev, items: newItems }));
+    };
+
+    const removeItem = (index: number) => {
+      setFormData(prev => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index)
+      }));
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="business-profile">Business Profile</Label>
+            <Select value={formData.businessProfileId} onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select business profile" />
+              </SelectTrigger>
+              <SelectContent>
+                {businessProfiles.map((profile: any) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.businessName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="po-number">PO Number</Label>
+            <Input
+              id="po-number"
+              value={formData.poNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, poNumber: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Vendor Information</h3>
+          <div>
+            <Label htmlFor="vendor-name">Vendor Name</Label>
+            <Input
+              id="vendor-name"
+              value={formData.vendorName}
+              onChange={(e) => setFormData(prev => ({ ...prev, vendorName: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="vendor-address">Vendor Address</Label>
+            <Textarea
+              id="vendor-address"
+              value={formData.vendorAddress}
+              onChange={(e) => setFormData(prev => ({ ...prev, vendorAddress: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="vendor-phone">Vendor Phone</Label>
+            <Input
+              id="vendor-phone"
+              value={formData.vendorPhone}
+              onChange={(e) => setFormData(prev => ({ ...prev, vendorPhone: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Ship To Information</h3>
+          <div>
+            <Label htmlFor="ship-to-name">Ship To Name</Label>
+            <Input
+              id="ship-to-name"
+              value={formData.shipToName}
+              onChange={(e) => setFormData(prev => ({ ...prev, shipToName: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="ship-to-address">Ship To Address</Label>
+            <Textarea
+              id="ship-to-address"
+              value={formData.shipToAddress}
+              onChange={(e) => setFormData(prev => ({ ...prev, shipToAddress: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="requisitioner">Requisitioner</Label>
+            <Input
+              id="requisitioner"
+              value={formData.requisitioner}
+              onChange={(e) => setFormData(prev => ({ ...prev, requisitioner: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="ship-via">Ship Via</Label>
+            <Input
+              id="ship-via"
+              value={formData.shipVia}
+              onChange={(e) => setFormData(prev => ({ ...prev, shipVia: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Items</h3>
+            <Button type="button" onClick={addItem} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+          </div>
+          {formData.items.map((item, index) => (
+            <div key={index} className="grid grid-cols-6 gap-2 items-end">
+              <div>
+                <Label>Item #</Label>
+                <Input
+                  value={item.itemNumber}
+                  onChange={(e) => updateItem(index, 'itemNumber', e.target.value)}
+                  placeholder="Item number"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>Description</Label>
+                <Input
+                  value={item.description}
+                  onChange={(e) => updateItem(index, 'description', e.target.value)}
+                  placeholder="Description"
+                />
+              </div>
+              <div>
+                <Label>Qty</Label>
+                <Input
+                  type="number"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                  placeholder="Quantity"
+                />
+              </div>
+              <div>
+                <Label>Unit Price</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={item.unitPrice}
+                  onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={item.total}
+                  readOnly
+                  placeholder="Total"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeItem(index)}
+                  disabled={formData.items.length === 1}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <Label htmlFor="special-instructions">Special Instructions</Label>
+          <Textarea
+            id="special-instructions"
+            value={formData.specialInstructions}
+            onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
+            placeholder="Any special instructions or notes"
+          />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={orderMutation.isPending}>
+            {orderMutation.isPending ? "Creating..." : "Create Purchase Order"}
           </Button>
         </div>
       </form>
@@ -2073,6 +2499,118 @@ export default function ComprehensiveDashboard() {
                       <p className="mb-4">Track your business expenses</p>
                       <p className="text-sm">Manage vendor payments and business costs</p>
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Business Profiles and Purchase Orders Section */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Business Profiles Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Business Profiles
+                    </CardTitle>
+                    <Dialog open={businessProfileDialogOpen} onOpenChange={setBusinessProfileDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-business-profile">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Profile
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>Create Business Profile</DialogTitle>
+                        </DialogHeader>
+                        <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    {businessProfiles.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <Building size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No business profiles yet</p>
+                        <p className="text-sm">Create a business profile for purchase orders</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {businessProfiles.map((profile: any) => (
+                          <div key={profile.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold">{profile.businessName}</h3>
+                              <Badge variant="outline">Active</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <div>{profile.address}</div>
+                              <div>{profile.city}, {profile.state} {profile.zipCode}</div>
+                              {profile.phone && <div>Phone: {profile.phone}</div>}
+                              {profile.email && <div>Email: {profile.email}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Purchase Orders Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Purchase Orders
+                    </CardTitle>
+                    <Dialog open={purchaseOrderDialogOpen} onOpenChange={setPurchaseOrderDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          data-testid="button-create-purchase-order"
+                          disabled={businessProfiles.length === 0}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create PO
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-5xl">
+                        <DialogHeader>
+                          <DialogTitle>Create Purchase Order</DialogTitle>
+                        </DialogHeader>
+                        <PurchaseOrderForm onClose={() => setPurchaseOrderDialogOpen(false)} />
+                      </DialogContent>
+                    </Dialog>
+                  </CardHeader>
+                  <CardContent>
+                    {businessProfiles.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <FileText size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">Create a business profile first</p>
+                        <p className="text-sm">Business profiles are required for purchase orders</p>
+                      </div>
+                    ) : purchaseOrders.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <FileText size={48} className="mx-auto mb-4 text-neutral-300" />
+                        <p className="mb-4">No purchase orders yet</p>
+                        <p className="text-sm">Create purchase orders for vendor transactions</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {purchaseOrders.map((order: any) => (
+                          <div key={order.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold">PO #{order.poNumber}</h3>
+                              <Badge variant="outline">{order.status || 'Draft'}</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <div>Vendor: {order.vendorName}</div>
+                              <div>Total: {formatCurrency(parseFloat(order.totalDue || '0'))}</div>
+                              <div>Created: {new Date(order.createdAt).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

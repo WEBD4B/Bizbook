@@ -119,6 +119,67 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Business profiles for managing multiple businesses
+export const businessProfiles = pgTable("business_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessName: varchar("business_name").notNull(),
+  address: varchar("address").notNull(),
+  city: varchar("city").notNull(),
+  state: varchar("state").notNull(),
+  zipCode: varchar("zip_code").notNull(),
+  phone: varchar("phone"),
+  fax: varchar("fax"),
+  email: varchar("email"),
+  logoUrl: varchar("logo_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Purchase orders
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessProfileId: varchar("business_profile_id").references(() => businessProfiles.id).notNull(),
+  poNumber: varchar("po_number").notNull(),
+  date: timestamp("date").defaultNow(),
+  vendorName: varchar("vendor_name").notNull(),
+  vendorAddress: varchar("vendor_address").notNull(),
+  vendorPhone: varchar("vendor_phone"),
+  shipToName: varchar("ship_to_name"),
+  shipToAddress: varchar("ship_to_address"),
+  shipToPhone: varchar("ship_to_phone"),
+  requisitioner: varchar("requisitioner"),
+  shipVia: varchar("ship_via"),
+  fobPoint: varchar("fob_point"),
+  shippingTerms: varchar("shipping_terms"),
+  subtotal: varchar("subtotal").notNull(),
+  salesTax: varchar("sales_tax").default("0"),
+  shippingHandling: varchar("shipping_handling").default("0"),
+  totalDue: varchar("total_due").notNull(),
+  specialInstructions: text("special_instructions"),
+  status: varchar("status").default("pending"), // pending, sent, received, cancelled
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Purchase order line items
+export const purchaseOrderItems = pgTable("purchase_order_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  purchaseOrderId: varchar("purchase_order_id").references(() => purchaseOrders.id).notNull(),
+  itemNumber: varchar("item_number"),
+  description: varchar("description").notNull(),
+  quantity: varchar("quantity").notNull(),
+  unitPrice: varchar("unit_price").notNull(),
+  total: varchar("total").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type BusinessProfile = typeof businessProfiles.$inferSelect;
+export type InsertBusinessProfile = typeof businessProfiles.$inferInsert;
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = typeof purchaseOrders.$inferInsert;
+export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
+export type InsertPurchaseOrderItem = typeof purchaseOrderItems.$inferInsert;
+
 // Business-related tables
 export const businessExpenses = pgTable("business_expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

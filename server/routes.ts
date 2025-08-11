@@ -935,6 +935,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business Profile routes
+  app.get("/api/business-profiles", async (req, res) => {
+    try {
+      const profiles = await storage.getBusinessProfiles();
+      res.json(profiles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business profiles" });
+    }
+  });
+
+  app.post("/api/business-profiles", async (req, res) => {
+    try {
+      const profile = await storage.createBusinessProfile(req.body);
+      res.status(201).json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create business profile" });
+    }
+  });
+
+  app.get("/api/business-profiles/:id", async (req, res) => {
+    try {
+      const profile = await storage.getBusinessProfile(req.params.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Business profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch business profile" });
+    }
+  });
+
+  app.put("/api/business-profiles/:id", async (req, res) => {
+    try {
+      const profile = await storage.updateBusinessProfile(req.params.id, req.body);
+      if (!profile) {
+        return res.status(404).json({ error: "Business profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update business profile" });
+    }
+  });
+
+  app.delete("/api/business-profiles/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteBusinessProfile(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Business profile not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete business profile" });
+    }
+  });
+
+  // Purchase Order routes
+  app.get("/api/purchase-orders", async (req, res) => {
+    try {
+      const { businessProfileId } = req.query;
+      if (businessProfileId) {
+        const orders = await storage.getPurchaseOrdersByBusiness(businessProfileId as string);
+        res.json(orders);
+      } else {
+        const orders = await storage.getPurchaseOrders();
+        res.json(orders);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase orders" });
+    }
+  });
+
+  app.post("/api/purchase-orders", async (req, res) => {
+    try {
+      const order = await storage.createPurchaseOrder(req.body);
+      res.status(201).json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create purchase order" });
+    }
+  });
+
+  app.get("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      const order = await storage.getPurchaseOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase order" });
+    }
+  });
+
+  app.put("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      const order = await storage.updatePurchaseOrder(req.params.id, req.body);
+      if (!order) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update purchase order" });
+    }
+  });
+
+  app.delete("/api/purchase-orders/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePurchaseOrder(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete purchase order" });
+    }
+  });
+
+  // Purchase Order Items routes
+  app.get("/api/purchase-orders/:id/items", async (req, res) => {
+    try {
+      const items = await storage.getPurchaseOrderItems(req.params.id);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase order items" });
+    }
+  });
+
+  app.post("/api/purchase-order-items", async (req, res) => {
+    try {
+      const item = await storage.createPurchaseOrderItem(req.body);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create purchase order item" });
+    }
+  });
+
+  app.put("/api/purchase-order-items/:id", async (req, res) => {
+    try {
+      const item = await storage.updatePurchaseOrderItem(req.params.id, req.body);
+      if (!item) {
+        return res.status(404).json({ error: "Purchase order item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update purchase order item" });
+    }
+  });
+
+  app.delete("/api/purchase-order-items/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePurchaseOrderItem(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Purchase order item not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete purchase order item" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
