@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +30,7 @@ import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
 import { LoanForm } from "@/components/loan-form";
 import { BusinessExpenseForm } from "@/components/business-expense-form";
+import { IncomeForm } from "@/components/income-form";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -2476,6 +2477,72 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Personal Income Management Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Personal Income Management ({incomes.length})
+                  </CardTitle>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="button-add-income">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Income
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Personal Income</DialogTitle>
+                        <DialogDescription>
+                          Add salary, wages, freelance payments, or other personal income sources
+                        </DialogDescription>
+                      </DialogHeader>
+                      <IncomeForm onClose={() => {}} />
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {incomes.length === 0 ? (
+                    <div className="text-center py-8 text-neutral-500">
+                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">No personal income sources added yet</p>
+                      <p className="text-sm">Add your salary, freelance payments, and other personal income</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {incomes.map((income: any) => (
+                        <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold">{income.source}</h3>
+                              <Badge variant={income.frequency === 'monthly' ? 'default' : 'secondary'}>
+                                {income.frequency}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(income.amount))}</span></div>
+                              <div>Type: {income.type || 'Regular Income'}</div>
+                              <div>Next Payment: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => deleteIncome.mutate(income.id)}
+                              data-testid={`button-delete-income-${income.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="business" className="space-y-6 mt-8">
