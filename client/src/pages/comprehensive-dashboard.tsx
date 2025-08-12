@@ -2894,9 +2894,6 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Search Vendors & Purchase Orders */}
-              <VendorSearch />
-
               {/* All Purchase Orders Section */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -2922,7 +2919,10 @@ export default function ComprehensiveDashboard() {
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
+                  {/* Search Vendors & Purchase Orders */}
+                  <VendorSearch />
+
                   {purchaseOrders.length === 0 ? (
                     <div className="text-center py-8 text-neutral-500">
                       <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
