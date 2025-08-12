@@ -31,6 +31,8 @@ import { AccountForm } from "@/components/account-form";
 import { LoanForm } from "@/components/loan-form";
 import { BusinessExpenseForm } from "@/components/business-expense-form";
 import { IncomeForm } from "@/components/income-form";
+import { VendorForm } from "@/components/vendor-form";
+import { PurchaseOrderForm } from "@/components/purchase-order-form";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -2088,6 +2090,46 @@ export default function ComprehensiveDashboard() {
     }
   });
 
+  const deleteIncome = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/income/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Income deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete income",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteVendor = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/vendors/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Vendor deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete vendor",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Calculate overview metrics
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
@@ -2849,23 +2891,86 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Vendor Management Section - Coming Soon */}
+              {/* Vendor Management Section */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="h-5 w-5" />
-                    Vendor Management
+                    Vendor Management ({vendors.length})
                   </CardTitle>
-                  <Button size="sm" variant="outline" disabled>
-                    Coming Soon
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="button-add-vendor">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Vendor
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Add New Vendor</DialogTitle>
+                        <DialogDescription>
+                          Add a new vendor to create purchase orders and manage business relationships
+                        </DialogDescription>
+                      </DialogHeader>
+                      <VendorForm onClose={() => {}} />
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-neutral-500">
-                    <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
-                    <p className="mb-4">Vendor Management</p>
-                    <p className="text-sm">Add vendors to create purchase orders and track business relationships</p>
-                  </div>
+                  {vendors.length === 0 ? (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">No vendors added yet</p>
+                      <p className="text-sm">Add vendors to create purchase orders and track business relationships</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {vendors.map((vendor: any) => (
+                        <div key={vendor.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-medium">{vendor.companyName}</h3>
+                            <Badge variant="outline">{vendor.vendorType || 'General'}</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1 mb-3">
+                            <div>{vendor.contactPerson}</div>
+                            <div>{vendor.email}</div>
+                            <div>{vendor.phone}</div>
+                            <div>Terms: {vendor.paymentTerms}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="flex-1">
+                                  <Receipt className="h-4 w-4 mr-2" />
+                                  Create PO
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl">
+                                <DialogHeader>
+                                  <DialogTitle>Create Purchase Order</DialogTitle>
+                                  <DialogDescription>
+                                    Create a new purchase order for {vendor.companyName}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <PurchaseOrderForm 
+                                  selectedVendorId={vendor.id}
+                                  onClose={() => {}} 
+                                />
+                              </DialogContent>
+                            </Dialog>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => deleteVendor.mutate(vendor.id)}
+                              data-testid={`button-delete-vendor-${vendor.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

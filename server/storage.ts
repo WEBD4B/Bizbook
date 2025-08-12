@@ -206,6 +206,69 @@ export class MemStorage implements IStorage {
     this.businessCreditCards = new Map();
     this.businessLoans = new Map();
     this.vendors = new Map();
+    
+    // Initialize with dummy vendor data
+    this.initializeDummyVendors();
+  }
+
+  private initializeDummyVendors() {
+    const dummyVendors = [
+      {
+        id: "vendor-1",
+        companyName: "Office Supply Pro",
+        contactPerson: "Sarah Johnson",
+        email: "sarah@officesupplypro.com",
+        phone: "(555) 123-4567",
+        address: "123 Business Park Dr",
+        city: "Austin",
+        state: "TX",
+        zipCode: "78701",
+        country: "US",
+        vendorType: "Office Supplies",
+        paymentTerms: "Net 30",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "vendor-2", 
+        companyName: "TechFlow Solutions",
+        contactPerson: "Michael Chen",
+        email: "mike@techflow.com",
+        phone: "(555) 987-6543",
+        address: "456 Innovation Blvd",
+        city: "San Francisco",
+        state: "CA",
+        zipCode: "94105",
+        country: "US",
+        vendorType: "Technology",
+        paymentTerms: "Net 15",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: "vendor-3",
+        companyName: "Green Clean Services",
+        contactPerson: "Emma Rodriguez",
+        email: "emma@greenclean.com", 
+        phone: "(555) 456-7890",
+        address: "789 Eco Way",
+        city: "Portland",
+        state: "OR",
+        zipCode: "97201",
+        country: "US",
+        vendorType: "Services",
+        paymentTerms: "Net 10",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
+    dummyVendors.forEach(vendor => {
+      this.vendors.set(vendor.id, vendor);
+    });
   }
 
   // Users
