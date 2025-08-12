@@ -27,13 +27,20 @@ interface LineItem {
 export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: PurchaseOrderFormProps) {
   const { toast } = useToast();
   
-  const { data: vendors = [] } = useQuery({
+  const { data: vendors = [] } = useQuery<any[]>({
     queryKey: ["/api/vendors"],
   });
 
+  // Generate auto PO number
+  const generatePONumber = () => {
+    const year = new Date().getFullYear();
+    const timestamp = Date.now().toString().slice(-6);
+    return `PO-${year}-${timestamp}`;
+  };
+
   const [formData, setFormData] = useState({
     vendorId: selectedVendorId || initialData?.vendorId || "",
-    poNumber: initialData?.poNumber || `PO-${Date.now()}`,
+    poNumber: initialData?.poNumber || generatePONumber(),
     vendorName: initialData?.vendorName || "",
     vendorAddress: initialData?.vendorAddress || "",
     vendorPhone: initialData?.vendorPhone || "",
@@ -119,16 +126,38 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
     },
   });
 
+  const updatePurchaseOrder = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("PUT", `/api/purchase-orders/${initialData.id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Purchase order updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+      onClose();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update purchase order",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const totalAmount = lineItems.reduce((sum, item) => sum + item.total, 0);
     
-    createPurchaseOrder.mutate({
+    const mutation = initialData ? updatePurchaseOrder : createPurchaseOrder;
+    mutation.mutate({
       ...formData,
       items: lineItems,
       totalAmount,
-      status: "pending"
+      status: initialData?.status || "pending"
     });
   };
 
@@ -344,10 +373,13 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
         </Button>
         <Button 
           type="submit" 
-          disabled={createPurchaseOrder.isPending || !formData.vendorId}
+          disabled={createPurchaseOrder.isPending || updatePurchaseOrder.isPending || !formData.vendorId}
           data-testid="button-submit-purchase-order"
         >
-          {createPurchaseOrder.isPending ? "Creating..." : "Create Purchase Order"}
+          {(createPurchaseOrder.isPending || updatePurchaseOrder.isPending) 
+            ? "Saving..." 
+            : initialData ? "Update Purchase Order" : "Create Purchase Order"
+          }
         </Button>
       </div>
     </form>

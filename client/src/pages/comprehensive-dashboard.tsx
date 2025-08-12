@@ -24,7 +24,8 @@ import {
   Wallet,
   Download,
   Plus,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -33,6 +34,7 @@ import { BusinessExpenseForm } from "@/components/business-expense-form";
 import { IncomeForm } from "@/components/income-form";
 import { VendorForm } from "@/components/vendor-form";
 import { PurchaseOrderForm } from "@/components/purchase-order-form";
+import { PurchaseOrderList } from "@/components/purchase-order-list";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -2958,6 +2960,28 @@ export default function ComprehensiveDashboard() {
                                 />
                               </DialogContent>
                             </Dialog>
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="flex-1" data-testid={`button-view-pos-${vendor.id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View All POs
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-6xl max-h-[90vh]">
+                                <DialogHeader>
+                                  <DialogTitle>Purchase Orders for {vendor.companyName}</DialogTitle>
+                                  <DialogDescription>
+                                    View and manage all purchase orders for this vendor
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <PurchaseOrderList 
+                                  vendorId={vendor.id}
+                                  vendorName={vendor.companyName}
+                                />
+                              </DialogContent>
+                            </Dialog>
+                            
                             <Button 
                               size="sm" 
                               variant="outline"

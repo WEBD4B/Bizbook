@@ -1144,10 +1144,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Purchase Order routes
   app.get("/api/purchase-orders", async (req, res) => {
     try {
-      const { businessProfileId } = req.query;
+      const { businessProfileId, vendorId } = req.query;
       if (businessProfileId) {
         const orders = await storage.getPurchaseOrdersByBusiness(businessProfileId as string);
         res.json(orders);
+      } else if (vendorId) {
+        const allOrders = await storage.getPurchaseOrders();
+        const filteredOrders = allOrders.filter(order => order.vendorId === vendorId);
+        res.json(filteredOrders);
       } else {
         const orders = await storage.getPurchaseOrders();
         res.json(orders);
