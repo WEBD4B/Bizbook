@@ -269,6 +269,154 @@ export class MemStorage implements IStorage {
     dummyVendors.forEach(vendor => {
       this.vendors.set(vendor.id, vendor);
     });
+
+    // Initialize with some sample purchase orders
+    this.initializeSamplePurchaseOrders();
+  }
+
+  private initializeSamplePurchaseOrders() {
+    const samplePOs = [
+      {
+        id: "po-1",
+        poNumber: "PO-2025-001234",
+        vendorId: "vendor-1",
+        vendorName: "Office Supply Pro",
+        vendorAddress: "123 Business Park Dr, Austin, TX 78701",
+        vendorPhone: "(555) 123-4567",
+        shipToName: "My Business",
+        shipToAddress: "456 Main St, Austin, TX 78702",
+        shipToPhone: "(555) 555-0123",
+        requisitioner: "John Manager",
+        shipVia: "UPS Ground",
+        fob: "Destination",
+        terms: "Net 30",
+        notes: "Please deliver during business hours only",
+        status: "pending",
+        totalAmount: 847.50,
+        items: [
+          {
+            id: "item-1",
+            description: "Office chairs - ergonomic mesh back",
+            quantity: 5,
+            unitPrice: 149.99,
+            total: 749.95
+          },
+          {
+            id: "item-2", 
+            description: "Desk lamp LED adjustable",
+            quantity: 3,
+            unitPrice: 32.50,
+            total: 97.50
+          }
+        ],
+        createdAt: new Date("2025-01-10").toISOString(),
+        updatedAt: new Date("2025-01-10").toISOString()
+      },
+      {
+        id: "po-2",
+        poNumber: "PO-2025-001235",
+        vendorId: "vendor-2",
+        vendorName: "TechFlow Solutions",
+        vendorAddress: "456 Innovation Blvd, San Francisco, CA 94105",
+        vendorPhone: "(555) 987-6543",
+        shipToName: "My Business",
+        shipToAddress: "456 Main St, Austin, TX 78702",
+        shipToPhone: "(555) 555-0123",
+        requisitioner: "Sarah Tech",
+        shipVia: "FedEx Express",
+        fob: "Origin",
+        terms: "Net 15",
+        notes: "High priority order - needed ASAP",
+        status: "approved",
+        totalAmount: 2499.99,
+        items: [
+          {
+            id: "item-3",
+            description: "Laptop computer Dell XPS 13",
+            quantity: 1,
+            unitPrice: 1299.99,
+            total: 1299.99
+          },
+          {
+            id: "item-4",
+            description: "Wireless mouse Logitech MX Master",
+            quantity: 2,
+            unitPrice: 99.99,
+            total: 199.98
+          },
+          {
+            id: "item-5",
+            description: "External monitor 27inch 4K",
+            quantity: 1,
+            unitPrice: 399.99,
+            total: 399.99
+          },
+          {
+            id: "item-6",
+            description: "USB-C docking station",
+            quantity: 1,
+            unitPrice: 199.99,
+            total: 199.99
+          }
+        ],
+        createdAt: new Date("2025-01-08").toISOString(),
+        updatedAt: new Date("2025-01-09").toISOString()
+      },
+      {
+        id: "po-3",
+        poNumber: "PO-2025-001236", 
+        vendorId: "vendor-3",
+        vendorName: "Green Clean Services",
+        vendorAddress: "789 Eco Way, Portland, OR 97201",
+        vendorPhone: "(555) 456-7890",
+        shipToName: "My Business",
+        shipToAddress: "456 Main St, Austin, TX 78702",
+        shipToPhone: "(555) 555-0123",
+        requisitioner: "Emma Green",
+        shipVia: "Local Delivery",
+        fob: "Destination",
+        terms: "Net 10",
+        notes: "Eco-friendly cleaning supplies only",
+        status: "received",
+        totalAmount: 324.75,
+        items: [
+          {
+            id: "item-7",
+            description: "Eco-friendly all-purpose cleaner",
+            quantity: 12,
+            unitPrice: 8.99,
+            total: 107.88
+          },
+          {
+            id: "item-8",
+            description: "Biodegradable paper towels",
+            quantity: 24,
+            unitPrice: 4.50,
+            total: 108.00
+          },
+          {
+            id: "item-9",
+            description: "Microfiber cleaning cloths",
+            quantity: 20,
+            unitPrice: 2.99,
+            total: 59.80
+          },
+          {
+            id: "item-10",
+            description: "Natural glass cleaner spray",
+            quantity: 6,
+            unitPrice: 6.99,
+            total: 41.94
+          }
+        ],
+        createdAt: new Date("2025-01-05").toISOString(),
+        updatedAt: new Date("2025-01-12").toISOString()
+      }
+    ];
+
+    samplePOs.forEach(po => {
+      this.purchaseOrders.set(po.id, po);
+    });
   }
 
   // Users

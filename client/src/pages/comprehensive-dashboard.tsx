@@ -35,6 +35,7 @@ import { IncomeForm } from "@/components/income-form";
 import { VendorForm } from "@/components/vendor-form";
 import { PurchaseOrderForm } from "@/components/purchase-order-form";
 import { PurchaseOrderList } from "@/components/purchase-order-list";
+import { VendorSearch } from "@/components/vendor-search";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -2892,6 +2893,9 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Search Vendors & Purchase Orders */}
+              <VendorSearch />
 
               {/* Vendor Management Section */}
               <Card>
