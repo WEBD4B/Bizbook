@@ -2897,6 +2897,83 @@ export default function ComprehensiveDashboard() {
               {/* Search Vendors & Purchase Orders */}
               <VendorSearch />
 
+              {/* All Purchase Orders Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5" />
+                    All Purchase Orders ({purchaseOrders.length})
+                  </CardTitle>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" data-testid="button-view-all-pos">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View All POs
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[90vh]">
+                      <DialogHeader>
+                        <DialogTitle>All Purchase Orders</DialogTitle>
+                        <DialogDescription>
+                          View and manage all purchase orders across all vendors
+                        </DialogDescription>
+                      </DialogHeader>
+                      <PurchaseOrderList />
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {purchaseOrders.length === 0 ? (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Receipt size={48} className="mx-auto mb-4 text-neutral-300" />
+                      <p className="mb-4">No purchase orders created yet</p>
+                      <p className="text-sm">Create purchase orders from vendor management section</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      <div className="text-sm text-muted-foreground mb-4">
+                        Recent purchase orders summary:
+                      </div>
+                      {purchaseOrders.slice(0, 3).map((po: any) => (
+                        <div key={po.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">{po.poNumber}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {po.vendorName} • {po.items?.length || 0} items
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={po.status === 'pending' ? 'secondary' : po.status === 'approved' ? 'default' : 'outline'}>
+                              {po.status || 'Pending'}
+                            </Badge>
+                            <div className="text-sm font-medium mt-1">
+                              ${po.totalAmount?.toFixed(2) || '0.00'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {purchaseOrders.length > 3 && (
+                        <div className="text-center pt-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                View {purchaseOrders.length - 3} more purchase orders
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-6xl max-h-[90vh]">
+                              <DialogHeader>
+                                <DialogTitle>All Purchase Orders</DialogTitle>
+                              </DialogHeader>
+                              <PurchaseOrderList />
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Vendor Management Section */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
