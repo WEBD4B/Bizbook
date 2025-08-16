@@ -1,0 +1,615 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTracker - Personal Debt Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        secondary: '#059669',
+                        accent: '#DC2626',
+                        neutral: {
+                            50: '#F8FAFC',
+                            100: '#F1F5F9',
+                            200: '#E2E8F0',
+                            500: '#64748B',
+                            700: '#334155',
+                            900: '#1E293B'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-neutral-50 font-sans text-neutral-700">
+    
+    <!-- @COMPONENT: AppLayout -->
+    <div class="min-h-screen flex">
+        
+        <!-- @COMPONENT: Sidebar -->
+        <aside class="w-64 bg-white shadow-lg border-r border-neutral-200 hidden lg:block">
+            <div class="p-6">
+                <div class="flex items-center space-x-3 mb-8">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-neutral-900">FinanceTracker</h1>
+                </div>
+                
+                <nav class="space-y-2">
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-primary text-white">
+                        <i class="fas fa-home w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+                        <i class="fas fa-credit-card w-5"></i>
+                        <span>Credit Cards</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+                        <i class="fas fa-university w-5"></i>
+                        <span>Loans</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+                        <i class="fas fa-calendar-alt w-5"></i>
+                        <span>Payment Schedule</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+                        <i class="fas fa-chart-pie w-5"></i>
+                        <span>Analytics</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+        <!-- @END_COMPONENT: Sidebar -->
+        
+        <!-- @COMPONENT: MainContent -->
+        <main class="flex-1 overflow-hidden">
+            
+            <!-- @COMPONENT: TopBar -->
+            <header class="bg-white border-b border-neutral-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button class="lg:hidden p-2 rounded-lg hover:bg-neutral-100">
+                            <i class="fas fa-bars text-neutral-600"></i>
+                        </button>
+                        <h2 class="text-2xl font-semibold text-neutral-900">Dashboard</h2>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Account
+                        </button>
+                        <div class="w-8 h-8 bg-neutral-300 rounded-full"></div>
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: TopBar -->
+            
+            <!-- @COMPONENT: DashboardContent -->
+            <div class="p-6 overflow-y-auto h-full">
+                
+                <!-- @COMPONENT: OverviewCards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    
+                    <!-- Total Debt Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-neutral-500">Total Debt</span>
+                            <i class="fas fa-exclamation-triangle text-accent"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-neutral-900" data-bind="totalDebt">$45,320.50</div>
+                        <div class="text-sm text-neutral-500 mt-1">Across 6 accounts</div>
+                    </div>
+                    
+                    <!-- Monthly Payment Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-neutral-500">Monthly Payments</span>
+                            <i class="fas fa-calendar text-primary"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-neutral-900" data-bind="monthlyPayment">$1,240.00</div>
+                        <div class="text-sm text-secondary mt-1">Next due: Jan 15</div>
+                    </div>
+                    
+                    <!-- Credit Utilization Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-neutral-500">Credit Utilization</span>
+                            <i class="fas fa-percentage text-secondary"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-neutral-900" data-bind="creditUtilization">68%</div>
+                        <div class="text-sm text-accent mt-1">High utilization</div>
+                    </div>
+                    
+                    <!-- Payoff Timeline Card -->
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-neutral-500">Debt-Free Date</span>
+                            <i class="fas fa-flag-checkered text-secondary"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-neutral-900" data-bind="payoffDate">Mar 2027</div>
+                        <div class="text-sm text-neutral-500 mt-1">39 months left</div>
+                    </div>
+                    
+                </div>
+                <!-- @END_COMPONENT: OverviewCards -->
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- @COMPONENT: DebtVisualization -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-semibold text-neutral-900">Debt Distribution</h3>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 text-sm bg-primary text-white rounded-lg">Chart</button>
+                                    <button class="px-3 py-1 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">Table</button>
+                                </div>
+                            </div>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="debtChart" class="max-w-full max-h-full"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: DebtVisualization -->
+                    
+                    <!-- @COMPONENT: QuickActions -->
+                    <div class="space-y-6">
+                        
+                        <!-- Add Account Form -->
+                        <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                            <h3 class="text-lg font-semibold text-neutral-900 mb-4">Quick Add</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-2">Account Type</label>
+                                    <select class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                        <option>Credit Card</option>
+                                        <option>Personal Loan</option>
+                                        <option>Auto Loan</option>
+                                        <option>Student Loan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-2">Account Name</label>
+                                    <input type="text" placeholder="e.g., Chase Freedom" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-2">Current Balance</label>
+                                    <input type="number" placeholder="0.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                </div>
+                                <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                    Add Account
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Calculator -->
+                        <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                            <h3 class="text-lg font-semibold text-neutral-900 mb-4">Payment Calculator</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-neutral-700 mb-2">Extra Payment</label>
+                                    <input type="number" placeholder="100.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                </div>
+                                <div class="text-sm text-neutral-600">
+                                    <div class="flex justify-between py-1">
+                                        <span>Time Saved:</span>
+                                        <span class="font-medium">8 months</span>
+                                    </div>
+                                    <div class="flex justify-between py-1">
+                                        <span>Interest Saved:</span>
+                                        <span class="font-medium text-secondary">$2,340</span>
+                                    </div>
+                                </div>
+                                <button class="w-full bg-secondary text-white py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                    Apply Extra Payment
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <!-- @END_COMPONENT: QuickActions -->
+                    
+                </div>
+                
+                <!-- @COMPONENT: AccountsList -->
+                <div class="mt-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200">
+                        <div class="px-6 py-4 border-b border-neutral-200">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-neutral-900">Your Accounts</h3>
+                                <div class="flex items-center space-x-2">
+                                    <button class="px-3 py-1 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">
+                                        <i class="fas fa-filter mr-1"></i>Filter
+                                    </button>
+                                    <button class="px-3 py-1 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">
+                                        <i class="fas fa-sort mr-1"></i>Sort
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-neutral-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Account</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Balance</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Monthly Payment</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Due Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Payoff</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-neutral-200">
+                                    <!-- @MAP: accounts.map(account => ( -->
+                                    <tr class="hover:bg-neutral-50" data-mock="true">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <div class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                        <i class="fas fa-credit-card text-blue-600"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-neutral-900" data-bind="account.name">Chase Freedom</div>
+                                                    <div class="text-sm text-neutral-500" data-bind="account.type">Credit Card</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900" data-bind="account.balance">$8,240.50</div>
+                                            <div class="text-sm text-neutral-500">$15,000 limit</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900" data-bind="account.payment">$165.00</div>
+                                            <div class="text-sm text-neutral-500">Minimum</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Jan 15</div>
+                                            <div class="text-sm text-accent">Due in 3 days</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Oct 2026</div>
+                                            <div class="text-sm text-neutral-500">34 months</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-blue-700">Edit</button>
+                                                <button class="text-secondary hover:text-green-700">Pay</button>
+                                                <button class="text-neutral-400 hover:text-neutral-600">
+                                                    <i class="fas fa-ellipsis-h"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-neutral-50" data-mock="true">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                                                        <i class="fas fa-credit-card text-red-600"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-neutral-900">Capital One Venture</div>
+                                                    <div class="text-sm text-neutral-500">Credit Card</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">$12,890.25</div>
+                                            <div class="text-sm text-neutral-500">$20,000 limit</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">$258.00</div>
+                                            <div class="text-sm text-neutral-500">Minimum</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Jan 22</div>
+                                            <div class="text-sm text-neutral-500">Due in 10 days</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Feb 2027</div>
+                                            <div class="text-sm text-neutral-500">38 months</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-blue-700">Edit</button>
+                                                <button class="text-secondary hover:text-green-700">Pay</button>
+                                                <button class="text-neutral-400 hover:text-neutral-600">
+                                                    <i class="fas fa-ellipsis-h"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="hover:bg-neutral-50" data-mock="true">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <div class="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                                                        <i class="fas fa-university text-green-600"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-neutral-900">Personal Loan - Bank of America</div>
+                                                    <div class="text-sm text-neutral-500">Personal Loan</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">$24,189.75</div>
+                                            <div class="text-sm text-neutral-500">8.5% APR</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">$817.00</div>
+                                            <div class="text-sm text-neutral-500">Fixed</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Jan 5</div>
+                                            <div class="text-sm text-accent">Overdue</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-neutral-900">Dec 2025</div>
+                                            <div class="text-sm text-neutral-500">23 months</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-blue-700">Edit</button>
+                                                <button class="text-secondary hover:text-green-700">Pay</button>
+                                                <button class="text-neutral-400 hover:text-neutral-600">
+                                                    <i class="fas fa-ellipsis-h"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: AccountsList -->
+                
+                <!-- @COMPONENT: PaymentSchedule -->
+                <div class="mt-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-neutral-900">Upcoming Payment Schedule</h3>
+                            <button class="text-primary hover:text-blue-700 text-sm font-medium">View All</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- @MAP: monthlySchedule.map(month => ( -->
+                            <div class="border border-neutral-200 rounded-lg p-4" data-mock="true">
+                                <div class="text-sm font-medium text-neutral-500 mb-2" data-bind="month.name">January 2024</div>
+                                <div class="text-xl font-bold text-neutral-900 mb-3" data-bind="month.total">$1,240.00</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Chase Freedom</span>
+                                        <span class="font-medium">$165</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Capital One</span>
+                                        <span class="font-medium">$258</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Personal Loan</span>
+                                        <span class="font-medium">$817</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-neutral-200 rounded-lg p-4" data-mock="true">
+                                <div class="text-sm font-medium text-neutral-500 mb-2">February 2024</div>
+                                <div class="text-xl font-bold text-neutral-900 mb-3">$1,240.00</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Chase Freedom</span>
+                                        <span class="font-medium">$165</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Capital One</span>
+                                        <span class="font-medium">$258</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Personal Loan</span>
+                                        <span class="font-medium">$817</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-neutral-200 rounded-lg p-4" data-mock="true">
+                                <div class="text-sm font-medium text-neutral-500 mb-2">March 2024</div>
+                                <div class="text-xl font-bold text-neutral-900 mb-3">$1,240.00</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Chase Freedom</span>
+                                        <span class="font-medium">$165</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Capital One</span>
+                                        <span class="font-medium">$258</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Personal Loan</span>
+                                        <span class="font-medium">$817</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-neutral-200 rounded-lg p-4" data-mock="true">
+                                <div class="text-sm font-medium text-neutral-500 mb-2">April 2024</div>
+                                <div class="text-xl font-bold text-neutral-900 mb-3">$1,240.00</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Chase Freedom</span>
+                                        <span class="font-medium">$165</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Capital One</span>
+                                        <span class="font-medium">$258</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-neutral-600">Personal Loan</span>
+                                        <span class="font-medium">$817</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: PaymentSchedule -->
+                
+            </div>
+            <!-- @END_COMPONENT: DashboardContent -->
+            
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+        
+    </div>
+    <!-- @END_COMPONENT: AppLayout -->
+    
+    <!-- @COMPONENT: Modal (hidden by default) -->
+    <div id="addAccountModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div class="px-6 py-4 border-b border-neutral-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-neutral-900">Add New Account</h3>
+                        <button class="text-neutral-400 hover:text-neutral-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Account Type</label>
+                                <select class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option>Credit Card</option>
+                                    <option>Personal Loan</option>
+                                    <option>Auto Loan</option>
+                                    <option>Student Loan</option>
+                                    <option>Mortgage</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Account Name</label>
+                                <input type="text" placeholder="e.g., Chase Freedom Unlimited" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Current Balance</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Credit Limit / Loan Amount</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Interest Rate (%)</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Minimum Payment</label>
+                                <input type="number" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-neutral-700 mb-2">Due Date</label>
+                                <input type="date" class="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-neutral-200 pt-6">
+                            <div class="flex space-x-4">
+                                <button class="flex-1 bg-neutral-200 text-neutral-700 py-2 px-4 rounded-lg hover:bg-neutral-300 transition-colors font-medium">
+                                    Cancel
+                                </button>
+                                <button class="flex-1 bg-primary text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                    Add Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Modal -->
+    
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        
+        (function() {
+            // Debt Distribution Chart
+            const ctx = document.getElementById('debtChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Chase Freedom', 'Capital One Venture', 'Personal Loan', 'Auto Loan'],
+                    datasets: [{
+                        data: [8240.50, 12890.25, 24189.75, 15000],
+                        backgroundColor: [
+                            '#3B82F6',
+                            '#EF4444',
+                            '#10B981',
+                            '#F59E0B'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Mobile menu toggle
+            const menuToggle = document.querySelector('[data-mobile-menu]');
+            const sidebar = document.querySelector('aside');
+            
+            // Modal functionality
+            const addAccountBtn = document.querySelector('button:contains("Add Account")');
+            const modal = document.getElementById('addAccountModal');
+            
+            // TODO: Add event listeners for interactivity
+            // TODO: Implement form validation
+            // TODO: Add debt calculation logic
+            // TODO: Implement payment schedule generation
+        })();
+    </script>
+</body>
+</html>
