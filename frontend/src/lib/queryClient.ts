@@ -102,17 +102,33 @@ const getDummyData = (url: string): any => {
     return [
       {
         id: "1",
+        name: "Software Engineer Salary",
         source: "Software Engineer Salary",
         amount: "8500.00",
         frequency: "monthly",
-        description: "Primary job income"
+        description: "Primary job income",
+        nextPayDate: "2025-08-25",
+        category: "salary"
       },
       {
         id: "2",
+        name: "Freelance Projects",
         source: "Freelance Projects", 
         amount: "1200.00",
         frequency: "monthly",
-        description: "Side project income"
+        description: "Side project income",
+        nextPayDate: "2025-08-30",
+        category: "freelance"
+      },
+      {
+        id: "3",
+        name: "Investment Dividends",
+        source: "Investment Dividends",
+        amount: "450.00", 
+        frequency: "quarterly",
+        description: "Stock dividends",
+        nextPayDate: "2025-09-15",
+        category: "investment"
       }
     ];
   }

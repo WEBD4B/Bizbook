@@ -20,6 +20,18 @@ interface UpcomingIncomesProps {
   onEdit?: (income: any) => void;
 }
 
+interface TransformedIncome {
+  id: string;
+  name: string;
+  source?: string;
+  amount: number;
+  frequency: string;
+  description?: string;
+  nextIncomeDate: Date;
+  daysUntilIncome: number;
+  category?: string;
+}
+
 function getDaysUntilIncome(nextPayDate: string): number {
   const nextDate = new Date(nextPayDate);
   const today = new Date();
@@ -30,31 +42,33 @@ function getDaysUntilIncome(nextPayDate: string): number {
 export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const { data: incomes = [], isLoading: incomesLoading } = useQuery({
+  const { data: incomes = [], isLoading: incomesLoading } = useQuery<any[]>({
     queryKey: ["/api/income"],
   });
 
   const isLoading = incomesLoading;
 
   // Transform incomes with next income date calculations
-  const upcomingIncomes = incomes.map((income: Income) => ({
+  const upcomingIncomes: TransformedIncome[] = (incomes as any[]).map((income: any) => ({
     ...income,
-    nextIncomeDate: new Date(income.nextPayDate),
-    daysUntilIncome: getDaysUntilIncome(income.nextPayDate),
-    amount: parseFloat(income.amount),
+    name: income.name || income.source || "Unknown Income",
+    nextIncomeDate: new Date(income.nextPayDate || new Date()),
+    daysUntilIncome: getDaysUntilIncome(income.nextPayDate || new Date().toISOString()),
+    amount: parseFloat(income.amount || "0"),
   }));
 
   // Filter incomes based on selected filter
-  const filteredIncomes = upcomingIncomes.filter(income => {
+  const filteredIncomes = upcomingIncomes.filter((income: TransformedIncome) => {
     if (filter === "all") return true;
     if (filter === "week") return income.daysUntilIncome <= 7;
     if (filter === "month") return income.daysUntilIncome <= 30;
     return true;
-  }).sort((a, b) => a.daysUntilIncome - b.daysUntilIncome);
+  }).sort((a: TransformedIncome, b: TransformedIncome) => a.daysUntilIncome - b.daysUntilIncome);
 
-  const totalUpcomingIncome = filteredIncomes.reduce((sum, income) => sum + income.amount, 0);
+  const totalUpcomingIncome = filteredIncomes.reduce((sum: number, income: TransformedIncome) => sum + income.amount, 0);
 
-  const getIncomeIcon = (name: string) => {
+  const getIncomeIcon = (name: string | undefined) => {
+    if (!name) return DollarSign;
     const lowerName = name.toLowerCase();
     if (lowerName.includes('salary') || lowerName.includes('job') || lowerName.includes('work')) {
       return Building2;
@@ -147,7 +161,7 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredIncomes.map((income) => {
+            {filteredIncomes.map((income: TransformedIncome) => {
               const IconComponent = getIncomeIcon(income.name);
               return (
                 <div
