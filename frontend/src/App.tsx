@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import ComprehensiveDashboard from "@/pages/comprehensive-dashboard";
+import OptimizedDashboard from "@/pages/optimized-dashboard";
+import TestDashboard from "@/pages/test-dashboard";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import LandingPage from "@/pages/landing-page";
+import AuthPage from "@/pages/auth-page";
+import NotFound from "@/pages/not-found";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function Router() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/dashboard" component={ComprehensiveDashboard} />
+      <Route path="/test" component={TestDashboard} />
+      <Route path="/optimized" component={OptimizedDashboard} />
+      <Route path="/full-dashboard" component={ComprehensiveDashboard} />
+      <Route path="/credit-cards" component={ComprehensiveDashboard} />
+      <Route path="/loans" component={ComprehensiveDashboard} />
+      <Route path="/schedule" component={ComprehensiveDashboard} />
+      <Route path="/analytics" component={ComprehensiveDashboard} />
+      <Route path="/" component={LandingPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SignedOut>
+          <Router />
+        </SignedOut>
+        <SignedIn>
+          <div className="min-h-screen bg-gray-50">
+            <header className="flex items-center justify-between p-4 border-b bg-white">
+              <h1 className="text-xl font-semibold">BizBook</h1>
+              <UserButton />
+            </header>
+            <main>
+              <Router />
+            </main>
+          </div>
+        </SignedIn>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

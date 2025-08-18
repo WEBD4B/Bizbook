@@ -31,12 +31,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <header className="flex items-center justify-between p-4 border-b">
-          <SignedOut>
-            <SignInButton />
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
         </header>
         <Toaster />
         <Router />
