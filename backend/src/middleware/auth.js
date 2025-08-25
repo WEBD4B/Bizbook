@@ -31,6 +31,13 @@ export async function comparePassword(password, hashedPassword) {
 
 // Auth middleware
 export function authenticateToken(req, res, next) {
+  // TODO: Temporary bypass for development - integrate with Clerk later
+  if (process.env.NODE_ENV === 'development') {
+    // Use a proper UUID for development user
+    req.user = { id: '00000000-0000-0000-0000-000000000001', email: 'dev@example.com' };
+    return next();
+  }
+
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 

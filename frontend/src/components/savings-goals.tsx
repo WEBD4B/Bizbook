@@ -12,7 +12,31 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { insertSavingsGoalSchema, type SavingsGoal, type InsertSavingsGoal } from "@shared/schema";
+import { z } from "zod";
+
+// Basic types for savings goals
+type SavingsGoal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  monthlyContribution?: number;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type InsertSavingsGoal = Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>;
+
+const insertSavingsGoalSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  targetAmount: z.number().min(0.01, "Target amount must be positive"),
+  currentAmount: z.number().min(0, "Current amount cannot be negative").default(0),
+  targetDate: z.string().min(1, "Target date is required"),
+  monthlyContribution: z.number().min(0, "Monthly contribution cannot be negative").optional(),
+  description: z.string().optional(),
+});
 
 export function SavingsGoals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -7,7 +7,29 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { 
+  useCreditCards, 
+  useLoans, 
+  useMonthlyPayments, 
+  useIncome, 
+  useAssets, 
+  useExpenses,
+  useBusinessProfiles,
+  usePurchaseOrders,
+  useBusinessRevenue,
+  useBusinessExpenses,
+  useBusinessCreditCards,
+  useBusinessLoans,
+  useVendors,
+  useCreateCreditCard,
+  useCreateLoan,
+  useDeleteCreditCard,
+  useDeleteLoan,
+  useDeleteIncome,
+  useDeleteVendor,
+  useCreateBusinessRevenue,
+  useCreateBusinessExpense
+} from "@/hooks/useApi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Home,
@@ -67,63 +89,25 @@ export default function ComprehensiveDashboard() {
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  
   const [businessProfileDialogOpen, setBusinessProfileDialogOpen] = useState(false);
   const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
 
-  const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery<CreditCard[]>({
-    queryKey: ["/api/credit-cards"],
-  });
-
-  const { data: loans = [], isLoading: loansLoading } = useQuery<Loan[]>({
-    queryKey: ["/api/loans"],
-  });
-
-  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useQuery<MonthlyPayment[]>({
-    queryKey: ["/api/monthly-payments"],
-  });
-
-  const { data: incomes = [], isLoading: incomesLoading } = useQuery<Income[]>({
-    queryKey: ["/api/income"],
-  });
-
-  const { data: assets = [], isLoading: assetsLoading } = useQuery<any[]>({
-    queryKey: ["/api/assets"],
-  });
-
-  const { data: expenses = [], isLoading: expensesLoading } = useQuery<any[]>({
-    queryKey: ["/api/expenses"],
-  });
-
-  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useQuery<any[]>({
-    queryKey: ["/api/business-profiles"],
-  });
-
-  const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = useQuery<any[]>({
-    queryKey: ["/api/purchase-orders"],
-  });
-
-  const { data: businessRevenue = [], isLoading: businessRevenueLoading } = useQuery<any[]>({
-    queryKey: ["/api/business-revenue"],
-  });
-
-  const { data: businessExpenses = [], isLoading: businessExpensesLoading } = useQuery<any[]>({
-    queryKey: ["/api/business-expenses"],
-  });
-
-  // Business credit cards and loans (separate from personal)
-  const { data: businessCreditCards = [], isLoading: businessCreditCardsLoading } = useQuery<any[]>({
-    queryKey: ["/api/business-credit-cards"],
-  });
-
-  const { data: businessLoans = [], isLoading: businessLoansLoading } = useQuery<any[]>({
-    queryKey: ["/api/business-loans"],
-  });
-
-  // Vendor management
-  const { data: vendors = [], isLoading: vendorsLoading } = useQuery<any[]>({
-    queryKey: ["/api/vendors"],
-  });
+  // Use the proper API hooks
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards();
+  const { data: loans = [], isLoading: loansLoading } = useLoans();
+  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useMonthlyPayments();
+  const { data: incomes = [], isLoading: incomesLoading } = useIncome();
+  const { data: assets = [], isLoading: assetsLoading } = useAssets();
+  const { data: expenses = [], isLoading: expensesLoading } = useExpenses();
+  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useBusinessProfiles();
+  const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = usePurchaseOrders();
+  const { data: businessRevenue = [], isLoading: businessRevenueLoading } = useBusinessRevenue();
+  const { data: businessExpenses = [], isLoading: businessExpensesLoading } = useBusinessExpenses();
+  const { data: businessCreditCards = [], isLoading: businessCreditCardsLoading } = useBusinessCreditCards();
+  const { data: businessLoans = [], isLoading: businessLoansLoading } = useBusinessLoans();
+  const { data: vendors = [], isLoading: vendorsLoading } = useVendors();
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
@@ -140,30 +124,27 @@ export default function ComprehensiveDashboard() {
       date: new Date().toISOString().split('T')[0]
     });
 
-    const revenueMutation = useMutation({
-      mutationFn: async (data: any) => {
-        return apiRequest("POST", "/api/business-revenue", data);
-      },
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Business revenue added successfully"
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/business-revenue"] });
-        onClose();
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to add business revenue",
-          variant: "destructive"
-        });
-      }
-    });
+    const revenueMutation = useCreateBusinessRevenue();
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      revenueMutation.mutate(formData);
+      revenueMutation.mutate(formData, {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Business revenue added successfully"
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/business-revenue"] });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add business revenue",
+            variant: "destructive"
+          });
+        }
+      });
     };
 
     return (

@@ -5,7 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import { config } from 'dotenv';
 
-import { testConnection } from './config/database.js';
+import { testConnection } from './src/config/database.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
 import { errorHandler, notFound } from './src/middleware/errorHandler.js';
 import routes from './src/routes/index.js';
