@@ -18,13 +18,16 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
     source: initialData?.source || "",
     amount: initialData?.amount || "",
     frequency: initialData?.frequency || "monthly",
-    type: initialData?.type || "salary",
+    incomeType: initialData?.incomeType || initialData?.type || "salary", // Use incomeType instead of type
     isActive: initialData?.isActive ?? true,
   });
 
   const createIncome = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/income", data);
+      console.log('Creating income from income-form with data:', data);
+      const result = await apiRequest("POST", "/api/income", data);
+      console.log('Income creation result:', result);
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -34,7 +37,8 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/income"] });
       onClose();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Income creation error:', error);
       toast({
         title: "Error",
         description: "Failed to add income source",
@@ -115,8 +119,8 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
       </div>
 
       <div>
-        <Label htmlFor="type">Income Type</Label>
-        <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+        <Label htmlFor="incomeType">Income Type</Label>
+        <Select value={formData.incomeType} onValueChange={(value) => setFormData(prev => ({ ...prev, incomeType: value }))}>
           <SelectTrigger data-testid="select-income-type">
             <SelectValue />
           </SelectTrigger>

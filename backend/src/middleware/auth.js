@@ -1,5 +1,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { verifyToken as verifyClerkToken } from '@clerk/backend';
+import { db } from '../../config/database.js';
+import { users } from '../schema/tables.js';
+import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -29,13 +33,53 @@ export async function comparePassword(password, hashedPassword) {
   return await bcrypt.compare(password, hashedPassword);
 }
 
+// Create or get user from Clerk token
+async function createOrGetUserFromClerk(clerkUser) {
+  try {
+    // Check if user already exists
+    const [existingUser] = await db.select().from(users).where(eq(users.id, clerkUser.sub));
+    
+    if (existingUser) {
+      console.log('✅ Found existing user:', existingUser.email);
+      return existingUser;
+    }
+
+    // Create new user from Clerk data
+    console.log('📝 Creating new user from Clerk data:', clerkUser.email);
+    const [newUser] = await db.insert(users).values({
+      id: clerkUser.sub, // Clerk user ID
+      username: clerkUser.email.split('@')[0], // Use email prefix as username
+      email: clerkUser.email,
+      firstName: clerkUser.given_name || clerkUser.first_name || '',
+      lastName: clerkUser.family_name || clerkUser.last_name || '',
+      passwordHash: 'clerk_managed', // Placeholder since Clerk manages auth
+      isActive: true
+    }).returning();
+    
+    console.log('✅ Created new user:', newUser.email);
+    return newUser;
+  } catch (error) {
+    console.error('❌ Error creating/getting user from Clerk:', error.message);
+    throw error;
+  }
+}
+
 // Auth middleware
-export function authenticateToken(req, res, next) {
-  // TODO: Temporary bypass for development - integrate with Clerk later
+export async function authenticateToken(req, res, next) {
+  // For development, allow bypass if no auth header
   if (process.env.NODE_ENV === 'development') {
-    // Use a proper UUID for development user
-    req.user = { id: '00000000-0000-0000-0000-000000000001', email: 'dev@example.com' };
-    return next();
+    const authHeader = req.headers['authorization'];
+    
+    if (!authHeader) {
+      console.log('🔧 Development mode: No auth header, using development user');
+      req.user = { 
+        id: '00000000-0000-0000-0000-000000000001', 
+        email: 'dev@example.com',
+        firstName: 'Development',
+        lastName: 'User'
+      };
+      return next();
+    }
   }
 
   const authHeader = req.headers['authorization'];
@@ -46,10 +90,43 @@ export function authenticateToken(req, res, next) {
   }
 
   try {
-    const decoded = verifyToken(token);
-    req.user = decoded;
+    console.log('🔍 Attempting to verify Clerk token...');
+    
+    // Try Clerk JWT token verification
+    const clerkUser = await verifyClerkToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY
+    });
+    
+    console.log('✅ Clerk token verified for user:', clerkUser.email || clerkUser.sub);
+    
+    // Create or get user from database
+    const user = await createOrGetUserFromClerk(clerkUser);
+    
+    // Set user info for request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName
+    };
+    
+    console.log('✅ User authenticated:', req.user.email);
     next();
   } catch (error) {
+    console.error('❌ Clerk authentication failed:', error.message);
+    
+    // Fallback to development mode for development environment
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Falling back to development user due to auth error');
+      req.user = { 
+        id: '00000000-0000-0000-0000-000000000001', 
+        email: 'dev@example.com',
+        firstName: 'Development',
+        lastName: 'User'
+      };
+      return next();
+    }
+    
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
 }

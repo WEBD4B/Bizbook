@@ -7,18 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { TrendingUp, Plus, BarChart3, DollarSign, Target, AlertCircle } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { insertInvestmentSchema, type Investment, type InsertInvestment } from "@shared/schema";
+import { useInvestments } from "@/hooks/useApi";
 
 export function InvestmentTracker() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: investments = [], isLoading } = useQuery<Investment[]>({
-    queryKey: ["/api/investments"],
-  });
+  const { data: investments = [], isLoading } = useInvestments();
 
   const form = useForm<InsertInvestment>({
     resolver: zodResolver(insertInvestmentSchema),

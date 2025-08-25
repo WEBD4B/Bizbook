@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Banknote, Target } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useAssets, useInvestments, useCreditCards, useLoans } from "@/hooks/useApi";
 import type { Asset, Investment, CreditCard, Loan } from "@shared/schema";
 
 export function NetWorthSummary() {
-  const { data: assets = [] } = useQuery<Asset[]>({ queryKey: ["/api/assets"] });
-  const { data: investments = [] } = useQuery<Investment[]>({ queryKey: ["/api/investments"] });
-  const { data: creditCards = [] } = useQuery<CreditCard[]>({ queryKey: ["/api/credit-cards"] });
-  const { data: loans = [] } = useQuery<Loan[]>({ queryKey: ["/api/loans"] });
+  const { data: assets = [] } = useAssets();
+  const { data: investments = [] } = useInvestments();
+  const { data: creditCards = [] } = useCreditCards();
+  const { data: loans = [] } = useLoans();
 
   // Calculate total assets
   const totalAssets = assets.reduce((sum, asset) => sum + parseFloat(asset.currentValue), 0) +

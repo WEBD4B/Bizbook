@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { CreditCard, Loan, MonthlyPayment } from "@shared/schema";
 import { formatCurrency, getNextDueDate, getDaysUntilDue } from "@/lib/financial-calculations";
+import { useCreditCards, useLoans } from "@/hooks/useApi";
 
 type FilterType = "all" | "week" | "month";
 
@@ -28,17 +28,12 @@ interface UpcomingPaymentsProps {
 export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const { data: creditCards = [], isLoading: creditCardsLoading } = useQuery({
-    queryKey: ["/api/credit-cards"],
-  });
-
-  const { data: loans = [], isLoading: loansLoading } = useQuery({
-    queryKey: ["/api/loans"],
-  });
-
-  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useQuery({
-    queryKey: ["/api/monthly-payments"],
-  });
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards();
+  const { data: loans = [], isLoading: loansLoading } = useLoans();
+  
+  // For monthly payments, we can simulate or use a separate hook when implemented
+  const monthlyPayments: MonthlyPayment[] = [];
+  const monthlyPaymentsLoading = false;
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading;
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,17 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Search, Building2, Receipt, Eye } from "lucide-react";
 import { PurchaseOrderForm } from "./purchase-order-form";
 import { PurchaseOrderList } from "./purchase-order-list";
+import { useVendors, usePurchaseOrders } from "@/hooks/useApi";
 
 export function VendorSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   
-  const { data: vendors = [], isLoading } = useQuery<any[]>({
-    queryKey: ["/api/vendors"],
-  });
-
-  const { data: purchaseOrders = [] } = useQuery<any[]>({
-    queryKey: ["/api/purchase-orders"],
-  });
+  const { data: vendors = [], isLoading } = useVendors();
+  const { data: purchaseOrders = [] } = usePurchaseOrders();
 
   // Filter vendors based on search term
   const filteredVendors = vendors.filter(vendor => {

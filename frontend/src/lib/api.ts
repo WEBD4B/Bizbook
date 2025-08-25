@@ -37,6 +37,9 @@ export async function apiRequest(
 ): Promise<ApiResponse> {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  console.log('Making API request to:', url);
+  console.log('Options:', options);
+  
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {})
@@ -45,26 +48,39 @@ export async function apiRequest(
   // Use Clerk token if provided, otherwise fallback to localStorage
   const token = clerkToken || tokenManager.getToken();
   
+  // For development, don't require a token - let backend handle the fallback
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  } else if (process.env.NODE_ENV !== 'development') {
+    console.warn('No authentication token available');
   }
 
+  console.log('Headers:', headers);
+
   try {
+    console.log('Making fetch request...');
     const response = await fetch(url, {
       ...options,
       headers
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
     const data = await response.json();
+    console.log('Response data:', data);
 
     if (!response.ok) {
+      console.error('Response not ok:', response.status, data);
+      console.error('Full validation details:', JSON.stringify(data.details, null, 2));
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
         tokenManager.removeToken();
         window.location.href = '/auth';
         throw new Error('Authentication required');
       }
-      throw new Error(data.error || `HTTP ${response.status}`);
+      const errorMessage = data.details?.map((d: any) => `${d.path?.join('.')}: ${d.message}`).join(', ') || data.error;
+      throw new Error(errorMessage || `HTTP ${response.status}`);
     }
 
     return data;

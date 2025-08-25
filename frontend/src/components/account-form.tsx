@@ -1,7 +1,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutatio      console.log('🟡 [LOAN] Loan creation result:', result);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/credit-cards"] });eQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertCreditCardSchema, insertLoanSchema } from "@shared/schema";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 
 const accountFormSchema = z.discriminatedUnion("type", [
   z.object({
@@ -58,6 +63,7 @@ export function AccountForm() {
   const [accountType, setAccountType] = useState<"credit-card" | "loan" | "monthly-payment" | "income">("credit-card");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const form = useForm<AccountFormData>({
     resolver: zodResolver(accountFormSchema),
@@ -70,96 +76,163 @@ export function AccountForm() {
 
   const createCreditCardMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/credit-cards", {
-        ...data,
+      console.log('🔵 [CREDIT CARD] Starting credit card creation process...');
+      console.log('🔵 [CREDIT CARD] Raw form data:', data);
+      
+      console.log('🔵 [CREDIT CARD] Getting authentication token...');
+      const token = await getToken();
+      console.log('🔵 [CREDIT CARD] Token received:', token ? 'Yes' : 'No');
+      
+      const requestPayload = {
+        cardName: data.name, // Map 'name' to 'cardName'
         balance: data.balance,
         creditLimit: data.creditLimit,
         interestRate: data.interestRate,
         minimumPayment: data.minimumPayment,
-        dueDate: parseInt(data.dueDate),
-      });
+        dueDate: data.dueDate, // Keep as string, backend expects string
+      };
+      
+      console.log('🔵 [CREDIT CARD] Mapped request payload:', requestPayload);
+      
+      const requestOptions = {
+        method: 'POST',
+        body: JSON.stringify(requestPayload)
+      };
+      
+      console.log('🔵 [CREDIT CARD] Request options:', requestOptions);
+      console.log('🔵 [CREDIT CARD] Making API request to /credit-cards...');
+      
+      const result = await apiRequest("/credit-cards", requestOptions, token);
+      
+      console.log('🔵 [CREDIT CARD] API request completed successfully!');
+      console.log('🔵 [CREDIT CARD] Result:', result);
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
+    onSuccess: (result) => {
+      console.log('🟢 [CREDIT CARD] Success! Credit card created:', result);
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
       toast({ title: "Success", description: "Credit card added successfully" });
       setOpen(false);
       form.reset();
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to add credit card", variant: "destructive" });
+    onError: (error: any) => {
+      console.error('🔴 [CREDIT CARD] Error creating credit card:', error);
+      console.error('🔴 [CREDIT CARD] Error message:', error.message);
+      console.error('🔴 [CREDIT CARD] Error stack:', error.stack);
+      toast({ 
+        title: "Error", 
+        description: `Failed to add credit card: ${error.message}`, 
+        variant: "destructive" 
+      });
     },
   });
 
   const createLoanMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/loans", {
-        ...data,
-        balance: data.balance,
-        originalAmount: data.originalAmount,
-        interestRate: data.interestRate,
-        monthlyPayment: data.monthlyPayment,
-        termMonths: parseInt(data.termMonths),
-        dueDate: parseInt(data.dueDate),
-      });
+      console.log('Creating loan with data:', data);
+      const token = await getToken();
+      const result = await apiRequest("/loans", {
+        method: 'POST',
+        body: JSON.stringify({
+          loanName: data.name, // Map 'name' to 'loanName'
+          loanType: data.loanType,
+          originalAmount: data.originalAmount,
+          currentBalance: data.balance, // Map 'balance' to 'currentBalance'
+          interestRate: data.interestRate,
+          monthlyPayment: data.monthlyPayment,
+          termLength: parseInt(data.termMonths), // Map 'termMonths' to 'termLength' and convert to number
+          dueDate: data.dueDate, // Keep as string
+        })
+      }, token);
+      console.log('Loan creation result:', result);
+      return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
       toast({ title: "Success", description: "Loan added successfully" });
       setOpen(false);
       form.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Loan creation error:', error);
       toast({ title: "Error", description: "Failed to add loan", variant: "destructive" });
     },
   });
 
   const createMonthlyPaymentMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/monthly-payments", {
-        ...data,
-        amount: data.amount,
-        dueDate: parseInt(data.dueDate),
-        isRecurring: data.isRecurring ?? true,
-      });
+      console.log('Creating monthly payment with data:', data);
+      const token = await getToken();
+      const result = await apiRequest("/monthly-payments", {
+        method: 'POST',
+        body: JSON.stringify({
+          accountId: '00000000-0000-0000-0000-000000000001', // Placeholder for now
+          accountType: data.paymentType, // Map 'paymentType' to 'accountType'
+          paymentName: data.name, // Map 'name' to 'paymentName'
+          amount: data.amount,
+          dueDate: data.dueDate, // Keep as string
+          isRecurring: data.isRecurring ?? true,
+        })
+      }, token);
+      console.log('Monthly payment creation result:', result);
+      return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/monthly-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-payments"] });
       toast({ title: "Success", description: "Monthly payment added successfully" });
       setOpen(false);
       form.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Monthly payment creation error:', error);
       toast({ title: "Error", description: "Failed to add monthly payment", variant: "destructive" });
     },
   });
 
   const createIncomeMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/income", {
-        ...data,
-        amount: data.amount,
-        nextPayDate: data.nextPayDate,
-      });
+      console.log('Creating income with data:', data);
+      const token = await getToken();
+      const result = await apiRequest("/income", {
+        method: 'POST',
+        body: JSON.stringify({
+          source: data.name, // Map 'name' to 'source'
+          incomeType: 'regular', // Set default income type
+          amount: data.amount,
+          frequency: data.frequency,
+          nextPayDate: data.nextPayDate,
+        })
+      }, token);
+      console.log('Income creation result:', result);
+      return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] });
       toast({ title: "Success", description: "Income source added successfully" });
       setOpen(false);
       form.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Income creation error:', error);
       toast({ title: "Error", description: "Failed to add income source", variant: "destructive" });
     },
   });
 
   const onSubmit = (data: AccountFormData) => {
+    console.log('🚀 [FORM] Form submitted with data:', data);
+    console.log('🚀 [FORM] Account type:', data.type);
+    
     if (data.type === "credit-card") {
+      console.log('🔵 [FORM] Triggering credit card mutation...');
       createCreditCardMutation.mutate(data);
     } else if (data.type === "loan") {
+      console.log('🟡 [FORM] Triggering loan mutation...');
       createLoanMutation.mutate(data);
     } else if (data.type === "monthly-payment") {
+      console.log('🟠 [FORM] Triggering monthly payment mutation...');
       createMonthlyPaymentMutation.mutate(data);
     } else if (data.type === "income") {
+      console.log('🟢 [FORM] Triggering income mutation...');
       createIncomeMutation.mutate(data);
     }
   };

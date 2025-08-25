@@ -18,8 +18,15 @@ export async function apiRequest(
   // Remove /api prefix from endpoint since API_BASE_URL already includes it
   const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
   
-  const response = await newApiRequest(cleanEndpoint, options);
-  return response.data || response;
+  try {
+    console.log(`Making ${method} request to: ${cleanEndpoint}`, data);
+    const response = await newApiRequest(cleanEndpoint, options);
+    console.log('API Response:', response);
+    return response;
+  } catch (error) {
+    console.error('API Request Error:', error);
+    throw error;
+  }
 }
 
 // Create a query client with sensible defaults

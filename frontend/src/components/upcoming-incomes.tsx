@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import { Income } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
+import { useIncome } from "@/hooks/useApi";
 
 type FilterType = "all" | "week" | "month";
 
@@ -42,9 +42,7 @@ function getDaysUntilIncome(nextPayDate: string): number {
 export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const { data: incomes = [], isLoading: incomesLoading } = useQuery<any[]>({
-    queryKey: ["/api/income"],
-  });
+  const { data: incomes = [], isLoading: incomesLoading } = useIncome();
 
   const isLoading = incomesLoading;
 

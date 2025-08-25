@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,12 +29,39 @@ function Router() {
   );
 }
 
+function AuthenticatedRouter() {
+  return (
+    <Switch>
+      <Route path="/dashboard" component={ComprehensiveDashboard} />
+      <Route path="/test" component={TestDashboard} />
+      <Route path="/optimized" component={OptimizedDashboard} />
+      <Route path="/full-dashboard" component={ComprehensiveDashboard} />
+      <Route path="/credit-cards" component={ComprehensiveDashboard} />
+      <Route path="/loans" component={ComprehensiveDashboard} />
+      <Route path="/schedule" component={ComprehensiveDashboard} />
+      <Route path="/analytics" component={ComprehensiveDashboard} />
+      <Route path="/" component={() => <Redirect to="/dashboard" />} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function UnauthenticatedRouter() {
+  return (
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/" component={LandingPage} />
+      <Route component={() => <Redirect to="/auth" />} />
+    </Switch>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SignedOut>
-          <Router />
+          <UnauthenticatedRouter />
         </SignedOut>
         <SignedIn>
           <div className="min-h-screen bg-gray-50">
@@ -43,7 +70,7 @@ function App() {
               <UserButton />
             </header>
             <main>
-              <Router />
+              <AuthenticatedRouter />
             </main>
           </div>
         </SignedIn>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Trash2 } from "lucide-react";
+import { useVendors } from "@/hooks/useApi";
 
 interface PurchaseOrderFormProps {
   onClose: () => void;
@@ -27,9 +28,7 @@ interface LineItem {
 export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: PurchaseOrderFormProps) {
   const { toast } = useToast();
   
-  const { data: vendors = [] } = useQuery<any[]>({
-    queryKey: ["/api/vendors"],
-  });
+  const { data: vendors = [] } = useVendors();
 
   // Generate auto PO number
   const generatePONumber = () => {

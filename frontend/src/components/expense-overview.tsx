@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Receipt, Calendar, TrendingDown, DollarSign, Repeat, Clock } from "lucide-react";
+import { useExpenses } from "@/hooks/useApi";
 import { Expense } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
@@ -10,24 +10,18 @@ interface ExpenseOverviewProps {
 }
 
 export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
-  // Get current month expenses
+  // Get all expenses
+  const { data: allExpenses = [], isLoading } = useExpenses();
+  
+  // Filter current month expenses on client side
   const currentDate = new Date();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
   
-  const startDate = firstDayOfMonth.toISOString().split('T')[0];
-  const endDate = lastDayOfMonth.toISOString().split('T')[0];
-
-  const { data: monthlyExpenses = [], isLoading: monthlyLoading } = useQuery({
-    queryKey: ["/api/expenses", { startDate, endDate }],
-    queryFn: () => fetch(`/api/expenses?startDate=${startDate}&endDate=${endDate}`).then(res => res.json()),
+  const monthlyExpenses = allExpenses.filter((expense: any) => {
+    const expenseDate = new Date(expense.expenseDate || expense.expense_date);
+    return expenseDate >= firstDayOfMonth && expenseDate <= lastDayOfMonth;
   });
-
-  const { data: allExpenses = [], isLoading: allLoading } = useQuery({
-    queryKey: ["/api/expenses"],
-  });
-
-  const isLoading = monthlyLoading || allLoading;
 
   // Calculate monthly total
   const monthlyTotal = monthlyExpenses.reduce((sum: number, expense: Expense) => 

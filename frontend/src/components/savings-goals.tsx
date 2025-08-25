@@ -8,10 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Target, Plus, Calendar, DollarSign, TrendingUp } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useSavingsGoals } from "@/hooks/useApi";
 import { z } from "zod";
 
 // Basic types for savings goals
@@ -41,9 +42,7 @@ const insertSavingsGoalSchema = z.object({
 export function SavingsGoals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: savingsGoals = [], isLoading } = useQuery<SavingsGoal[]>({
-    queryKey: ["/api/savings-goals"],
-  });
+  const { data: savingsGoals = [], isLoading } = useSavingsGoals();
 
   const form = useForm<InsertSavingsGoal>({
     resolver: zodResolver(insertSavingsGoalSchema),

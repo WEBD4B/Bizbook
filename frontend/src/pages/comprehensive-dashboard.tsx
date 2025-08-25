@@ -58,6 +58,7 @@ import { VendorForm } from "@/components/vendor-form";
 import { PurchaseOrderForm } from "@/components/purchase-order-form";
 import { PurchaseOrderList } from "@/components/purchase-order-list";
 import { VendorSearch } from "@/components/vendor-search";
+import { useAuth } from "@clerk/clerk-react";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -77,6 +78,7 @@ import {
   formatCurrency, 
   calculateCreditUtilization
 } from "@/lib/financial-calculations";
+import { apiRequest } from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 
@@ -84,6 +86,7 @@ import { useState } from "react";
 export default function ComprehensiveDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
@@ -1804,20 +1807,48 @@ export default function ComprehensiveDashboard() {
 
     const createCreditCardMutation = useMutation({
       mutationFn: async (data: any) => {
-        return apiRequest("POST", "/api/credit-cards", data);
+        console.log('🔵 [DASHBOARD] Starting credit card creation from dashboard...');
+        console.log('🔵 [DASHBOARD] Form data:', data);
+        
+        console.log('🔵 [DASHBOARD] Getting Clerk token...');
+        const token = await getToken();
+        console.log('🔵 [DASHBOARD] Token received:', token ? 'Yes' : 'No');
+        
+        const requestPayload = {
+          cardName: data.name, // Map 'name' to 'cardName' for backend
+          balance: data.balance,
+          creditLimit: data.creditLimit,
+          interestRate: data.interestRate,
+          minimumPayment: data.minimumPayment,
+          dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Convert days to proper date format (YYYY-MM-DD)
+        };
+        
+        console.log('🔵 [DASHBOARD] Mapped payload:', requestPayload);
+        console.log('🔵 [DASHBOARD] Making API request...');
+        
+        const result = await apiRequest("/credit-cards", {
+          method: 'POST',
+          body: JSON.stringify(requestPayload)
+        }, token);
+        
+        console.log('🔵 [DASHBOARD] API request successful:', result);
+        return result;
       },
-      onSuccess: () => {
+      onSuccess: (result) => {
+        console.log('🟢 [DASHBOARD] Credit card created successfully:', result);
         toast({
           title: "Success",
           description: "Credit card added successfully"
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
+        queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
         onClose();
       },
-      onError: () => {
+      onError: (error: any) => {
+        console.error('🔴 [DASHBOARD] Credit card creation failed:', error);
+        console.error('🔴 [DASHBOARD] Error message:', error.message);
         toast({
           title: "Error",
-          description: "Failed to add credit card",
+          description: `Failed to add credit card: ${error.message}`,
           variant: "destructive"
         });
       }
@@ -1825,6 +1856,8 @@ export default function ComprehensiveDashboard() {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      console.log('🚀 [DASHBOARD] Form submitted with data:', formData);
+      console.log('🚀 [DASHBOARD] Triggering credit card mutation...');
       createCreditCardMutation.mutate(formData);
     };
 

@@ -10,6 +10,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { apiRequest } from "@/lib/queryClient";
 import { AssetForm } from "./asset-form";
 import { LiabilityForm } from "./liability-form";
+import { useAssets, useLiabilities, useNetWorthSnapshots } from "@/hooks/useApi";
 import type { Asset, Liability, NetWorthSnapshot } from "@shared/schema";
 
 const ASSET_COLORS = {
@@ -35,14 +36,9 @@ export function ComprehensiveNetWorth() {
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [showLiabilityForm, setShowLiabilityForm] = useState(false);
 
-  // Fetch data
-  const { data: assets = [], isLoading: assetsLoading } = useQuery<Asset[]>({
-    queryKey: ["/api/assets"]
-  });
-
-  const { data: liabilities = [], isLoading: liabilitiesLoading } = useQuery<Liability[]>({
-    queryKey: ["/api/liabilities"]
-  });
+  // Fetch data using custom hooks
+  const { data: assets = [], isLoading: assetsLoading } = useAssets();
+  const { data: liabilities = [], isLoading: liabilitiesLoading } = useLiabilities();
 
   const { data: netWorthCalculation, isLoading: calculationLoading } = useQuery({
     queryKey: ["/api/calculate-net-worth"],
@@ -52,9 +48,7 @@ export function ComprehensiveNetWorth() {
     }
   });
 
-  const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery<NetWorthSnapshot[]>({
-    queryKey: ["/api/net-worth-snapshots"]
-  });
+  const { data: snapshots = [], isLoading: snapshotsLoading } = useNetWorthSnapshots();
 
   // Create snapshot mutation
   const createSnapshotMutation = useMutation({

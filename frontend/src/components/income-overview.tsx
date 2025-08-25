@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calendar, Plus } from "lucide-react";
+import { useIncome } from "@/hooks/useApi";
 import { Income } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
@@ -11,9 +11,7 @@ interface IncomeOverviewProps {
 }
 
 export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
-  const { data: incomes = [], isLoading } = useQuery({
-    queryKey: ["/api/income"],
-  });
+  const { data: incomes = [], isLoading } = useIncome();
 
   const calculateMonthlyIncome = (incomes: Income[]) => {
     return incomes.reduce((total, income) => {
