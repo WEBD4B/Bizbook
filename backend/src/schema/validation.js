@@ -325,7 +325,7 @@ export const insertBusinessLoanSchema = z.object({
 // Business Revenue schemas
 export const insertBusinessRevenueSchema = z.object({
   userId: z.string().uuid().optional(),
-  businessProfileId: z.string().uuid(),
+  businessProfileId: z.string().uuid().optional(),
   source: z.string().min(1).max(255),
   description: z.string().optional(),
   amount: z.string(),
@@ -342,7 +342,7 @@ export const insertBusinessRevenueSchema = z.object({
 // Business Expense schemas
 export const insertBusinessExpenseSchema = z.object({
   userId: z.string().uuid().optional(),
-  businessProfileId: z.string().uuid(),
+  businessProfileId: z.string().uuid().optional(),
   description: z.string().min(1).max(255),
   amount: z.string(),
   category: z.string().min(1).max(100),

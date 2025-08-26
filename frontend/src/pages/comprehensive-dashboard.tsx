@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthenticatedQuery, useAuthenticatedMutation, useApiRequest } from "@/hooks/useAuthenticatedApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -58,7 +59,7 @@ import { VendorForm } from "@/components/vendor-form";
 import { PurchaseOrderForm } from "@/components/purchase-order-form";
 import { PurchaseOrderList } from "@/components/purchase-order-list";
 import { VendorSearch } from "@/components/vendor-search";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -87,6 +88,7 @@ export default function ComprehensiveDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
@@ -97,20 +99,109 @@ export default function ComprehensiveDashboard() {
   const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
 
-  // Use the proper API hooks
-  const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards();
-  const { data: loans = [], isLoading: loansLoading } = useLoans();
-  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useMonthlyPayments();
-  const { data: incomes = [], isLoading: incomesLoading } = useIncome();
-  const { data: assets = [], isLoading: assetsLoading } = useAssets();
-  const { data: expenses = [], isLoading: expensesLoading } = useExpenses();
-  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useBusinessProfiles();
-  const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = usePurchaseOrders();
-  const { data: businessRevenue = [], isLoading: businessRevenueLoading } = useBusinessRevenue();
-  const { data: businessExpenses = [], isLoading: businessExpensesLoading } = useBusinessExpenses();
-  const { data: businessCreditCards = [], isLoading: businessCreditCardsLoading } = useBusinessCreditCards();
-  const { data: businessLoans = [], isLoading: businessLoansLoading } = useBusinessLoans();
-  const { data: vendors = [], isLoading: vendorsLoading } = useVendors();
+  // Use authenticated API hooks
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useAuthenticatedQuery(
+    ["credit-cards"],
+    async (token) => {
+      const response = await apiRequest("/credit-cards", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: loans = [], isLoading: loansLoading } = useAuthenticatedQuery(
+    ["loans"],
+    async (token) => {
+      const response = await apiRequest("/loans", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: monthlyPayments = [], isLoading: monthlyPaymentsLoading } = useAuthenticatedQuery(
+    ["monthly-payments"],
+    async (token) => {
+      const response = await apiRequest("/monthly-payments", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: incomes = [], isLoading: incomesLoading } = useAuthenticatedQuery(
+    ["income"],
+    async (token) => {
+      const response = await apiRequest("/income", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: assets = [], isLoading: assetsLoading } = useAuthenticatedQuery(
+    ["assets"],
+    async (token) => {
+      const response = await apiRequest("/assets", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: expenses = [], isLoading: expensesLoading } = useAuthenticatedQuery(
+    ["expenses"],
+    async (token) => {
+      const response = await apiRequest("/expenses", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useAuthenticatedQuery(
+    ["business-profiles"],
+    async (token) => {
+      const response = await apiRequest("/business-profiles", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = useAuthenticatedQuery(
+    ["purchase-orders"],
+    async (token) => {
+      const response = await apiRequest("/purchase-orders", {}, token);
+      return response.data || [];
+    }
+  );
+  const { data: businessRevenue = [], isLoading: businessRevenueLoading } = useAuthenticatedQuery(
+    ["business-revenue"],
+    async (token) => {
+      const response = await apiRequest("/business-revenue", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: businessExpenses = [], isLoading: businessExpensesLoading } = useAuthenticatedQuery(
+    ["business-expenses"],
+    async (token) => {
+      const response = await apiRequest("/business-expenses", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: businessCreditCards = [], isLoading: businessCreditCardsLoading } = useAuthenticatedQuery(
+    ["business-credit-cards"],
+    async (token) => {
+      const response = await apiRequest("/business-credit-cards", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: businessLoans = [], isLoading: businessLoansLoading } = useAuthenticatedQuery(
+    ["business-loans"],
+    async (token) => {
+      const response = await apiRequest("/business-loans", {}, token);
+      return response.data || [];
+    }
+  );
+  
+  const { data: vendors = [], isLoading: vendorsLoading } = useAuthenticatedQuery(
+    ["vendors"],
+    async (token) => {
+      const response = await apiRequest("/vendors", {}, token);
+      return response.data || [];
+    }
+  );
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
@@ -127,27 +218,52 @@ export default function ComprehensiveDashboard() {
       date: new Date().toISOString().split('T')[0]
     });
 
-    const revenueMutation = useCreateBusinessRevenue();
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      revenueMutation.mutate(formData, {
+    const revenueMutation = useAuthenticatedMutation(
+      async (data: any, token: string | null) => {
+        const response = await apiRequest("/business-revenue", {
+          method: "POST",
+          body: JSON.stringify(data)
+        }, token);
+        return response.data;
+      },
+      {
         onSuccess: () => {
           toast({
             title: "Success",
             description: "Business revenue added successfully"
           });
-          queryClient.invalidateQueries({ queryKey: ["/api/business-revenue"] });
+          queryClient.invalidateQueries({ queryKey: ["business-revenue"] });
           onClose();
         },
-        onError: () => {
+        onError: (error: any) => {
+          console.error('🔴 [BUSINESS REVENUE] Error:', error);
           toast({
             title: "Error",
-            description: "Failed to add business revenue",
+            description: `Failed to add business revenue: ${error.message}`,
             variant: "destructive"
           });
         }
-      });
+      }
+    );
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      // Map frontend fields to backend schema requirements
+      const mappedData = {
+        amount: formData.amount,
+        description: formData.description,
+        source: formData.source,
+        category: formData.category === 'other' ? formData.customCategory : formData.category,
+        revenueDate: formData.date, // Map 'date' to 'revenueDate' for backend
+        frequency: formData.frequency,
+        isRecurring: formData.revenueType === 'subscription', // Map revenueType to isRecurring
+        // businessProfileId is now optional, so we can omit it
+      };
+      
+      console.log('🟢 [BUSINESS REVENUE] Submitting:', mappedData);
+      
+      revenueMutation.mutate(mappedData);
     };
 
     return (
@@ -270,30 +386,48 @@ export default function ComprehensiveDashboard() {
       notes: ''
     });
 
-    const expenseMutation = useMutation({
-      mutationFn: async (data: any) => {
-        return apiRequest("POST", "/api/business-expenses", data);
+    const expenseMutation = useAuthenticatedMutation(
+      async (data: any, token: string | null) => {
+        const response = await apiRequest("/business-expenses", {
+          method: "POST",
+          body: JSON.stringify(data)
+        }, token);
+        return response.data;
       },
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Business expense added successfully"
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/business-expenses"] });
-        onClose();
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to add business expense",
-          variant: "destructive"
-        });
+      {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Business expense added successfully"
+          });
+          queryClient.invalidateQueries({ queryKey: ["business-expenses"] });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add business expense",
+            variant: "destructive"
+          });
+        }
       }
-    });
+    );
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      expenseMutation.mutate(formData);
+      
+      // Map frontend fields to backend schema requirements
+      const mappedData = {
+        amount: formData.amount,
+        description: formData.description,
+        vendor: formData.vendor,
+        category: formData.category === 'other' ? formData.customCategory : formData.category,
+        expenseDate: formData.date, // Map 'date' to 'expenseDate' for backend
+        notes: formData.notes,
+        // businessProfileId is now optional, so we can omit it
+      };
+      
+      expenseMutation.mutate(mappedData);
     };
 
     return (
@@ -1945,20 +2079,50 @@ export default function ComprehensiveDashboard() {
 
     const createLoanMutation = useMutation({
       mutationFn: async (data: any) => {
-        return apiRequest("POST", "/api/loans", data);
+        console.log('🔵 [DASHBOARD] Starting loan creation from dashboard...');
+        console.log('🔵 [DASHBOARD] Form data:', data);
+        
+        console.log('🔵 [DASHBOARD] Getting Clerk token...');
+        const token = await getToken();
+        console.log('🔵 [DASHBOARD] Token received:', token ? 'Yes' : 'No');
+        
+        const requestPayload = {
+          loanName: data.name, // Map 'name' to 'loanName' for backend
+          currentBalance: data.balance, // Backend expects 'currentBalance' not 'balance'
+          interestRate: data.interestRate,
+          monthlyPayment: data.monthlyPayment,
+          originalAmount: data.originalAmount,
+          loanType: data.loanType,
+          termLength: parseInt(data.termMonths), // Backend expects 'termLength' as number, not 'termMonths' as string
+          dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Convert days to proper date format (YYYY-MM-DD)
+        };
+        
+        console.log('🔵 [DASHBOARD] Mapped payload:', requestPayload);
+        console.log('🔵 [DASHBOARD] Making API request...');
+        
+        const result = await apiRequest("/loans", {
+          method: 'POST',
+          body: JSON.stringify(requestPayload)
+        }, token);
+        
+        console.log('🔵 [DASHBOARD] API request successful:', result);
+        return result;
       },
-      onSuccess: () => {
+      onSuccess: (result) => {
+        console.log('🟢 [DASHBOARD] Loan created successfully:', result);
         toast({
           title: "Success",
           description: "Loan added successfully"
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+        queryClient.invalidateQueries({ queryKey: ["loans"] });
         onClose();
       },
-      onError: () => {
+      onError: (error: any) => {
+        console.error('🔴 [DASHBOARD] Loan creation failed:', error);
+        console.error('🔴 [DASHBOARD] Error message:', error.message);
         toast({
           title: "Error",
-          description: "Failed to add loan",
+          description: `Failed to add loan: ${error.message}`,
           variant: "destructive"
         });
       }
@@ -1966,6 +2130,8 @@ export default function ComprehensiveDashboard() {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      console.log('🚀 [DASHBOARD] Loan form submitted with data:', formData);
+      console.log('🚀 [DASHBOARD] Triggering loan mutation...');
       createLoanMutation.mutate(formData);
     };
 
@@ -2151,7 +2317,9 @@ export default function ComprehensiveDashboard() {
   const totalDebt = [...creditCards, ...loans].reduce(
     (sum, account) => sum + parseFloat(account.balance || "0"),
     0
+    
   );
+  
 
   const totalMonthlyPayments = [
     ...creditCards.map((card: CreditCard) => parseFloat(card.minimumPayment || "0")),
@@ -2185,6 +2353,27 @@ export default function ComprehensiveDashboard() {
   const totalCreditUsed = creditCards.reduce((sum, card) => sum + parseFloat(card.balance || "0"), 0);
   const availableCredit = totalCreditLimit - totalCreditUsed;
   const totalLiquidity = availableCash + availableCredit;
+
+  // Add user authentication check
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full" />
+        <p className="ml-4">Loading user data...</p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+          <p>Please sign in to access your dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -2453,9 +2642,9 @@ export default function ComprehensiveDashboard() {
                                 <Badge variant="outline">{loan.interestRate}% Rate</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
                                 <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
-                                <div>Term: {loan.termMonths} months</div>
+                                <div>Term: {loan.termLength} months</div>
                                 <div>Due: {new Date(Date.now() + loan.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
                               </div>
                             </div>
@@ -2531,7 +2720,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(loans.reduce((sum, loan) => sum + parseFloat(loan.balance), 0))}
+                      {formatCurrency(totalDebt)}
                     </div>
                   </CardContent>
                 </Card>

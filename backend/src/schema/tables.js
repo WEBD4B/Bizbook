@@ -2,7 +2,7 @@ import { pgTable, text, varchar, numeric, boolean, timestamp, uuid, date, intege
 
 // Users table
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: varchar('id', { length: 255 }).primaryKey(), // Changed to varchar to support Clerk user IDs
   username: varchar('username', { length: 255 }).notNull().unique(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   firstName: varchar('first_name', { length: 100 }),
@@ -16,7 +16,7 @@ export const users = pgTable('users', {
 // Credit Cards table
 export const creditCards = pgTable('credit_cards', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   cardName: varchar('card_name', { length: 255 }).notNull(),
   lastFourDigits: varchar('last_four_digits', { length: 4 }),
   creditLimit: numeric('credit_limit', { precision: 12, scale: 2 }),
@@ -35,7 +35,7 @@ export const creditCards = pgTable('credit_cards', {
 // Loans table
 export const loans = pgTable('loans', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   loanName: varchar('loan_name', { length: 255 }).notNull(),
   loanType: varchar('loan_type', { length: 50 }).notNull(),
   originalAmount: numeric('original_amount', { precision: 12, scale: 2 }),
@@ -55,7 +55,7 @@ export const loans = pgTable('loans', {
 // Monthly Payments table
 export const monthlyPayments = pgTable('monthly_payments', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   accountId: uuid('account_id').notNull(),
   accountType: varchar('account_type', { length: 50 }).notNull(),
   paymentName: varchar('payment_name', { length: 255 }).notNull(),
@@ -71,7 +71,7 @@ export const monthlyPayments = pgTable('monthly_payments', {
 // Income table
 export const income = pgTable('income', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   source: varchar('source', { length: 255 }).notNull(),
   incomeType: varchar('income_type', { length: 50 }).notNull(),
   amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
@@ -88,7 +88,7 @@ export const income = pgTable('income', {
 // Payments table
 export const payments = pgTable('payments', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   accountId: uuid('account_id').notNull(),
   accountType: varchar('account_type', { length: 50 }).notNull(),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
@@ -102,7 +102,7 @@ export const payments = pgTable('payments', {
 // Expenses table
 export const expenses = pgTable('expenses', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   description: varchar('description', { length: 255 }).notNull(),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
   category: varchar('category', { length: 100 }).notNull(),
@@ -122,7 +122,7 @@ export const expenses = pgTable('expenses', {
 // Savings Goals table
 export const savingsGoals = pgTable('savings_goals', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   goalName: varchar('goal_name', { length: 255 }).notNull(),
   targetAmount: numeric('target_amount', { precision: 12, scale: 2 }).notNull(),
   currentAmount: numeric('current_amount', { precision: 12, scale: 2 }).default('0'),
@@ -139,7 +139,7 @@ export const savingsGoals = pgTable('savings_goals', {
 // Budgets table
 export const budgets = pgTable('budgets', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   category: varchar('category', { length: 100 }).notNull(),
   budgetAmount: numeric('budget_amount', { precision: 10, scale: 2 }).notNull(),
   currentSpent: numeric('current_spent', { precision: 10, scale: 2 }).default('0'),
@@ -156,7 +156,7 @@ export const budgets = pgTable('budgets', {
 // Investments table
 export const investments = pgTable('investments', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   accountName: varchar('account_name', { length: 255 }).notNull(),
   accountType: varchar('account_type', { length: 50 }).notNull(),
   institution: varchar('institution', { length: 255 }),
@@ -176,7 +176,7 @@ export const investments = pgTable('investments', {
 // Assets table
 export const assets = pgTable('assets', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   assetName: varchar('asset_name', { length: 255 }).notNull(),
   assetType: varchar('asset_type', { length: 50 }).notNull(),
   currentValue: numeric('current_value', { precision: 15, scale: 2 }).notNull(),
@@ -200,7 +200,7 @@ export const assets = pgTable('assets', {
 // Liabilities table
 export const liabilities = pgTable('liabilities', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   liabilityName: varchar('liability_name', { length: 255 }).notNull(),
   liabilityType: varchar('liability_type', { length: 50 }).notNull(),
   currentBalance: numeric('current_balance', { precision: 15, scale: 2 }).notNull(),
@@ -227,7 +227,7 @@ export const liabilities = pgTable('liabilities', {
 // Net Worth Snapshots table
 export const netWorthSnapshots = pgTable('net_worth_snapshots', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   snapshotDate: date('snapshot_date').notNull(),
   totalAssets: numeric('total_assets', { precision: 15, scale: 2 }).notNull(),
   totalLiabilities: numeric('total_liabilities', { precision: 15, scale: 2 }).notNull(),
@@ -252,7 +252,7 @@ export const netWorthSnapshots = pgTable('net_worth_snapshots', {
 // Business Profiles table
 export const businessProfiles = pgTable('business_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessName: varchar('business_name', { length: 255 }).notNull(),
   businessType: varchar('business_type', { length: 100 }),
   ein: varchar('ein', { length: 20 }),
@@ -272,7 +272,7 @@ export const businessProfiles = pgTable('business_profiles', {
 // Vendors table
 export const vendors = pgTable('vendors', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   companyName: varchar('company_name', { length: 255 }).notNull(),
   contactPerson: varchar('contact_person', { length: 255 }),
   email: varchar('email', { length: 255 }),
@@ -294,7 +294,7 @@ export const vendors = pgTable('vendors', {
 // Purchase Orders table
 export const purchaseOrders = pgTable('purchase_orders', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessProfileId: uuid('business_profile_id').references(() => businessProfiles.id),
   vendorId: uuid('vendor_id').references(() => vendors.id),
   poNumber: varchar('po_number', { length: 100 }).notNull().unique(),
@@ -337,7 +337,7 @@ export const purchaseOrderItems = pgTable('purchase_order_items', {
 // Business Credit Cards table
 export const businessCreditCards = pgTable('business_credit_cards', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessProfileId: uuid('business_profile_id').references(() => businessProfiles.id),
   cardName: varchar('card_name', { length: 255 }).notNull(),
   lastFourDigits: varchar('last_four_digits', { length: 4 }),
@@ -357,7 +357,7 @@ export const businessCreditCards = pgTable('business_credit_cards', {
 // Business Loans table
 export const businessLoans = pgTable('business_loans', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessProfileId: uuid('business_profile_id').references(() => businessProfiles.id),
   loanName: varchar('loan_name', { length: 255 }).notNull(),
   loanType: varchar('loan_type', { length: 50 }).notNull(),
@@ -379,7 +379,7 @@ export const businessLoans = pgTable('business_loans', {
 // Business Revenue table
 export const businessRevenue = pgTable('business_revenue', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessProfileId: uuid('business_profile_id').references(() => businessProfiles.id),
   source: varchar('source', { length: 255 }).notNull(),
   description: text('description'),
@@ -399,7 +399,7 @@ export const businessRevenue = pgTable('business_revenue', {
 // Business Expenses table
 export const businessExpenses = pgTable('business_expenses', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').references(() => users.id),
+  userId: varchar('user_id', { length: 255 }).references(() => users.id),
   businessProfileId: uuid('business_profile_id').references(() => businessProfiles.id),
   description: varchar('description', { length: 255 }).notNull(),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),

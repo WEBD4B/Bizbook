@@ -146,34 +146,34 @@ export const authApi = {
 
 // Generic CRUD API functions
 export const createCrudApi = <T = any>(endpoint: string) => ({
-  async getAll(): Promise<T[]> {
-    const response = await apiRequest(endpoint);
+  async getAll(clerkToken?: string): Promise<T[]> {
+    const response = await apiRequest(endpoint, {}, clerkToken);
     return response.data || [];
   },
 
-  async getById(id: string): Promise<T> {
-    const response = await apiRequest(`${endpoint}/${id}`);
+  async getById(id: string, clerkToken?: string): Promise<T> {
+    const response = await apiRequest(`${endpoint}/${id}`, {}, clerkToken);
     return response.data;
   },
 
-  async create(data: Partial<T>): Promise<T> {
+  async create(data: Partial<T>, clerkToken?: string): Promise<T> {
     const response = await apiRequest(endpoint, {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   },
 
-  async update(id: string, data: Partial<T>): Promise<T> {
+  async update(id: string, data: Partial<T>, clerkToken?: string): Promise<T> {
     const response = await apiRequest(`${endpoint}/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await apiRequest(`${endpoint}/${id}`, { method: 'DELETE' });
+  async delete(id: string, clerkToken?: string): Promise<void> {
+    await apiRequest(`${endpoint}/${id}`, { method: 'DELETE' }, clerkToken);
   }
 });
 
@@ -197,26 +197,26 @@ export const businessLoansApi = createCrudApi('/business-loans');
 
 // Specialized API functions
 export const netWorthApi = {
-  async getSnapshots() {
-    const response = await apiRequest('/net-worth-snapshots');
+  async getSnapshots(clerkToken?: string) {
+    const response = await apiRequest('/net-worth-snapshots', {}, clerkToken);
     return response.data || [];
   },
 
-  async getLatest() {
-    const response = await apiRequest('/net-worth-snapshots/latest');
+  async getLatest(clerkToken?: string) {
+    const response = await apiRequest('/net-worth-snapshots/latest', {}, clerkToken);
     return response.data;
   },
 
-  async createSnapshot(data: any) {
+  async createSnapshot(data: any, clerkToken?: string) {
     const response = await apiRequest('/net-worth-snapshots', {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   },
 
-  async calculateNetWorth() {
-    const response = await apiRequest('/calculate-net-worth', { method: 'POST' });
+  async calculateNetWorth(clerkToken?: string) {
+    const response = await apiRequest('/calculate-net-worth', { method: 'POST' }, clerkToken);
     return response.data;
   }
 };
@@ -227,68 +227,68 @@ export const calculationsApi = {
     interestRate: number;
     monthlyPayment: number;
     extraPayment?: number;
-  }) {
+  }, clerkToken?: string) {
     const response = await apiRequest('/calculate-payoff', {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   }
 };
 
 export const businessRevenueApi = {
-  async getAll() {
-    const response = await apiRequest('/business-revenue');
+  async getAll(clerkToken?: string) {
+    const response = await apiRequest('/business-revenue', {}, clerkToken);
     return response.data || [];
   },
 
-  async create(data: any) {
+  async create(data: any, clerkToken?: string) {
     const response = await apiRequest('/business-revenue', {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   }
 };
 
 export const businessExpensesApi = {
-  async getAll() {
-    const response = await apiRequest('/business-expenses');
+  async getAll(clerkToken?: string) {
+    const response = await apiRequest('/business-expenses', {}, clerkToken);
     return response.data || [];
   },
 
-  async create(data: any) {
+  async create(data: any, clerkToken?: string) {
     const response = await apiRequest('/business-expenses', {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   }
 };
 
 export const purchaseOrderItemsApi = {
-  async getByPurchaseOrder(poId: string) {
-    const response = await apiRequest(`/purchase-orders/${poId}/items`);
+  async getByPurchaseOrder(poId: string, clerkToken?: string) {
+    const response = await apiRequest(`/purchase-orders/${poId}/items`, {}, clerkToken);
     return response.data || [];
   },
 
-  async create(data: any) {
+  async create(data: any, clerkToken?: string) {
     const response = await apiRequest('/purchase-order-items', {
       method: 'POST',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   },
 
-  async update(id: string, data: any) {
+  async update(id: string, data: any, clerkToken?: string) {
     const response = await apiRequest(`/purchase-order-items/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
-    });
+    }, clerkToken);
     return response.data;
   },
 
-  async delete(id: string) {
-    await apiRequest(`/purchase-order-items/${id}`, { method: 'DELETE' });
+  async delete(id: string, clerkToken?: string) {
+    await apiRequest(`/purchase-order-items/${id}`, { method: 'DELETE' }, clerkToken);
   }
 };

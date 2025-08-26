@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/clerk-react";
 import { 
   creditCardsApi, 
   loansApi, 
@@ -24,11 +25,16 @@ import {
 } from "../lib/api";
 
 // Credit Cards hooks
-export const useCreditCards = () =>
-  useQuery({
+export const useCreditCards = () => {
+  const { getToken } = useAuth();
+  return useQuery({
     queryKey: ["credit-cards"],
-    queryFn: creditCardsApi.getAll,
+    queryFn: async () => {
+      const token = await getToken();
+      return creditCardsApi.getAll(token);
+    },
   });
+};
 
 export const useCreditCard = (id: string) =>
   useQuery({
@@ -69,11 +75,16 @@ export const useDeleteCreditCard = () => {
 };
 
 // Loans hooks
-export const useLoans = () =>
-  useQuery({
+export const useLoans = () => {
+  const { getToken } = useAuth();
+  return useQuery({
     queryKey: ["loans"],
-    queryFn: loansApi.getAll,
+    queryFn: async () => {
+      const token = await getToken();
+      return loansApi.getAll(token);
+    },
   });
+};
 
 export const useCreateLoan = () => {
   const queryClient = useQueryClient();
@@ -107,11 +118,16 @@ export const useDeleteLoan = () => {
 };
 
 // Monthly Payments hooks
-export const useMonthlyPayments = () =>
-  useQuery({
+export const useMonthlyPayments = () => {
+  const { getToken } = useAuth();
+  return useQuery({
     queryKey: ["monthly-payments"],
-    queryFn: monthlyPaymentsApi.getAll,
+    queryFn: async () => {
+      const token = await getToken();
+      return monthlyPaymentsApi.getAll(token);
+    },
   });
+};
 
 export const useCreateMonthlyPayment = () => {
   const queryClient = useQueryClient();

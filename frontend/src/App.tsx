@@ -10,6 +10,7 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-reac
 import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
+import { ApiProvider } from "@/contexts/ApiContext";
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function AuthenticatedRouter() {
       <Route path="/loans" component={ComprehensiveDashboard} />
       <Route path="/schedule" component={ComprehensiveDashboard} />
       <Route path="/analytics" component={ComprehensiveDashboard} />
+      <Route path="/auth" component={() => <Redirect to="/dashboard" />} />
       <Route path="/" component={() => <Redirect to="/dashboard" />} />
       <Route component={NotFound} />
     </Switch>
@@ -64,15 +66,17 @@ function App() {
           <UnauthenticatedRouter />
         </SignedOut>
         <SignedIn>
-          <div className="min-h-screen bg-gray-50">
-            <header className="flex items-center justify-between p-4 border-b bg-white">
-              <h1 className="text-xl font-semibold">BizBook</h1>
-              <UserButton />
-            </header>
-            <main>
-              <AuthenticatedRouter />
-            </main>
-          </div>
+          <ApiProvider>
+            <div className="min-h-screen bg-gray-50">
+              <header className="flex items-center justify-between p-4 border-b bg-white">
+                <h1 className="text-xl font-semibold">BizBook</h1>
+                <UserButton />
+              </header>
+              <main>
+                <AuthenticatedRouter />
+              </main>
+            </div>
+          </ApiProvider>
         </SignedIn>
         <Toaster />
       </TooltipProvider>

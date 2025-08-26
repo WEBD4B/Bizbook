@@ -19,6 +19,9 @@ export function NetWorthSummary() {
 
   // Calculate net worth
   const netWorth = totalAssets - totalLiabilities;
+  console.log('Total assets:', totalAssets);
+  console.log('Total liabilities:', totalLiabilities);
+  console.log('Net worth:', netWorth);
 
   // Calculate liquid vs non-liquid assets
   const liquidAssets = assets

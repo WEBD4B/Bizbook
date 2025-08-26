@@ -44,20 +44,40 @@ async function createOrGetUserFromClerk(clerkUser) {
       return existingUser;
     }
 
+    // Extract email from Clerk user object (try different properties)
+    const email = clerkUser.email || clerkUser.email_addresses?.[0]?.email_address || clerkUser.primary_email_address?.email_address || `${clerkUser.sub}@clerk.local`;
+    const firstName = clerkUser.first_name || clerkUser.given_name || '';
+    const lastName = clerkUser.last_name || clerkUser.family_name || '';
+    const username = email.includes('@') ? email.split('@')[0] : clerkUser.sub;
+
     // Create new user from Clerk data
-    console.log('📝 Creating new user from Clerk data:', clerkUser.email);
-    const [newUser] = await db.insert(users).values({
-      id: clerkUser.sub, // Clerk user ID
-      username: clerkUser.email.split('@')[0], // Use email prefix as username
-      email: clerkUser.email,
-      firstName: clerkUser.given_name || clerkUser.first_name || '',
-      lastName: clerkUser.family_name || clerkUser.last_name || '',
-      passwordHash: 'clerk_managed', // Placeholder since Clerk manages auth
-      isActive: true
-    }).returning();
+    console.log('📝 Creating new user from Clerk data:', email);
     
-    console.log('✅ Created new user:', newUser.email);
-    return newUser;
+    try {
+      const [newUser] = await db.insert(users).values({
+        id: clerkUser.sub, // Clerk user ID
+        username: username, // Use email prefix as username or fallback to user ID
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        passwordHash: 'clerk_managed', // Placeholder since Clerk manages auth
+        isActive: true
+      }).returning();
+      
+      console.log('✅ Created new user:', newUser.email);
+      return newUser;
+    } catch (insertError) {
+      // Handle race condition where user might have been created between check and insert
+      if (insertError.message.includes('duplicate key')) {
+        console.log('🔄 User was created by another request, fetching existing user...');
+        const [existingUser] = await db.select().from(users).where(eq(users.id, clerkUser.sub));
+        if (existingUser) {
+          console.log('✅ Found existing user after race condition:', existingUser.email);
+          return existingUser;
+        }
+      }
+      throw insertError;
+    }
   } catch (error) {
     console.error('❌ Error creating/getting user from Clerk:', error.message);
     throw error;
@@ -97,7 +117,7 @@ export async function authenticateToken(req, res, next) {
       secretKey: process.env.CLERK_SECRET_KEY
     });
     
-    console.log('✅ Clerk token verified for user:', clerkUser.email || clerkUser.sub);
+    console.log('✅ Clerk token verified for user:', clerkUser.email || clerkUser.email_addresses?.[0]?.email_address || clerkUser.sub);
     
     // Create or get user from database
     const user = await createOrGetUserFromClerk(clerkUser);
