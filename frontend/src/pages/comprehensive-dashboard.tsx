@@ -16,6 +16,7 @@ import {
   useAssets, 
   useExpenses,
   useBusinessProfiles,
+  useCreateBusinessProfile,
   usePurchaseOrders,
   useBusinessRevenue,
   useBusinessExpenses,
@@ -48,7 +49,8 @@ import {
   Download,
   Plus,
   Trash2,
-  Eye
+  Eye,
+  CalendarDays
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
 import { AccountForm } from "@/components/account-form";
@@ -148,13 +150,7 @@ export default function ComprehensiveDashboard() {
     }
   );
   
-  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useAuthenticatedQuery(
-    ["business-profiles"],
-    async (token) => {
-      const response = await apiRequest("/business-profiles", {}, token);
-      return response.data || [];
-    }
-  );
+  const { data: businessProfiles = [], isLoading: businessProfilesLoading } = useBusinessProfiles();
   
   const { data: purchaseOrders = [], isLoading: purchaseOrdersLoading } = useAuthenticatedQuery(
     ["purchase-orders"],
@@ -195,13 +191,7 @@ export default function ComprehensiveDashboard() {
     }
   );
   
-  const { data: vendors = [], isLoading: vendorsLoading } = useAuthenticatedQuery(
-    ["vendors"],
-    async (token) => {
-      const response = await apiRequest("/vendors", {}, token);
-      return response.data || [];
-    }
-  );
+  const { data: vendors = [], isLoading: vendorsLoading } = useVendors();
 
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
@@ -533,30 +523,26 @@ export default function ComprehensiveDashboard() {
       logoUrl: ''
     });
 
-    const profileMutation = useMutation({
-      mutationFn: async (data: any) => {
-        return apiRequest("POST", "/api/business-profiles", data);
-      },
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Business profile created successfully"
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/business-profiles"] });
-        onClose();
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to create business profile",
-          variant: "destructive"
-        });
-      }
-    });
+    const profileMutation = useCreateBusinessProfile();
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      profileMutation.mutate(formData);
+      profileMutation.mutate(formData, {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Business profile created successfully"
+          });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to create business profile",
+            variant: "destructive"
+          });
+        }
+      });
     };
 
     return (
@@ -651,6 +637,7 @@ export default function ComprehensiveDashboard() {
   const PurchaseOrderForm = ({ onClose }: { onClose: () => void }) => {
     const [formData, setFormData] = useState({
       businessProfileId: '',
+      vendorId: '',
       poNumber: `PO-${Date.now()}`,
       vendorName: '',
       vendorAddress: '',
@@ -673,36 +660,53 @@ export default function ComprehensiveDashboard() {
         const salesTax = subtotal * 0.08; // 8% tax
         const totalDue = subtotal + salesTax;
 
-        const orderResponse = await apiRequest("POST", "/api/purchase-orders", {
-          ...orderData,
-          subtotal: subtotal.toString(),
-          salesTax: salesTax.toString(),
-          shippingHandling: "0",
-          totalDue: totalDue.toString()
-        });
-        const order = await orderResponse.json();
+        const token = await getToken();
+        const orderResponse = await apiRequest("/purchase-orders", {
+          method: "POST",
+          body: JSON.stringify({
+            ...orderData,
+            subtotal: subtotal.toString(),
+            salesTax: salesTax.toString(),
+            shippingHandling: "0",
+            totalDue: totalDue.toString()
+          })
+        }, token);
+        const order = orderResponse.data;
 
         // Create order items
-        for (const item of items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
           if (item.description) {
-            await apiRequest("POST", "/api/purchase-order-items", {
-              purchaseOrderId: order.id,
-              ...item
-            });
+            await apiRequest("/purchase-order-items", {
+              method: "POST",
+              body: JSON.stringify({
+                purchaseOrderId: order.id,
+                lineNumber: i + 1, // Convert array index to 1-based line number
+                description: item.description,
+                quantity: item.quantity || '0',
+                unitPrice: item.unitPrice || '0',
+                totalPrice: item.total || '0', // Map 'total' to 'totalPrice'
+                partNumber: item.itemNumber || '', // Map 'itemNumber' to 'partNumber'
+                unitOfMeasure: 'each' // Default value
+              })
+            }, token);
           }
         }
 
         // Automatically create business expense for the purchase order
-        await apiRequest("POST", "/api/business-expenses", {
-          amount: totalDue.toString(),
-          description: `Purchase Order ${orderData.poNumber} - ${orderData.vendorName}`,
-          vendor: orderData.vendorName,
-          category: "Purchase Orders",
-          expenseType: "operational",
-          date: new Date().toISOString().split('T')[0],
-          notes: `Auto-generated from PO ${orderData.poNumber}`,
-          purchaseOrderId: order.id
-        });
+        await apiRequest("/business-expenses", {
+          method: "POST",
+          body: JSON.stringify({
+            amount: totalDue.toString(),
+            description: `Purchase Order ${orderData.poNumber} - ${orderData.vendorName}`,
+            vendor: orderData.vendorName,
+            category: "Purchase Orders",
+            expenseType: "operational",
+            date: new Date().toISOString().split('T')[0],
+            notes: `Auto-generated from PO ${orderData.poNumber}`,
+            purchaseOrderId: order.id
+          })
+        }, token);
 
         return order;
       },
@@ -730,6 +734,14 @@ export default function ComprehensiveDashboard() {
         toast({
           title: "Error",
           description: "Please select a business profile first",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (!formData.vendorId) {
+        toast({
+          title: "Error",
+          description: "Please select a vendor first",
           variant: "destructive"
         });
         return;
@@ -796,31 +808,66 @@ export default function ComprehensiveDashboard() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Vendor Information</h3>
           <div>
-            <Label htmlFor="vendor-name">Vendor Name</Label>
-            <Input
-              id="vendor-name"
-              value={formData.vendorName}
-              onChange={(e) => setFormData(prev => ({ ...prev, vendorName: e.target.value }))}
+            <Label htmlFor="vendor-select">Select Vendor</Label>
+            <Select 
+              value={formData.vendorId} 
+              onValueChange={(value) => {
+                const selectedVendor = vendors.find(v => v.id === value);
+                if (selectedVendor) {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    vendorId: value,
+                    vendorName: selectedVendor.companyName,
+                    vendorAddress: selectedVendor.address || '',
+                    vendorPhone: selectedVendor.phone || ''
+                  }));
+                }
+              }}
               required
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={vendors.length === 0 ? "No vendors available" : "Select a vendor"} />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    No vendors available. Please add a vendor first.
+                  </SelectItem>
+                ) : (
+                  vendors.map((vendor: any) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.companyName}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {vendors.length === 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                You need to add vendors before creating purchase orders. Go to the Business tab to add vendors.
+              </p>
+            )}
           </div>
-          <div>
-            <Label htmlFor="vendor-address">Vendor Address</Label>
-            <Textarea
-              id="vendor-address"
-              value={formData.vendorAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, vendorAddress: e.target.value }))}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="vendor-phone">Vendor Phone</Label>
-            <Input
-              id="vendor-phone"
-              value={formData.vendorPhone}
-              onChange={(e) => setFormData(prev => ({ ...prev, vendorPhone: e.target.value }))}
-            />
-          </div>
+          {formData.vendorId && (
+            <>
+              <div>
+                <Label>Vendor Address (auto-filled)</Label>
+                <Textarea
+                  value={formData.vendorAddress}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vendorAddress: e.target.value }))}
+                  placeholder="Vendor address will be auto-filled when you select a vendor"
+                />
+              </div>
+              <div>
+                <Label>Vendor Phone (auto-filled)</Label>
+                <Input
+                  value={formData.vendorPhone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vendorPhone: e.target.value }))}
+                  placeholder="Vendor phone will be auto-filled when you select a vendor"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -2077,7 +2124,175 @@ export default function ComprehensiveDashboard() {
     );
   };
 
-  const LoanForm = ({ onClose }: { onClose: () => void }) => {
+  const BusinessCreditCardForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      balance: '',
+      creditLimit: '',
+      interestRate: '',
+      minimumPayment: '',
+      paymentDate: '',
+      dueDate: 30,
+      businessProfileId: ''
+    });
+
+    const createBusinessCreditCardMutation = useMutation({
+      mutationFn: async (data: any) => {
+        console.log('🔵 [DASHBOARD] Starting business credit card creation from dashboard...');
+        console.log('🔵 [DASHBOARD] Form data:', data);
+        
+        console.log('🔵 [DASHBOARD] Getting Clerk token...');
+        const token = await getToken();
+        console.log('🔵 [DASHBOARD] Token received:', token ? 'Yes' : 'No');
+        
+        const requestPayload = {
+          cardName: data.name, // Map 'name' to 'cardName' for backend
+          balance: data.balance,
+          creditLimit: data.creditLimit,
+          interestRate: data.interestRate,
+          minimumPayment: data.minimumPayment,
+          paymentDate: data.paymentDate,
+          dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Convert days to proper date format (YYYY-MM-DD)
+          businessProfileId: data.businessProfileId
+        };
+        
+        console.log('🔵 [DASHBOARD] Mapped payload:', requestPayload);
+        console.log('🔵 [DASHBOARD] Making API request...');
+        
+        const result = await apiRequest("/business-credit-cards", {
+          method: 'POST',
+          body: JSON.stringify(requestPayload)
+        }, token);
+        
+        console.log('🔵 [DASHBOARD] API request successful:', result);
+        return result;
+      },
+      onSuccess: (result) => {
+        console.log('🟢 [DASHBOARD] Business credit card created successfully:', result);
+        toast({
+          title: "Success",
+          description: "Business credit card added successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["business-credit-cards"] });
+        onClose();
+      },
+      onError: (error: any) => {
+        console.error('🔴 [DASHBOARD] Business credit card creation failed:', error);
+        console.error('🔴 [DASHBOARD] Error message:', error.message);
+        toast({
+          title: "Error",
+          description: `Failed to add business credit card: ${error.message}`,
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      console.log('🚀 [DASHBOARD] Business credit card form submitted with data:', formData);
+      console.log('🚀 [DASHBOARD] Triggering business credit card mutation...');
+      createBusinessCreditCardMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="business-card-name">Card Name</Label>
+          <Input
+            id="business-card-name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g., Chase Business Ink"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="business-profile">Business Profile</Label>
+          <Select 
+            value={formData.businessProfileId} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select business profile" />
+            </SelectTrigger>
+            <SelectContent>
+              {businessProfiles.map((profile: any) => (
+                <SelectItem key={profile.id} value={profile.id}>
+                  {profile.businessName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="business-balance">Current Balance</Label>
+            <Input
+              id="business-balance"
+              type="number"
+              step="0.01"
+              value={formData.balance}
+              onChange={(e) => setFormData(prev => ({ ...prev, balance: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-credit-limit">Credit Limit</Label>
+            <Input
+              id="business-credit-limit"
+              type="number"
+              step="0.01"
+              value={formData.creditLimit}
+              onChange={(e) => setFormData(prev => ({ ...prev, creditLimit: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="business-interest-rate">Interest Rate (%)</Label>
+            <Input
+              id="business-interest-rate"
+              type="number"
+              step="0.01"
+              value={formData.interestRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="business-min-payment">Minimum Payment</Label>
+            <Input
+              id="business-min-payment"
+              type="number"
+              step="0.01"
+              value={formData.minimumPayment}
+              onChange={(e) => setFormData(prev => ({ ...prev, minimumPayment: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="business-payment-date">Payment Date</Label>
+          <Input
+            id="business-payment-date"
+            type="date"
+            value={formData.paymentDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={createBusinessCreditCardMutation.isPending}>
+            {createBusinessCreditCardMutation.isPending ? "Adding..." : "Add Card"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const LoanForm = ({ onClose, type = 'personal' }: { onClose: () => void; type?: 'personal' | 'business' }) => {
     const [formData, setFormData] = useState({
       name: '',
       balance: '',
@@ -2085,8 +2300,9 @@ export default function ComprehensiveDashboard() {
       monthlyPayment: '',
       termMonths: '',
       originalAmount: '',
-      loanType: 'personal',
-      dueDate: 30
+      loanType: type === 'business' ? 'business' : 'personal',
+      dueDate: 30,
+      ...(type === 'business' && { businessProfileId: '' })
     });
 
     const createLoanMutation = useMutation({
@@ -2106,13 +2322,17 @@ export default function ComprehensiveDashboard() {
           originalAmount: data.originalAmount,
           loanType: data.loanType,
           termLength: parseInt(data.termMonths), // Backend expects 'termLength' as number, not 'termMonths' as string
-          dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Convert days to proper date format (YYYY-MM-DD)
+          dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Convert days to proper date format (YYYY-MM-DD)
+          ...(type === 'business' && { businessProfileId: data.businessProfileId })
         };
         
         console.log('🔵 [DASHBOARD] Mapped payload:', requestPayload);
         console.log('🔵 [DASHBOARD] Making API request...');
         
-        const result = await apiRequest("/loans", {
+        const endpoint = type === 'business' ? "/business-loans" : "/loans";
+        console.log('🔵 [DASHBOARD] Using endpoint:', endpoint);
+        
+        const result = await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify(requestPayload)
         }, token);
@@ -2126,7 +2346,8 @@ export default function ComprehensiveDashboard() {
           title: "Success",
           description: "Loan added successfully"
         });
-        queryClient.invalidateQueries({ queryKey: ["loans"] });
+        const queryKey = type === 'business' ? ["business-loans"] : ["loans"];
+        queryClient.invalidateQueries({ queryKey });
         onClose();
       },
       onError: (error: any) => {
@@ -2143,6 +2364,17 @@ export default function ComprehensiveDashboard() {
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       console.log('🚀 [DASHBOARD] Loan form submitted with data:', formData);
+      
+      // Validate business profile selection for business loans
+      if (type === 'business' && !formData.businessProfileId) {
+        toast({
+          title: "Error",
+          description: "Please select a business profile first",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       console.log('🚀 [DASHBOARD] Triggering loan mutation...');
       createLoanMutation.mutate(formData);
     };
@@ -2159,6 +2391,45 @@ export default function ComprehensiveDashboard() {
             required
           />
         </div>
+        {type === 'business' && (
+          <div>
+            <Label htmlFor="business-profile">Business Profile</Label>
+            <Select value={formData.businessProfileId} onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder={businessProfiles.length === 0 ? "No business profiles available" : "Select business profile"} />
+              </SelectTrigger>
+              <SelectContent>
+                {businessProfiles.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No business profiles found
+                  </div>
+                ) : (
+                  businessProfiles.map((profile: any) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.businessName}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {businessProfiles.length === 0 && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 mb-2">
+                  You need to create a business profile first before adding business loans.
+                </p>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setBusinessProfileDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Business Profile
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="loan-balance">Current Balance</Label>
@@ -2247,7 +2518,8 @@ export default function ComprehensiveDashboard() {
   // Delete functions
   const deleteCreditCard = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/credit-cards/${id}`);
+      const token = await getToken();
+      return apiRequest(`/credit-cards/${id}`, { method: "DELETE" }, token);
     },
     onSuccess: () => {
       toast({
@@ -2267,7 +2539,8 @@ export default function ComprehensiveDashboard() {
 
   const deleteLoan = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/loans/${id}`);
+      const token = await getToken();
+      return apiRequest(`/loans/${id}`, { method: "DELETE" }, token);
     },
     onSuccess: () => {
       toast({
@@ -2287,7 +2560,8 @@ export default function ComprehensiveDashboard() {
 
   const deleteIncome = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/income/${id}`);
+      const token = await getToken();
+      return apiRequest(`/income/${id}`, { method: "DELETE" }, token);
     },
     onSuccess: () => {
       toast({
@@ -2307,7 +2581,8 @@ export default function ComprehensiveDashboard() {
 
   const deleteVendor = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/vendors/${id}`);
+      const token = await getToken();
+      return apiRequest(`/vendors/${id}`, { method: "DELETE" }, token);
     },
     onSuccess: () => {
       toast({
@@ -2339,6 +2614,7 @@ export default function ComprehensiveDashboard() {
   ].reduce((sum, payment) => sum + payment, 0);
 
   const creditUtilization = calculateCreditUtilization(creditCards);
+  const businessCreditUtilization = calculateCreditUtilization(businessCreditCards);
 
   // Calculate monthly income
   const calculateMonthlyIncome = (incomes: Income[]) => {
@@ -2923,32 +3199,32 @@ export default function ComprehensiveDashboard() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Add Loan</DialogTitle>
+                          <DialogTitle>Add Business Loan</DialogTitle>
                         </DialogHeader>
-                        <LoanForm onClose={() => {}} />
+                        <LoanForm onClose={() => {}} type="business" />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
                   <CardContent>
-                    {loans.length === 0 ? (
+                    {businessLoans.length === 0 ? (
                       <div className="text-center py-8 text-neutral-500">
                         <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No loans added yet</p>
-                        <p className="text-sm">Add your loans to track balances and payments</p>
+                        <p className="mb-4">No business loans added yet</p>
+                        <p className="text-sm">Add your business loans to track balances and payments</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {loans.map((loan: any) => (
+                        {businessLoans.map((loan: any) => (
                           <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{loan.name}</h3>
+                                <h3 className="font-medium">{loan.loanName}</h3>
                                 <Badge variant="outline">{loan.interestRate}% Rate</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
+                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
                                 <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
-                                <div>Term: {loan.termMonths} months</div>
+                                <div>Term: {loan.termLength} months</div>
                                 <div>Due: {new Date(loan.dueDate).toLocaleDateString()}</div>
                               </div>
                             </div>
@@ -2982,6 +3258,122 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
+              {/* Upcoming Business Payments and Revenue */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Upcoming Business Payments */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarDays className="h-5 w-5" />
+                      Upcoming Business Payments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Filter upcoming business expenses and loan payments */}
+                    {(() => {
+                      const upcomingBusinessPayments = [
+                        ...businessExpenses.filter(expense => {
+                          const expenseDate = new Date(expense.dueDate || expense.date);
+                          const today = new Date();
+                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                          return expenseDate >= today && expenseDate <= thirtyDaysFromNow;
+                        }).map(expense => ({
+                          ...expense,
+                          type: 'expense',
+                          name: expense.description,
+                          amount: expense.amount,
+                          dueDate: expense.dueDate || expense.date
+                        })),
+                        ...businessLoans.filter(loan => {
+                          const loanDueDate = new Date(loan.dueDate);
+                          const today = new Date();
+                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                          return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow;
+                        }).map(loan => ({
+                          ...loan,
+                          type: 'loan',
+                          name: loan.loanName,
+                          amount: loan.monthlyPayment,
+                          dueDate: loan.dueDate
+                        }))
+                      ];
+                      
+                      return upcomingBusinessPayments.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-500">
+                          <CalendarDays size={48} className="mx-auto mb-4 text-neutral-300" />
+                          <p className="mb-4">No upcoming business payments</p>
+                          <p className="text-sm">Business expenses and loan payments will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {upcomingBusinessPayments.map((payment: any, index) => (
+                            <div key={`${payment.type}-${payment.id}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-medium">{payment.name}</h4>
+                                  <Badge variant="outline">{payment.type === 'expense' ? 'Expense' : 'Loan'}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div>Amount: <span className="font-medium text-red-600">{formatCurrency(parseFloat(payment.amount))}</span></div>
+                                  <div>Due: {new Date(payment.dueDate).toLocaleDateString()}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Upcoming Business Revenue */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Upcoming Business Revenue
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Filter upcoming business revenue */}
+                    {(() => {
+                      const upcomingBusinessRevenue = businessRevenue.filter(revenue => {
+                        if (!revenue.expectedDate) return false;
+                        const revenueDate = new Date(revenue.expectedDate);
+                        const today = new Date();
+                        const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                        return revenueDate >= today && revenueDate <= thirtyDaysFromNow;
+                      });
+                      
+                      return upcomingBusinessRevenue.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-500">
+                          <TrendingUp size={48} className="mx-auto mb-4 text-neutral-300" />
+                          <p className="mb-4">No upcoming business revenue</p>
+                          <p className="text-sm">Expected business income will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {upcomingBusinessRevenue.map((revenue: any) => (
+                            <div key={revenue.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-medium">{revenue.description}</h4>
+                                  <Badge variant="outline">{revenue.source}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
+                                  <div>Expected: {new Date(revenue.expectedDate).toLocaleDateString()}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Summary Stats */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
@@ -2990,7 +3382,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
+                      {formatCurrency(businessCreditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
                     </div>
                   </CardContent>
                 </Card>
@@ -3000,7 +3392,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(loans.reduce((sum, loan) => sum + parseFloat(loan.balance), 0))}
+                      {formatCurrency(businessLoans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance), 0))}
                     </div>
                   </CardContent>
                 </Card>
@@ -3010,7 +3402,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-green-600">
-                      {formatCurrency(availableCredit)}
+                      {formatCurrency(businessCreditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit) - parseFloat(card.balance), 0))}
                     </div>
                   </CardContent>
                 </Card>
@@ -3020,7 +3412,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-blue-600">
-                      {creditUtilization.toFixed(1)}%
+                      {businessCreditUtilization.toFixed(1)}%
                     </div>
                   </CardContent>
                 </Card>
@@ -3035,10 +3427,23 @@ export default function ComprehensiveDashboard() {
                       <CreditCardIcon className="h-5 w-5" />
                       Business Credit Cards
                     </CardTitle>
-                    <Button size="sm" data-testid="button-add-business-credit-card">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Card
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm" data-testid="button-add-business-credit-card">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Card
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Business Credit Card</DialogTitle>
+                          <DialogDescription>
+                            Add a new business credit card to track balances and payments.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <BusinessCreditCardForm onClose={() => {}} />
+                      </DialogContent>
+                    </Dialog>
                   </CardHeader>
                   <CardContent>
                     {businessCreditCards.length === 0 ? (
@@ -3162,7 +3567,7 @@ export default function ComprehensiveDashboard() {
                               {po.status || 'Pending'}
                             </Badge>
                             <div className="text-sm font-medium mt-1">
-                              ${po.totalAmount?.toFixed(2) || '0.00'}
+                              ${parseFloat(po.totalAmount || '0').toFixed(2)}
                             </div>
                           </div>
                         </div>
@@ -3306,6 +3711,15 @@ export default function ComprehensiveDashboard() {
             account={selectedAccount}
             accountType={selectedAccountType}
           />
+
+          <Dialog open={businessProfileDialogOpen} onOpenChange={setBusinessProfileDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Business Profile</DialogTitle>
+              </DialogHeader>
+              <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>

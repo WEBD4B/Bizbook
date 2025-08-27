@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCreateVendor, useUpdateVendor } from "@/hooks/useApi";
 
 interface VendorFormProps {
   onClose: () => void;
@@ -30,52 +29,46 @@ export function VendorForm({ onClose, initialData }: VendorFormProps) {
     isActive: initialData?.isActive ?? true,
   });
 
-  const createVendor = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/vendors", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Vendor added successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
-      onClose();
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add vendor",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateVendor = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("PUT", `/api/vendors/${initialData.id}`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Vendor updated successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
-      onClose();
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update vendor",
-        variant: "destructive",
-      });
-    },
-  });
+  const createVendor = useCreateVendor();
+  const updateVendor = useUpdateVendor();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const mutation = initialData ? updateVendor : createVendor;
-    mutation.mutate(formData);
+    if (initialData) {
+      updateVendor.mutate({ id: initialData.id, data: formData }, {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Vendor updated successfully",
+          });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to update vendor",
+            variant: "destructive",
+          });
+        }
+      });
+    } else {
+      createVendor.mutate(formData, {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Vendor added successfully",
+          });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add vendor",
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
   return (

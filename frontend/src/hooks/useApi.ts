@@ -494,16 +494,25 @@ export const useUpdateBusinessProfile = () => {
 };
 
 // Vendors hooks
-export const useVendors = () =>
-  useQuery({
+export const useVendors = () => {
+  const { getToken } = useAuth();
+  return useQuery({
     queryKey: ["vendors"],
-    queryFn: vendorsApi.getAll,
+    queryFn: async () => {
+      const token = await getToken();
+      return vendorsApi.getAll(token);
+    },
   });
+};
 
 export const useCreateVendor = () => {
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: vendorsApi.create,
+    mutationFn: async (data: any) => {
+      const token = await getToken();
+      return vendorsApi.create(data, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },
@@ -511,10 +520,13 @@ export const useCreateVendor = () => {
 };
 
 export const useUpdateVendor = () => {
+  const { getToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      vendorsApi.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const token = await getToken();
+      return vendorsApi.update(id, data, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },
