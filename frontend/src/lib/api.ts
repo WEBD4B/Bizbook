@@ -182,7 +182,16 @@ export const creditCardsApi = createCrudApi('/credit-cards');
 export const loansApi = createCrudApi('/loans');
 export const monthlyPaymentsApi = createCrudApi('/monthly-payments');
 export const incomeApi = createCrudApi('/income');
-export const paymentsApi = createCrudApi('/payments');
+export const paymentsApi = {
+  ...createCrudApi('/payments'),
+  async markAsPaid(id: string, data: { confirmationNumber?: string; notes?: string }, clerkToken?: string): Promise<any> {
+    const response = await apiRequest(`/payments/${id}/mark-paid`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    }, clerkToken);
+    return response.data;
+  }
+};
 export const expensesApi = createCrudApi('/expenses');
 export const savingsGoalsApi = createCrudApi('/savings-goals');
 export const budgetsApi = createCrudApi('/budgets');

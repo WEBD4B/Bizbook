@@ -298,6 +298,27 @@ router.post('/payments',
   })
 );
 
+// Mark payment as paid
+router.patch('/payments/:id/mark-paid',
+  authenticateToken,
+  validateParams(idParamSchema),
+  asyncHandler(async (req, res) => {
+    const paymentId = req.params.id;
+    const { confirmationNumber, notes } = req.body;
+    
+    const payment = await dbService.markPaymentAsPaid(paymentId, req.user.id, {
+      confirmationNumber,
+      notes
+    });
+    
+    res.json({ 
+      success: true, 
+      data: payment,
+      message: 'Payment marked as paid successfully'
+    });
+  })
+);
+
 // ========================================
 // EXPENSES ROUTES
 // ========================================

@@ -95,8 +95,11 @@ export const payments = pgTable('payments', {
   paymentDate: date('payment_date').notNull(),
   paymentMethod: varchar('payment_method', { length: 50 }),
   confirmationNumber: varchar('confirmation_number', { length: 100 }),
+  status: varchar('status', { length: 20 }).default('pending'), // pending, paid, failed, cancelled
+  paidDate: timestamp('paid_date'), // When the payment was actually completed
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Expenses table

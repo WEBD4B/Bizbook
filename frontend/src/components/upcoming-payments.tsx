@@ -12,11 +12,13 @@ import {
   DollarSign,
   Calendar,
   Edit,
-  PiggyBank
+  PiggyBank,
+  CheckCircle
 } from "lucide-react";
 import { CreditCard, Loan, MonthlyPayment } from "@shared/schema";
 import { formatCurrency, getNextDueDate, getDaysUntilDue } from "@/lib/financial-calculations";
-import { useCreditCards, useLoans } from "@/hooks/useApi";
+import { useCreditCards, useLoans, usePayments } from "@/hooks/useApi";
+import { MarkAsPaidDialog } from "./mark-as-paid-dialog";
 
 type FilterType = "all" | "week" | "month";
 
@@ -27,39 +29,61 @@ interface UpcomingPaymentsProps {
 
 export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
   const [filter, setFilter] = useState<FilterType>("all");
+  const [markAsPaidDialogOpen, setMarkAsPaidDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
   const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards();
   const { data: loans = [], isLoading: loansLoading } = useLoans();
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   
   // For monthly payments, we can simulate or use a separate hook when implemented
   const monthlyPayments: MonthlyPayment[] = [];
   const monthlyPaymentsLoading = false;
 
-  const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading;
+  const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || paymentsLoading;
 
-  // Combine all payment accounts
+  // Helper function to check if an account has been paid recently (within 30 days)
+  const hasRecentPayment = (accountId: string, accountType: string) => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    return Array.isArray(payments) && payments.some((payment: any) => 
+      payment.accountId === accountId && 
+      payment.accountType === accountType &&
+      payment.status === 'paid' &&
+      new Date(payment.paidDate || payment.paymentDate) > thirtyDaysAgo
+    );
+  };
+
+  // Combine all payment accounts and filter out recently paid ones
   const allPayments = [
-    ...creditCards.map((card: CreditCard) => ({
-      ...card,
-      type: "credit-card",
-      payment: parseFloat(card.minimumPayment),
-      daysUntilDue: getDaysUntilDue(card.dueDate),
-      nextDueDate: getNextDueDate(card.dueDate),
-    })),
-    ...loans.map((loan: Loan) => ({
-      ...loan,
-      type: "loan",
-      payment: parseFloat(loan.monthlyPayment),
-      daysUntilDue: getDaysUntilDue(loan.dueDate),
-      nextDueDate: getNextDueDate(loan.dueDate),
-    })),
-    ...monthlyPayments.map((payment: MonthlyPayment) => ({
-      ...payment,
-      type: "monthly-payment",
-      payment: parseFloat(payment.amount),
-      daysUntilDue: getDaysUntilDue(payment.dueDate),
-      nextDueDate: getNextDueDate(payment.dueDate),
-    })),
+    ...creditCards
+      .filter((card: CreditCard) => !hasRecentPayment(card.id, 'credit_card'))
+      .map((card: CreditCard) => ({
+        ...card,
+        type: "credit-card",
+        payment: card.minimumPayment || 0,
+        daysUntilDue: getDaysUntilDue(card.dueDate ? new Date(card.dueDate).getDate() : new Date().getDate()),
+        nextDueDate: getNextDueDate(card.dueDate ? new Date(card.dueDate).getDate() : new Date().getDate()),
+      })),
+    ...loans
+      .filter((loan: Loan) => !hasRecentPayment(loan.id, 'loan'))
+      .map((loan: Loan) => ({
+        ...loan,
+        type: "loan",
+        payment: loan.monthlyPayment || 0,
+        daysUntilDue: getDaysUntilDue(loan.dueDate ? new Date(loan.dueDate).getDate() : new Date().getDate()),
+        nextDueDate: getNextDueDate(loan.dueDate ? new Date(loan.dueDate).getDate() : new Date().getDate()),
+      })),
+    ...monthlyPayments
+      .filter((payment: MonthlyPayment) => !hasRecentPayment(payment.id, 'monthly_payment'))
+      .map((payment: MonthlyPayment) => ({
+        ...payment,
+        type: "monthly-payment",
+        payment: payment.amount || 0,
+        daysUntilDue: getDaysUntilDue(payment.dueDate ? new Date(payment.dueDate).getDate() : new Date().getDate()),
+        nextDueDate: getNextDueDate(payment.dueDate ? new Date(payment.dueDate).getDate() : new Date().getDate()),
+      })),
   ];
 
   // Filter payments based on selected filter
@@ -102,6 +126,21 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
     if (daysUntil <= 3) return "destructive";
     if (daysUntil <= 7) return "default";
     return "secondary";
+  };
+
+  const handleMarkAsPaid = (payment: any) => {
+    // Create a payment object for the dialog
+    const paymentData = {
+      id: payment.id,
+      userId: payment.userId,
+      accountId: payment.id,
+      accountType: payment.type === 'credit-card' ? 'credit_card' : payment.type,
+      amount: payment.payment,
+      paymentDate: new Date().toISOString().split('T')[0],
+      status: 'pending' as const,
+    };
+    setSelectedPayment({ ...paymentData, payment });
+    setMarkAsPaidDialogOpen(true);
   };
 
   const totalUpcoming = filteredPayments.reduce((sum, payment) => sum + payment.payment, 0);
@@ -166,13 +205,16 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
             <p className="text-lg font-medium mb-2">No upcoming payments</p>
             <p className="text-sm">
               {filter === "all" 
-                ? "You don't have any payment accounts yet" 
+                ? "You don't have any payment accounts due, or they've been paid recently" 
                 : `No payments due in the selected timeframe`}
             </p>
           </div>
         ) : (
           filteredPayments.map((payment) => {
-            const Icon = getAccountIcon(payment.type, payment.paymentType);
+            const Icon = getAccountIcon(payment.type);
+            const accountName = payment.type === 'credit-card' ? (payment as any).cardName : 
+                              payment.type === 'loan' ? (payment as any).loanName : 
+                              (payment as any).paymentName || 'Payment';
             return (
               <div
                 key={`${payment.type}-${payment.id}`}
@@ -188,10 +230,10 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                   <div>
                     <div className="flex items-center space-x-2">
                       <h3 className="font-medium text-neutral-900" data-testid={`payment-name-${payment.id}`}>
-                        {payment.name}
+                        {accountName}
                       </h3>
                       <Badge variant="outline" className="text-xs">
-                        {getTypeLabel(payment.type, payment.paymentType)}
+                        {getTypeLabel(payment.type)}
                       </Badge>
                     </div>
                     <div className="flex items-center space-x-4 mt-1">
@@ -226,11 +268,11 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                   <Button 
                     variant="default" 
                     size="sm" 
-                    onClick={() => onPay?.(payment, payment.type)}
+                    onClick={() => handleMarkAsPaid(payment)}
                     data-testid={`button-pay-${payment.id}`}
                   >
-                    <PiggyBank size={16} className="mr-1" />
-                    Pay
+                    <CheckCircle size={16} className="mr-1" />
+                    Mark as Paid
                   </Button>
                 </div>
               </div>
@@ -238,6 +280,17 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
           })
         )}
       </CardContent>
+      
+      {selectedPayment && (
+        <MarkAsPaidDialog
+          open={markAsPaidDialogOpen}
+          onOpenChange={setMarkAsPaidDialogOpen}
+          payment={selectedPayment}
+          accountName={selectedPayment.payment?.type === 'credit-card' ? 
+                      selectedPayment.payment?.cardName : 
+                      selectedPayment.payment?.loanName || 'Payment'}
+        />
+      )}
     </Card>
   );
 }

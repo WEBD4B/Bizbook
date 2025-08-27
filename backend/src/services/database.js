@@ -184,6 +184,23 @@ export class DatabaseService {
     return this.create(payments, data);
   }
 
+  async markPaymentAsPaid(paymentId, userId, additionalData = {}) {
+    const where = and(eq(payments.id, paymentId), eq(payments.userId, userId));
+    const updateData = {
+      status: 'paid',
+      paidDate: new Date(),
+      updatedAt: new Date(),
+      ...additionalData
+    };
+    
+    const payment = await this.update(payments, where, updateData);
+    if (!payment) {
+      throw new Error('Payment not found or unauthorized');
+    }
+    
+    return payment;
+  }
+
   // Expenses
   async getExpenses(userId = null) {
     const where = userId ? eq(expenses.userId, userId) : null;

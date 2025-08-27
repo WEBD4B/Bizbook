@@ -161,11 +161,16 @@ export const useDeleteMonthlyPayment = () => {
 };
 
 // Income hooks
-export const useIncome = () =>
-  useQuery({
+export const useIncome = () => {
+  const { getToken } = useAuth();
+  return useQuery({
     queryKey: ["income"],
-    queryFn: incomeApi.getAll,
+    queryFn: async () => {
+      const token = await getToken();
+      return incomeApi.getAll(token);
+    },
   });
+};
 
 export const useCreateIncome = () => {
   const queryClient = useQueryClient();
@@ -211,6 +216,23 @@ export const useCreatePayment = () => {
     mutationFn: paymentsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
+    },
+  });
+};
+
+export const useMarkPaymentAsPaid = () => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { confirmationNumber?: string; notes?: string } }) => {
+      const token = await getToken();
+      return paymentsApi.markAsPaid(id, data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["monthly-payments"] });
     },
   });
 };

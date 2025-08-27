@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@clerk/clerk-react";
 
 interface IncomeFormProps {
   onClose: () => void;
@@ -14,18 +16,24 @@ interface IncomeFormProps {
 
 export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
   const { toast } = useToast();
+  const { getToken } = useAuth();
   const [formData, setFormData] = useState({
     source: initialData?.source || "",
     amount: initialData?.amount || "",
     frequency: initialData?.frequency || "monthly",
     incomeType: initialData?.incomeType || initialData?.type || "salary", // Use incomeType instead of type
+    nextPayDate: initialData?.nextPayDate || new Date().toISOString().split('T')[0], // Default to today
     isActive: initialData?.isActive ?? true,
   });
 
   const createIncome = useMutation({
     mutationFn: async (data: any) => {
       console.log('Creating income from income-form with data:', data);
-      const result = await apiRequest("POST", "/api/income", data);
+      const token = await getToken();
+      const result = await apiRequest("/income", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }, token);
       console.log('Income creation result:', result);
       return result;
     },
@@ -34,7 +42,7 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
         title: "Success",
         description: "Personal income source added successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] });
       onClose();
     },
     onError: (error) => {
@@ -49,14 +57,18 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
 
   const updateIncome = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("PUT", `/api/income/${initialData.id}`, data);
+      const token = await getToken();
+      return apiRequest(`/income/${initialData.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }, token);
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Personal income source updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] });
       onClose();
     },
     onError: () => {
@@ -116,6 +128,18 @@ export function IncomeForm({ onClose, initialData }: IncomeFormProps) {
             <SelectItem value="annually">Annually</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="nextPayDate">Next Payment Date</Label>
+        <Input
+          id="nextPayDate"
+          type="date"
+          value={formData.nextPayDate}
+          onChange={(e) => setFormData(prev => ({ ...prev, nextPayDate: e.target.value }))}
+          required
+          data-testid="input-income-payment-date"
+        />
       </div>
 
       <div>

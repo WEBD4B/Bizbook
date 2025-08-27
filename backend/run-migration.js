@@ -9,17 +9,17 @@ const sql = postgres(process.env.DATABASE_URL);
 
 async function runMigration() {
   try {
-    console.log('🔄 Running user_id VARCHAR migration...');
+    console.log('🔄 Running payment status migration...');
     
     // Read the migration file
-    const migrationPath = path.join('./migrations', '002_update_user_id_to_varchar.sql');
+    const migrationPath = path.join('./migrations', '003_add_payment_status.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
     
     // Execute the migration
     await sql.unsafe(migrationSQL);
     
-    console.log('✅ Migration completed successfully!');
-    console.log('📊 User ID columns have been updated to support Clerk user IDs');
+    console.log('✅ Payment status migration completed successfully!');
+    console.log('📊 Payment table now supports status tracking');
     
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
