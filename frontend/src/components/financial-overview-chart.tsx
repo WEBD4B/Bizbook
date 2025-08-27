@@ -50,7 +50,8 @@ export function FinancialOverviewChart({
   const [chartType, setChartType] = useState<ChartType>("overview");
 
   // Calculate key metrics
-  const totalDebt = [...creditCards, ...loans].reduce((sum, item) => sum + parseFloat(item.balance), 0);
+  const totalDebt = creditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0) +
+                   loans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance), 0);
   const totalAssets = assets.reduce((sum, asset) => sum + parseFloat(asset.value), 0);
   const totalIncome = incomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);

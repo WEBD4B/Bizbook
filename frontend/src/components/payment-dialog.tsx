@@ -69,11 +69,11 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
           })
         }, token);
       } else if (accountType === "loan") {
-        const newBalance = Math.max(0, parseFloat(account.balance) - parseFloat(data.amount));
-        await apiRequest(`/api/loans/${account.id}`, {
+        const newBalance = Math.max(0, parseFloat(account.currentBalance) - parseFloat(data.amount));
+        await apiRequest(`/loans/${account.id}`, {
           method: "PATCH",
           body: JSON.stringify({
-            balance: newBalance.toString(),
+            currentBalance: newBalance.toString(),
           })
         }, token);
       }
@@ -101,8 +101,10 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
     recordPaymentMutation.mutate(data);
   };
 
-  const accountName = account?.name || "Account";
-  const currentBalance = account?.balance ? parseFloat(account.balance) : 0;
+  const accountName = account?.name || account?.cardName || account?.loanName || "Account";
+  const currentBalance = accountType === "loan" 
+    ? (account?.currentBalance ? parseFloat(account.currentBalance) : 0)
+    : (account?.balance ? parseFloat(account.balance) : 0);
   const paymentAmount = form.watch("amount");
   const newBalance = paymentAmount ? Math.max(0, currentBalance - parseFloat(paymentAmount)) : currentBalance;
 

@@ -15,7 +15,7 @@ export function NetWorthSummary() {
 
   // Calculate total liabilities
   const totalLiabilities = creditCards.reduce((sum, cc) => sum + parseFloat(cc.balance), 0) +
-                          loans.reduce((sum, loan) => sum + parseFloat(loan.balance), 0);
+                          loans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance), 0);
 
   // Calculate net worth
   const netWorth = totalAssets - totalLiabilities;

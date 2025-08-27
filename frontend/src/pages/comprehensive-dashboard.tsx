@@ -1936,6 +1936,7 @@ export default function ComprehensiveDashboard() {
       creditLimit: '',
       interestRate: '',
       minimumPayment: '',
+      paymentDate: '',
       dueDate: 30
     });
 
@@ -1954,6 +1955,7 @@ export default function ComprehensiveDashboard() {
           creditLimit: data.creditLimit,
           interestRate: data.interestRate,
           minimumPayment: data.minimumPayment,
+          paymentDate: data.paymentDate,
           dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Convert days to proper date format (YYYY-MM-DD)
         };
         
@@ -2054,6 +2056,16 @@ export default function ComprehensiveDashboard() {
               required
             />
           </div>
+        </div>
+        <div>
+          <Label htmlFor="payment-date">Payment Date</Label>
+          <Input
+            id="payment-date"
+            type="date"
+            value={formData.paymentDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, paymentDate: e.target.value }))}
+            required
+          />
         </div>
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -2571,7 +2583,7 @@ export default function ComprehensiveDashboard() {
                                 <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
                                 <div>Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
                                 <div>Rate: {card.interestRate}% APR</div>
-                                <div>Due: {new Date(Date.now() + card.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                                <div>Due: {new Date(card.dueDate).toLocaleDateString()}</div>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -2645,7 +2657,7 @@ export default function ComprehensiveDashboard() {
                                 <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
                                 <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
                                 <div>Term: {loan.termLength} months</div>
-                                <div>Due: {new Date(Date.now() + loan.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                                <div>Due: {new Date(loan.dueDate).toLocaleDateString()}</div>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -2937,7 +2949,7 @@ export default function ComprehensiveDashboard() {
                                 <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
                                 <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
                                 <div>Term: {loan.termMonths} months</div>
-                                <div>Due: {new Date(Date.now() + loan.dueDate * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                                <div>Due: {new Date(loan.dueDate).toLocaleDateString()}</div>
                               </div>
                             </div>
                             <div className="flex gap-2">

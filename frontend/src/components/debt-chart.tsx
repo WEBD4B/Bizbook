@@ -12,14 +12,14 @@ const COLORS = ["#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6", "#F97316"
 export function DebtChart({ creditCards, loans }: DebtChartProps) {
   const data = [
     ...creditCards.map((card, index) => ({
-      name: card.name,
+      name: card.cardName,
       value: parseFloat(card.balance),
       color: COLORS[index % COLORS.length],
       type: "Credit Card",
     })),
     ...loans.map((loan, index) => ({
-      name: loan.name,
-      value: parseFloat(loan.balance),
+      name: loan.loanName,
+      value: parseFloat(loan.currentBalance),
       color: COLORS[(creditCards.length + index) % COLORS.length],
       type: loan.loanType,
     })),
