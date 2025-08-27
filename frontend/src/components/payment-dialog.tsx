@@ -9,9 +9,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { PiggyBank } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Payment amount is required"),
@@ -31,6 +32,7 @@ interface PaymentDialogProps {
 export function PaymentDialog({ open, onOpenChange, account, accountType }: PaymentDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
   
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -43,26 +45,37 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
 
   const recordPaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
+      const token = await getToken();
+      
       // Record the payment
-      await apiRequest("POST", "/api/payments", {
-        accountId: account.id,
-        accountType: accountType,
-        amount: data.amount,
-        paymentDate: data.paymentDate,
-        notes: data.notes || null,
-      });
+      await apiRequest("/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          accountId: account.id,
+          accountType: accountType,
+          amount: data.amount,
+          paymentDate: data.paymentDate,
+          notes: data.notes || null,
+        })
+      }, token);
 
       // Update the account balance
       if (accountType === "credit-card") {
         const newBalance = Math.max(0, parseFloat(account.balance) - parseFloat(data.amount));
-        await apiRequest("PATCH", `/api/credit-cards/${account.id}`, {
-          balance: newBalance.toString(),
-        });
+        await apiRequest(`/credit-cards/${account.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            balance: newBalance.toString(),
+          })
+        }, token);
       } else if (accountType === "loan") {
         const newBalance = Math.max(0, parseFloat(account.balance) - parseFloat(data.amount));
-        await apiRequest("PATCH", `/api/loans/${account.id}`, {
-          balance: newBalance.toString(),
-        });
+        await apiRequest(`/api/loans/${account.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            balance: newBalance.toString(),
+          })
+        }, token);
       }
     },
     onSuccess: () => {
