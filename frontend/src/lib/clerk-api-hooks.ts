@@ -22,7 +22,7 @@ export function useCreditCards() {
     queryKey: ['creditCards'],
     queryFn: async () => {
       const token = await getToken();
-      const response = await apiRequest('/api/credit-cards', {}, token);
+      const response = await apiRequest('/credit-cards', {}, token);
       return response.data;
     },
   });
@@ -35,7 +35,7 @@ export function useCreditCardMutation() {
   return useMutation({
     mutationFn: async (data: any) => {
       const token = await getToken();
-      const response = await apiRequest('/api/credit-cards', {
+      const response = await apiRequest('/credit-cards', {
         method: 'POST',
         body: JSON.stringify(data),
       }, token);
@@ -55,7 +55,7 @@ export function useLoans() {
     queryKey: ['loans'],
     queryFn: async () => {
       const token = await getToken();
-      const response = await apiRequest('/api/loans', {}, token);
+      const response = await apiRequest('/loans', {}, token);
       return response.data;
     },
   });
@@ -68,7 +68,7 @@ export function useLoanMutation() {
   return useMutation({
     mutationFn: async (data: any) => {
       const token = await getToken();
-      const response = await apiRequest('/api/loans', {
+      const response = await apiRequest('/loans', {
         method: 'POST',
         body: JSON.stringify(data),
       }, token);
@@ -88,7 +88,7 @@ export function useMonthlyPayments() {
     queryKey: ['monthlyPayments'],
     queryFn: async () => {
       const token = await getToken();
-      const response = await apiRequest('/api/monthly-payments', {}, token);
+      const response = await apiRequest('/monthly-payments', {}, token);
       return response.data;
     },
   });
@@ -101,7 +101,7 @@ export function useMonthlyPaymentMutation() {
   return useMutation({
     mutationFn: async (data: any) => {
       const token = await getToken();
-      const response = await apiRequest('/api/monthly-payments', {
+      const response = await apiRequest('/monthly-payments', {
         method: 'POST',
         body: JSON.stringify(data),
       }, token);
@@ -121,7 +121,7 @@ export function useIncomes() {
     queryKey: ['incomes'],
     queryFn: async () => {
       const token = await getToken();
-      const response = await apiRequest('/api/incomes', {}, token);
+      const response = await apiRequest('/income', {}, token);
       return response.data;
     },
   });
@@ -134,7 +134,7 @@ export function useIncomeMutation() {
   return useMutation({
     mutationFn: async (data: any) => {
       const token = await getToken();
-      const response = await apiRequest('/api/incomes', {
+      const response = await apiRequest('/income', {
         method: 'POST',
         body: JSON.stringify(data),
       }, token);
@@ -142,6 +142,39 @@ export function useIncomeMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomes'] });
+    },
+  });
+}
+
+// Expenses hooks with Clerk authentication
+export function useExpenses() {
+  const { getToken } = useAuth();
+  
+  return useQuery({
+    queryKey: ['expenses'],
+    queryFn: async () => {
+      const token = await getToken();
+      const response = await apiRequest('/expenses', {}, token);
+      return response.data;
+    },
+  });
+}
+
+export function useExpenseMutation() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const token = await getToken();
+      const response = await apiRequest('/expenses', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }, token);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
     },
   });
 }

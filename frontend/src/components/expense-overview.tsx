@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Receipt, Calendar, TrendingDown, DollarSign, Repeat, Clock } from "lucide-react";
-import { useExpenses } from "@/hooks/useApi";
+import { useExpenses } from "@/lib/clerk-api-hooks";
 import { Expense } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
+import { ExpenseForm } from "@/components/expense-form";
 
 interface ExpenseOverviewProps {
   onAddExpense?: () => void;
@@ -27,11 +28,13 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
   const monthlyTotal = monthlyExpenses.reduce((sum: number, expense: Expense) => 
     sum + parseFloat(expense.amount), 0);
 
-  // Separate recurring and one-time expenses
-  const recurringExpenses = monthlyExpenses.filter((expense: Expense) => expense.isRecurring);
-  const oneTimeExpenses = monthlyExpenses.filter((expense: Expense) => !expense.isRecurring);
+  // Separate subscription and one-time expenses
+  const subscriptionExpenses = monthlyExpenses.filter((expense: Expense) => 
+    expense.paymentType === 'subscription' || expense.isRecurring);
+  const oneTimeExpenses = monthlyExpenses.filter((expense: Expense) => 
+    expense.paymentType === 'one-time' || !expense.isRecurring);
   
-  const recurringTotal = recurringExpenses.reduce((sum: number, expense: Expense) => 
+  const subscriptionTotal = subscriptionExpenses.reduce((sum: number, expense: Expense) => 
     sum + parseFloat(expense.amount), 0);
   const oneTimeTotal = oneTimeExpenses.reduce((sum: number, expense: Expense) => 
     sum + parseFloat(expense.amount), 0);
@@ -57,8 +60,9 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
-      utilities: "⚡",
+      utilities: "🔌",
       groceries: "🛒",
+      bills: "📄",
       gas: "⛽",
       dining: "🍽️",
       entertainment: "🎬",
@@ -102,11 +106,7 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
             <Receipt className="text-primary" size={20} />
             <span>Monthly Expenses</span>
           </CardTitle>
-          {onAddExpense && (
-            <Button variant="outline" size="sm" onClick={onAddExpense} data-testid="button-add-expense-overview">
-              Add Expense
-            </Button>
-          )}
+          <ExpenseForm />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -148,13 +148,13 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-1 mb-1">
                     <Repeat size={14} className="text-blue-600" />
-                    <span className="text-xs font-medium text-neutral-600">Recurring</span>
+                    <span className="text-xs font-medium text-neutral-600">Subscriptions</span>
                   </div>
-                  <div className="text-sm font-semibold text-blue-600" data-testid="text-recurring-total">
-                    {formatCurrency(recurringTotal)}
+                  <div className="text-sm font-semibold text-blue-600" data-testid="text-subscription-total">
+                    {formatCurrency(subscriptionTotal)}
                   </div>
                   <div className="text-xs text-neutral-500">
-                    {recurringExpenses.length} bills
+                    {subscriptionExpenses.length} monthly bills
                   </div>
                 </div>
                 <div className="text-center">
@@ -227,8 +227,8 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                           <div className="text-sm font-medium text-neutral-900" data-testid={`expense-description-${expense.id}`}>
                             {expense.description}
                           </div>
-                          {expense.isRecurring && (
-                            <Repeat size={12} className="text-blue-500" title="Recurring expense" />
+                          {(expense.paymentType === 'subscription' || expense.isRecurring) && (
+                            <Repeat size={12} className="text-blue-500" title="Subscription/Recurring expense" />
                           )}
                         </div>
                         <div className="text-xs text-neutral-500">
@@ -236,6 +236,9 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                             month: 'short', 
                             day: 'numeric' 
                           })}
+                          {expense.paidFromIncome && (
+                            <span className="ml-2">• Paid from: {expense.paidFromIncome}</span>
+                          )}
                           {expense.paymentMethod && (
                             <span className="ml-2 capitalize">• {expense.paymentMethod.replace('-', ' ')}</span>
                           )}

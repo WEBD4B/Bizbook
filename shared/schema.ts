@@ -109,6 +109,9 @@ export interface Expense {
   merchant?: string;
   isRecurring?: boolean;
   frequency?: string;
+  paymentType?: 'subscription' | 'one-time';
+  paidFromIncomeId?: string;
+  paidFromIncome?: string;
   taxDeductible?: boolean;
   notes?: string;
   receiptUrl?: string;
@@ -296,13 +299,33 @@ export type InsertBusinessLoan = Omit<BusinessLoan, 'id' | 'createdAt' | 'update
 export type InsertBusinessExpense = Omit<BusinessExpense, 'id' | 'createdAt' | 'updatedAt'>;
 export type InsertBusinessRevenue = Omit<BusinessRevenue, 'id' | 'createdAt' | 'updatedAt'>;
 
+// Import Zod for validation
+import { z } from 'zod';
+
 // Schema validation objects (can be used with zod or similar)
 export const insertCreditCardSchema = {} as any; // Placeholder for zod schema
 export const insertLoanSchema = {} as any;
 export const insertMonthlyPaymentSchema = {} as any;
 export const insertIncomeSchema = {} as any;
 export const insertPaymentSchema = {} as any;
-export const insertExpenseSchema = {} as any;
+export const insertExpenseSchema = z.object({
+  userId: z.string().uuid().optional(),
+  description: z.string().min(1, "Description is required"),
+  amount: z.string().min(1, "Amount is required"),
+  category: z.string().min(1, "Category is required"),
+  subcategory: z.string().optional(),
+  expenseDate: z.string().min(1, "Date is required"),
+  paymentMethod: z.string().optional(),
+  merchant: z.string().optional(),
+  isRecurring: z.boolean().optional(),
+  frequency: z.string().optional(),
+  paymentType: z.enum(['subscription', 'one-time']).optional(),
+  paidFromIncomeId: z.string().uuid().optional(),
+  paidFromIncome: z.string().optional(),
+  taxDeductible: z.boolean().optional(),
+  notes: z.string().optional(),
+  receiptUrl: z.string().optional(),
+});
 export const insertSavingsGoalSchema = {} as any;
 export const insertBudgetSchema = {} as any;
 export const insertAssetSchema = {} as any;

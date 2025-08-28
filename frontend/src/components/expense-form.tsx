@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -11,8 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Plus, Receipt, Repeat } from "lucide-react";
+import { useExpenseMutation, useIncomes } from "@/lib/clerk-api-hooks";
+import { Plus, Receipt, Repeat, CreditCard, Calendar } from "lucide-react";
 import { insertExpenseSchema } from "@shared/schema";
 
 const expenseFormSchema = insertExpenseSchema.extend({
@@ -20,7 +20,8 @@ const expenseFormSchema = insertExpenseSchema.extend({
   description: z.string().min(1, "Description is required"),
   category: z.string().min(1, "Category is required"),
   expenseDate: z.string().min(1, "Date is required"),
-  isRecurring: z.boolean().optional(),
+  paymentType: z.enum(['subscription', 'one-time']).optional(),
+  paidFromIncomeId: z.string().min(1, "Please select which account was used for payment"),
 });
 
 type ExpenseFormData = z.infer<typeof expenseFormSchema>;
@@ -33,7 +34,8 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const { data: incomes = [] } = useIncomes();
+
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -42,36 +44,41 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
       category: "",
       expenseDate: new Date().toISOString().split('T')[0],
       paymentMethod: "",
+      paymentType: "one-time",
+      paidFromIncomeId: "",
       notes: "",
       isRecurring: false,
     },
   });
 
-  const createExpenseMutation = useMutation({
-    mutationFn: async (data: ExpenseFormData) => {
-      return apiRequest("POST", "/api/expenses", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      toast({ 
-        title: "Expense Added", 
-        description: "Your expense has been recorded successfully." 
-      });
-      setOpen(false);
-      form.reset();
-      onExpenseAdded?.();
-    },
-    onError: () => {
-      toast({ 
-        title: "Error", 
-        description: "Failed to add expense", 
-        variant: "destructive" 
-      });
-    },
-  });
+  const createExpenseMutation = useExpenseMutation();
 
   const onSubmit = (data: ExpenseFormData) => {
-    createExpenseMutation.mutate(data);
+    // Find the selected income source to include its name
+    const selectedIncome = incomes.find((income: any) => income.id === data.paidFromIncomeId);
+    const formData = {
+      ...data,
+      paidFromIncome: selectedIncome?.source || "",
+    };
+    
+    createExpenseMutation.mutate(formData, {
+      onSuccess: () => {
+        toast({ 
+          title: "Expense Added", 
+          description: "Your expense has been recorded successfully." 
+        });
+        setOpen(false);
+        form.reset();
+        onExpenseAdded?.();
+      },
+      onError: () => {
+        toast({ 
+          title: "Error", 
+          description: "Failed to add expense", 
+          variant: "destructive" 
+        });
+      },
+    });
   };
 
   return (
@@ -86,7 +93,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
           Add Expense
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md" data-testid="dialog-add-expense">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-add-expense">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Receipt size={20} className="text-primary" />
@@ -95,7 +102,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             <FormField
               control={form.control}
               name="description"
@@ -114,7 +121,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="amount"
@@ -154,32 +161,82 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} data-testid="select-expense-category">
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="utilities">🔌 Utilities</SelectItem>
+                        <SelectItem value="groceries">🛒 Groceries</SelectItem>
+                        <SelectItem value="bills">📄 Bills</SelectItem>
+                        <SelectItem value="gas">⛽ Gas & Transportation</SelectItem>
+                        <SelectItem value="dining">🍽️ Dining Out</SelectItem>
+                        <SelectItem value="entertainment">🎬 Entertainment</SelectItem>
+                        <SelectItem value="shopping">🛍️ Shopping</SelectItem>
+                        <SelectItem value="healthcare">🏥 Healthcare</SelectItem>
+                        <SelectItem value="insurance">🛡️ Insurance</SelectItem>
+                        <SelectItem value="subscriptions">📱 Subscriptions</SelectItem>
+                        <SelectItem value="home">🏠 Home & Garden</SelectItem>
+                        <SelectItem value="education">📚 Education</SelectItem>
+                        <SelectItem value="travel">✈️ Travel</SelectItem>
+                        <SelectItem value="other">💰 Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paymentType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Type</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange} data-testid="select-payment-type">
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Payment type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="subscription">📱 Subscription</SelectItem>
+                        <SelectItem value="one-time">📝 One-Time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
-              name="category"
+              name="paidFromIncomeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} data-testid="select-expense-category">
+                  <FormLabel>Paid From Account *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} data-testid="select-income-account">
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder="Which account was used?" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="utilities">Utilities</SelectItem>
-                      <SelectItem value="groceries">Groceries</SelectItem>
-                      <SelectItem value="gas">Gas & Transportation</SelectItem>
-                      <SelectItem value="dining">Dining Out</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
-                      <SelectItem value="shopping">Shopping</SelectItem>
-                      <SelectItem value="healthcare">Healthcare</SelectItem>
-                      <SelectItem value="insurance">Insurance</SelectItem>
-                      <SelectItem value="subscriptions">Subscriptions</SelectItem>
-                      <SelectItem value="home">Home & Garden</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="travel">Travel</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {incomes.map((income: any) => (
+                        <SelectItem key={income.id} value={income.id}>
+                          💰 {income.source} ({income.incomeType})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -200,12 +257,12 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="credit-card">Credit Card</SelectItem>
-                      <SelectItem value="debit-card">Debit Card</SelectItem>
-                      <SelectItem value="check">Check</SelectItem>
-                      <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="digital-wallet">Digital Wallet</SelectItem>
+                      <SelectItem value="cash">💵 Cash</SelectItem>
+                      <SelectItem value="credit-card">💳 Credit Card</SelectItem>
+                      <SelectItem value="debit-card">💳 Debit Card</SelectItem>
+                      <SelectItem value="check">📝 Check</SelectItem>
+                      <SelectItem value="bank-transfer">🏦 Bank Transfer</SelectItem>
+                      <SelectItem value="digital-wallet">📱 Digital Wallet</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -217,14 +274,14 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               control={form.control}
               name="isRecurring"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base flex items-center space-x-2">
-                      <Repeat size={16} />
+                    <FormLabel className="text-sm flex items-center space-x-2">
+                      <Repeat size={14} />
                       <span>Recurring Expense</span>
                     </FormLabel>
-                    <div className="text-sm text-neutral-500">
-                      Mark if this is a regular monthly bill or recurring purchase
+                    <div className="text-xs text-neutral-500">
+                      Mark if this is a regular monthly bill
                     </div>
                   </div>
                   <FormControl>
@@ -247,6 +304,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
                   <FormControl>
                     <Textarea 
                       placeholder="Additional details about this expense..." 
+                      className="min-h-[60px]"
                       {...field} 
                       data-testid="textarea-expense-notes"
                     />
@@ -256,7 +314,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               )}
             />
 
-            <div className="flex space-x-4 pt-4">
+            <div className="flex space-x-3 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
