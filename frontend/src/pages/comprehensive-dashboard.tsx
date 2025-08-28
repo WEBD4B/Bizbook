@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { 
   useCreditCards, 
@@ -2901,9 +2902,55 @@ export default function ComprehensiveDashboard() {
                 <ExpenseOverview />
               </div>
 
-              <div className="grid gap-6 lg:grid-cols-2">
-                <UpcomingPayments />
-                <UpcomingIncomes />
+              {/* Upcoming Payments and Income - Full Width Accordions */}
+              <div className="space-y-4">
+                <Accordion type="multiple" defaultValue={["payments", "income"]} className="space-y-4">
+                  <AccordionItem value="payments" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                            <CreditCardIcon className="h-5 w-5 text-red-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Payments</h3>
+                            <p className="text-sm text-gray-500">Track and manage your upcoming financial obligations</p>
+                          </div>
+                        </div>
+                        <div className="text-right mr-6">
+                          <div className="text-xl font-bold text-red-600">$2,000.00</div>
+                          <div className="text-sm text-gray-500">5 payments due</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-6">
+                      <UpcomingPayments />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="income" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <DollarSign className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Income</h3>
+                            <p className="text-sm text-gray-500">Monitor your expected income and cash flow</p>
+                          </div>
+                        </div>
+                        <div className="text-right mr-6">
+                          <div className="text-xl font-bold text-green-600">$52,000.00</div>
+                          <div className="text-sm text-gray-500">2 income sources</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-6">
+                      <UpcomingIncomes />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
 
               {/* Credit Management Section */}
