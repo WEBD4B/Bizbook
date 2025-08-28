@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { CheckCircle, CreditCard } from "lucide-react";
 import { Payment } from "@shared/schema";
+import { useIncome } from "@/hooks/useApi";
 
 interface MarkAsPaidDialogProps {
   open: boolean;
@@ -25,6 +27,10 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
   const queryClient = useQueryClient();
   const [confirmationNumber, setConfirmationNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [selectedIncomeId, setSelectedIncomeId] = useState<string>("");
+  
+  // Fetch income data for the dropdown
+  const { data: incomes = [], isLoading: incomeLoading } = useIncome();
 
   const markAsPaidMutation = useMutation({
     mutationFn: async () => {
@@ -36,6 +42,7 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'manual',
         notes: notes || undefined,
+        incomeId: selectedIncomeId || undefined, // Include the selected income ID
       };
 
       const createResponse = await apiRequest("POST", `/api/payments`, createPaymentData);
@@ -44,6 +51,7 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
       const markPaidData = {
         confirmationNumber: confirmationNumber || undefined,
         notes: notes || undefined,
+        incomeId: selectedIncomeId || undefined, // Include in mark-as-paid data too
       };
 
       await apiRequest("PATCH", `/api/payments/${createResponse.data.id}/mark-paid`, markPaidData);
@@ -62,6 +70,7 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
       onOpenChange(false);
       setConfirmationNumber("");
       setNotes("");
+      setSelectedIncomeId("");
     },
     onError: () => {
       toast({
@@ -103,6 +112,25 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="incomeSource">Income Source Used to Pay (Optional)</Label>
+            <Select value={selectedIncomeId} onValueChange={setSelectedIncomeId}>
+              <SelectTrigger id="incomeSource" data-testid="select-income-source">
+                <SelectValue placeholder={incomeLoading ? "Loading income sources..." : "Select income source"} />
+              </SelectTrigger>
+              <SelectContent>
+                {incomes.map((income: any) => (
+                  <SelectItem key={income.id} value={income.id}>
+                    {income.source} - {formatCurrency(income.amount.toString())} ({income.frequency})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {incomes.length === 0 && !incomeLoading && (
+              <p className="text-sm text-gray-500 mt-1">No income sources available</p>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="confirmationNumber">Confirmation Number (Optional)</Label>
             <Input

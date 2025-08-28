@@ -844,7 +844,7 @@ export default function ComprehensiveDashboard() {
             </Select>
             {vendors.length === 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                You need to add vendors before creating purchase orders. Go to the Business tab to add vendors.
+                You need to add vendors before creating purchase orders. Go to the Office tab to add vendors.
               </p>
             )}
           </div>
@@ -2301,6 +2301,7 @@ export default function ComprehensiveDashboard() {
       termMonths: '',
       originalAmount: '',
       loanType: type === 'business' ? 'business' : 'personal',
+      customLoanType: '',
       dueDate: 30,
       ...(type === 'business' && { businessProfileId: '' })
     });
@@ -2320,7 +2321,7 @@ export default function ComprehensiveDashboard() {
           interestRate: data.interestRate,
           monthlyPayment: data.monthlyPayment,
           originalAmount: data.originalAmount,
-          loanType: data.loanType,
+          loanType: data.loanType === 'other' ? data.customLoanType : data.loanType,
           termLength: parseInt(data.termMonths), // Backend expects 'termLength' as number, not 'termMonths' as string
           dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Convert days to proper date format (YYYY-MM-DD)
           ...(type === 'business' && { businessProfileId: data.businessProfileId })
@@ -2370,6 +2371,16 @@ export default function ComprehensiveDashboard() {
         toast({
           title: "Error",
           description: "Please select a business profile first",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate custom loan type when "Other" is selected
+      if (formData.loanType === 'other' && !formData.customLoanType.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a custom loan type",
           variant: "destructive"
         });
         return;
@@ -2501,8 +2512,21 @@ export default function ComprehensiveDashboard() {
                 <SelectItem value="mortgage">Mortgage</SelectItem>
                 <SelectItem value="student">Student Loan</SelectItem>
                 <SelectItem value="business">Business Loan</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+            {formData.loanType === 'other' && (
+              <div className="mt-2">
+                <Label htmlFor="custom-loan-type">Custom Loan Type</Label>
+                <Input
+                  id="custom-loan-type"
+                  value={formData.customLoanType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customLoanType: e.target.value }))}
+                  placeholder="e.g., Equipment Loan, Vacation Loan"
+                  required
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-4">
@@ -2680,7 +2704,7 @@ export default function ComprehensiveDashboard() {
           </div>
 
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:w-fit mb-6">
+            <TabsList className="grid w-full grid-cols-3 lg:w-fit mb-6">
               <TabsTrigger value="personal" className="flex items-center gap-2" data-testid="tab-personal">
                 <Home className="h-4 w-4" />
                 Personal
@@ -2688,6 +2712,10 @@ export default function ComprehensiveDashboard() {
               <TabsTrigger value="business" className="flex items-center gap-2" data-testid="tab-business">
                 <Building2 className="h-4 w-4" />
                 Business
+              </TabsTrigger>
+              <TabsTrigger value="office" className="flex items-center gap-2" data-testid="tab-office">
+                <Building className="h-4 w-4" />
+                Office
               </TabsTrigger>
             </TabsList>
 
@@ -3513,7 +3541,9 @@ export default function ComprehensiveDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
 
+            <TabsContent value="office" className="space-y-6 mt-8">
               {/* All Purchase Orders Section */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">

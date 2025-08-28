@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { CreditCard, Loan } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
+import { PieChart as PieChartIcon } from "lucide-react";
 
 interface DebtChartProps {
   creditCards: CreditCard[];
@@ -13,13 +14,13 @@ export function DebtChart({ creditCards, loans }: DebtChartProps) {
   const data = [
     ...creditCards.map((card, index) => ({
       name: card.cardName,
-      value: parseFloat(card.balance),
+      value: typeof card.balance === 'string' ? parseFloat(card.balance) : card.balance,
       color: COLORS[index % COLORS.length],
       type: "Credit Card",
     })),
     ...loans.map((loan, index) => ({
       name: loan.loanName,
-      value: parseFloat(loan.currentBalance),
+      value: typeof loan.currentBalance === 'string' ? parseFloat(loan.currentBalance) : loan.currentBalance,
       color: COLORS[(creditCards.length + index) % COLORS.length],
       type: loan.loanType,
     })),
@@ -31,10 +32,10 @@ export function DebtChart({ creditCards, loans }: DebtChartProps) {
       return (
         <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
           <p className="font-medium text-neutral-900">{data.name}</p>
-          <p className="text-sm text-neutral-500">{data.type}</p>
           <p className="text-sm font-medium text-primary">
             {formatCurrency(data.value)}
           </p>
+          <p className="text-xs text-neutral-400">{data.name}</p>
         </div>
       );
     }
@@ -45,7 +46,7 @@ export function DebtChart({ creditCards, loans }: DebtChartProps) {
     return (
       <div className="h-64 flex items-center justify-center text-neutral-500" data-testid="chart-empty-state">
         <div className="text-center">
-          <PieChart size={48} className="mx-auto mb-2 text-neutral-300" />
+          <PieChartIcon size={48} className="mx-auto mb-2 text-neutral-300" />
           <p>No debt accounts to display</p>
           <p className="text-sm">Add a credit card or loan to see your debt distribution</p>
         </div>
