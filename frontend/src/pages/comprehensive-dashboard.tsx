@@ -2656,10 +2656,19 @@ export default function ComprehensiveDashboard() {
 
   const totalMonthlyIncome = calculateMonthlyIncome(incomes);
 
+  // Calculate total income and expenses for available cash calculation
+  const totalIncome = incomes.reduce((sum, income) => sum + parseFloat(income.amount || "0"), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount || "0"), 0);
+  
   // Calculate available cash and credit metrics
-  const availableCash = assets
-    .filter((asset: any) => ['cash', 'checking', 'savings'].includes(asset.category?.toLowerCase() || ''))
-    .reduce((sum: number, asset: any) => sum + parseFloat(asset.value || asset.currentValue || "0"), 0);
+  // Available Cash = Total Income - Total Expenses (real-time cash flow)
+  const availableCash = Math.max(0, totalIncome - totalExpenses); // Prevent negative cash
+  
+  // Alternative: Include cash assets as starting balance
+  // const cashAssets = assets
+  //   .filter((asset: any) => ['cash', 'checking', 'savings'].includes(asset.category?.toLowerCase() || ''))
+  //   .reduce((sum: number, asset: any) => sum + parseFloat(asset.value || asset.currentValue || "0"), 0);
+  // const availableCash = Math.max(0, cashAssets + totalIncome - totalExpenses);
 
   const totalCreditLimit = creditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit || "0"), 0);
   const totalCreditUsed = creditCards.reduce((sum, card) => sum + parseFloat(card.balance || "0"), 0);
@@ -2788,9 +2797,17 @@ export default function ComprehensiveDashboard() {
                     <div className="text-2xl font-bold text-green-600" data-testid="text-available-cash">
                       {formatCurrency(availableCash)}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Liquid assets
-                    </p>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div className="flex justify-between">
+                        <span>Total Income:</span>
+                        <span className="text-green-600">+{formatCurrency(totalIncome)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Expenses:</span>
+                        <span className="text-red-600">-{formatCurrency(totalExpenses)}</span>
+                      </div>
+                      <div className="text-xs pt-1 border-t">Income - Expenses</div>
+                    </div>
                   </CardContent>
                 </Card>
 

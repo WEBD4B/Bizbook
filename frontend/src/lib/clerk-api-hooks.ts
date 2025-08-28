@@ -178,3 +178,49 @@ export function useExpenseMutation() {
     },
   });
 }
+
+// Payments hooks with Clerk authentication
+export function usePayments() {
+  const { getToken } = useAuth();
+  
+  return useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.warn('No Clerk token available for payments request');
+          return [];
+        }
+        
+        const response = await apiRequest('/payments', {}, token);
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching payments:', error);
+        // Return empty array instead of throwing to prevent UI crashes
+        return [];
+      }
+    },
+  });
+}
+
+export function usePaymentMutation() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const token = await getToken();
+      const response = await apiRequest('/payments', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }, token);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+    },
+  });
+}

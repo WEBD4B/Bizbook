@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { CheckCircle, CreditCard } from "lucide-react";
 import { Payment } from "@shared/schema";
-import { useIncome } from "@/hooks/useApi";
+import { useIncomes } from "@/lib/clerk-api-hooks";
 
 interface MarkAsPaidDialogProps {
   open: boolean;
@@ -30,10 +30,12 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
   const [selectedIncomeId, setSelectedIncomeId] = useState<string>("");
   
   // Fetch income data for the dropdown
-  const { data: incomes = [], isLoading: incomeLoading } = useIncome();
+  const { data: incomes = [], isLoading: incomeLoading } = useIncomes();
 
   const markAsPaidMutation = useMutation({
     mutationFn: async () => {
+      const token = await getToken();
+      
       // First create the payment record
       const createPaymentData = {
         accountId: payment.accountId,
@@ -45,7 +47,10 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
         incomeId: selectedIncomeId || undefined, // Include the selected income ID
       };
 
-      const createResponse = await apiRequest("POST", `/api/payments`, createPaymentData);
+      const createResponse = await apiRequest('/payments', {
+        method: 'POST',
+        body: JSON.stringify(createPaymentData),
+      }, token);
 
       // Then mark it as paid
       const markPaidData = {
@@ -54,15 +59,47 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
         incomeId: selectedIncomeId || undefined, // Include in mark-as-paid data too
       };
 
-      await apiRequest("PATCH", `/api/payments/${createResponse.data.id}/mark-paid`, markPaidData);
+      await apiRequest(`/payments/${createResponse.data.id}/mark-paid`, {
+        method: 'PATCH',
+        body: JSON.stringify(markPaidData),
+      }, token);
+
+      // If an income source was selected, create an expense to deduct from available cash
+      if (selectedIncomeId) {
+        const selectedIncome = incomes.find((income: any) => income.id === selectedIncomeId);
+        if (selectedIncome) {
+          const expenseData = {
+            category: 'Bills & Utilities',
+            description: `Payment for ${payment.accountType === 'credit_card' ? 'Credit Card' : 'Loan'} - ${confirmationNumber || 'Manual Payment'}`,
+            amount: payment.amount,
+            expenseDate: new Date().toISOString().split('T')[0],
+            paymentMethod: 'electronic',
+            notes: `Paid from ${selectedIncome.source} income`,
+            incomeId: selectedIncomeId,
+          };
+
+          await apiRequest('/expenses', {
+            method: 'POST',
+            body: JSON.stringify(expenseData),
+          }, token);
+        }
+      }
       
       return createResponse.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/monthly-payments"] });
+      // Invalidate the correct query keys used by Clerk hooks
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['creditCards'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyPayments'] });
+      queryClient.invalidateQueries({ queryKey: ['incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      
+      // Force refetch of payments data
+      queryClient.refetchQueries({ queryKey: ['payments'] });
+      queryClient.refetchQueries({ queryKey: ['creditCards'] });
+      
       toast({
         title: "Payment Marked as Paid",
         description: `Payment of ${formatCurrency(payment.amount.toString())} has been marked as paid. This account won't appear in upcoming payments for 30 days.`,

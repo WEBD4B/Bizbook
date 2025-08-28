@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Banknote, Target } from "lucide-react";
-import { useAssets, useInvestments, useCreditCards, useLoans } from "@/hooks/useApi";
+import { useAssets, useInvestments } from "@/hooks/useApi";
+import { useCreditCards, useLoans } from "@/lib/clerk-api-hooks";
 import type { Asset, Investment, CreditCard, Loan } from "@shared/schema";
 
 export function NetWorthSummary() {

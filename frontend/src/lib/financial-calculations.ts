@@ -90,3 +90,24 @@ export function getDaysUntilDue(dayOfMonth: number): number {
   const diffTime = nextDue.getTime() - now.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
+
+export function calculateAvailableCash(incomes: any[], expenses: any[], cashAssets: any[] = []): {
+  totalIncome: number;
+  totalExpenses: number;
+  availableCash: number;
+  cashFlow: number;
+} {
+  const totalIncome = incomes.reduce((sum, income) => sum + parseFloat(income.amount || "0"), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount || "0"), 0);
+  const cashFromAssets = cashAssets.reduce((sum, asset) => sum + parseFloat(asset.value || asset.currentValue || "0"), 0);
+  
+  const cashFlow = totalIncome - totalExpenses;
+  const availableCash = Math.max(0, cashFromAssets + cashFlow);
+  
+  return {
+    totalIncome,
+    totalExpenses,
+    availableCash,
+    cashFlow
+  };
+}

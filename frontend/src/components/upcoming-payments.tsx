@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { CreditCard, Loan, MonthlyPayment } from "@shared/schema";
 import { formatCurrency, getNextDueDate, getDaysUntilDue } from "@/lib/financial-calculations";
-import { useCreditCards, useLoans, usePayments } from "@/hooks/useApi";
+import { useCreditCards, useLoans, usePayments } from "@/lib/clerk-api-hooks";
 import { MarkAsPaidDialog } from "./mark-as-paid-dialog";
 
 type FilterType = "all" | "week" | "month";
@@ -47,12 +47,45 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    return Array.isArray(payments) && payments.some((payment: any) => 
+    // Normalize account type formats (credit-card vs credit_card)  
+    const normalizedAccountType = accountType === 'credit-card' ? 'credit_card' : accountType;
+    
+    // Get all account IDs that belong to the current user
+    const currentUserAccountIds = [
+      ...creditCards.map(card => card.id),
+      ...loans.map(loan => loan.id)
+    ];
+    
+    // Filter payments to only include recent ones for this specific account
+    // AND only consider payments for accounts that belong to the current user
+    const recentPayments = Array.isArray(payments) ? payments.filter((payment: any) => 
       payment.accountId === accountId && 
-      payment.accountType === accountType &&
+      currentUserAccountIds.includes(payment.accountId) && // Only consider payments for current user's accounts
+      (payment.accountType === normalizedAccountType || payment.accountType === accountType) &&
       payment.status === 'paid' &&
-      new Date(payment.paidDate || payment.paymentDate) > thirtyDaysAgo
-    );
+      payment.paidDate &&
+      new Date(payment.paidDate) > thirtyDaysAgo
+    ) : [];
+    
+    // Add debug logging for the Chase Bank card specifically
+    if (accountId === 'db6d4a8a-57f6-427b-8878-62de904dc053') {
+      console.log('🔍 Checking Chase Bank card payment status:', {
+        accountId,
+        accountType,
+        normalizedAccountType,
+        paymentsCount: Array.isArray(payments) ? payments.length : 0,
+        currentUserAccountIds: currentUserAccountIds.slice(0, 3), // Show first 3 IDs
+        recentPayments: recentPayments.length,
+        recentPaymentDetails: recentPayments.map(p => ({
+          id: p.id,
+          status: p.status,
+          paidDate: p.paidDate,
+          accountId: p.accountId
+        }))
+      });
+    }
+    
+    return recentPayments.length > 0;
   };
 
   // Combine all payment accounts and filter out recently paid ones

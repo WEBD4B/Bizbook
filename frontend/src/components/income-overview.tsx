@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calendar, Plus } from "lucide-react";
-import { useIncome } from "@/hooks/useApi";
+import { useIncomes } from "@/lib/clerk-api-hooks";
 import { Income } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
@@ -11,7 +11,7 @@ interface IncomeOverviewProps {
 }
 
 export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
-  const { data: incomes = [], isLoading } = useIncome();
+  const { data: incomes = [], isLoading } = useIncomes();
 
   const calculateMonthlyIncome = (incomes: Income[]) => {
     return incomes.reduce((total, income) => {

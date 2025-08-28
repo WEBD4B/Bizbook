@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
+import { usePaymentMutation } from "@/lib/clerk-api-hooks";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { PiggyBank } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
@@ -33,6 +34,7 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const paymentMutation = usePaymentMutation();
   
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -45,21 +47,21 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
 
   const recordPaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
+      // Use the Clerk-authenticated payment mutation
+      const paymentData = {
+        accountId: account.id,
+        accountType: accountType,
+        amount: data.amount,
+        paymentDate: data.paymentDate,
+        notes: data.notes || null,
+      };
+      
+      // Record the payment using Clerk authentication
+      await paymentMutation.mutateAsync(paymentData);
+
+      // Update the account balance with proper token
       const token = await getToken();
       
-      // Record the payment
-      await apiRequest("/payments", {
-        method: "POST",
-        body: JSON.stringify({
-          accountId: account.id,
-          accountType: accountType,
-          amount: data.amount,
-          paymentDate: data.paymentDate,
-          notes: data.notes || null,
-        })
-      }, token);
-
-      // Update the account balance
       if (accountType === "credit-card") {
         const newBalance = Math.max(0, parseFloat(account.balance) - parseFloat(data.amount));
         await apiRequest(`/credit-cards/${account.id}`, {

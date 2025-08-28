@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Income } from "@shared/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
-import { useIncome } from "@/hooks/useApi";
+import { useIncomes } from "@/lib/clerk-api-hooks";
 
 type FilterType = "all" | "week" | "month";
 
@@ -42,7 +42,7 @@ function getDaysUntilIncome(nextPayDate: string): number {
 export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
 
-  const { data: incomes = [], isLoading: incomesLoading } = useIncome();
+  const { data: incomes = [], isLoading: incomesLoading } = useIncomes();
 
   const isLoading = incomesLoading;
 
