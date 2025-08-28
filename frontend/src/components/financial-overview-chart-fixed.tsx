@@ -80,7 +80,6 @@ export function FinancialOverviewChart({
     { name: "Monthly Expenses", value: totalExpenses, color: COLORS[1], type: "negative" },
     { name: "Cash Flow", value: monthlyCashFlow, color: monthlyCashFlow >= 0 ? COLORS[2] : COLORS[1], type: monthlyCashFlow >= 0 ? "positive" : "negative" },
     { name: "Available Credit", value: availableCredit, color: COLORS[4], type: "neutral" },
-    { name: "Buying Power", value: buyingPower, color: COLORS[5], type: "positive" },
   ];
 
   // Debt breakdown data
@@ -264,7 +263,7 @@ export function FinancialOverviewChart({
   const getChartStats = () => {
     switch (chartType) {
       case "overview":
-        return `Net Worth: ${formatCurrency(netWorth)} • Cash Flow: ${formatCurrency(monthlyCashFlow)} • Buying Power: ${formatCurrency(buyingPower)}`;
+        return `Net Worth: ${formatCurrency(netWorth)} • Cash Flow: ${formatCurrency(monthlyCashFlow)}`;
       case "debt":
         return `Total Debt: ${formatCurrency(totalDebt)} • Credit Utilization: ${creditUtilization.toFixed(1)}%`;
       case "cashflow":

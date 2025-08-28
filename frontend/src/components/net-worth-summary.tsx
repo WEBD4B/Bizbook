@@ -99,7 +99,7 @@ export function NetWorthSummary() {
 
       <Card data-testid="card-total-liquidity">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Liquidity (Available Cash + Credit)</CardTitle>
+          <CardTitle className="text-sm font-medium">Available Cash + Credit</CardTitle>
           <Target className="h-4 w-4 text-purple-600" />
         </CardHeader>
         <CardContent>

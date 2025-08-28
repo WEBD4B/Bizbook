@@ -5,7 +5,8 @@ import {
   Building2, 
   Calendar, 
   PieChart,
-  BarChart3 
+  BarChart3,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +24,12 @@ export function Sidebar() {
     <aside className="w-64 bg-white shadow-lg border-r border-neutral-200 hidden lg:block">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <BarChart3 className="text-white text-sm" size={16} />
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg">
+            <Wallet className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-neutral-900">FinanceTracker</h1>
+          <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            KashGrip
+          </span>
         </div>
         
         <nav className="space-y-2">

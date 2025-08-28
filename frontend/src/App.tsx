@@ -11,6 +11,7 @@ import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import { ApiProvider } from "@/contexts/ApiContext";
+import { Wallet } from "lucide-react";
 
 function Router() {
   return (
@@ -69,7 +70,14 @@ function App() {
           <ApiProvider>
             <div className="min-h-screen bg-gray-50">
               <header className="flex items-center justify-between p-4 border-b bg-white">
-                <h1 className="text-xl font-semibold">BizBook</h1>
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg">
+                    <Wallet className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                    KashGrip
+                  </span>
+                </div>
                 <UserButton />
               </header>
               <main>
