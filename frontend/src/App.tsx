@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ComprehensiveDashboard from "@/pages/comprehensive-dashboard";
 import OptimizedDashboard from "@/pages/optimized-dashboard";
 import TestDashboard from "@/pages/test-dashboard";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
@@ -28,6 +28,31 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route component={NotFound} />
     </Switch>
+  );
+}
+
+function HeaderWithUser() {
+  const { user } = useUser();
+  
+  return (
+    <header className="flex items-center justify-between p-4 border-b bg-white">
+      <div className="flex items-center space-x-3">
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg">
+          <Wallet className="h-5 w-5 text-white" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            KashGrip
+          </span>
+          {user && (
+            <span className="text-sm text-gray-600">
+              Welcome, {user.firstName || user.fullName?.split(' ')[0] || 'User'}!
+            </span>
+          )}
+        </div>
+      </div>
+      <UserButton />
+    </header>
   );
 }
 
@@ -69,17 +94,7 @@ function App() {
         <SignedIn>
           <ApiProvider>
             <div className="min-h-screen bg-gray-50">
-              <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg">
-                    <Wallet className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                    KashGrip
-                  </span>
-                </div>
-                <UserButton />
-              </header>
+              <HeaderWithUser />
               <main>
                 <AuthenticatedRouter />
               </main>

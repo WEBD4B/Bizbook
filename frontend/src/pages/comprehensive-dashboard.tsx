@@ -2710,7 +2710,14 @@ export default function ComprehensiveDashboard() {
       <main className="p-4">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">Personal Finance Center</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Personal Finance Center</h1>
+              {user && (
+                <p className="text-lg text-gray-600 mt-1">
+                  Welcome back, {user.firstName || user.fullName?.split(' ')[0] || 'User'}! 👋
+                </p>
+              )}
+            </div>
           </div>
 
           <Tabs defaultValue="personal" className="w-full">
