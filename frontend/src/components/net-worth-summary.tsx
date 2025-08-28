@@ -31,6 +31,12 @@ export function NetWorthSummary() {
   
   const nonLiquidAssets = totalAssets - liquidAssets;
 
+  // Calculate available credit and total liquidity
+  const totalCreditLimit = creditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit || "0"), 0);
+  const totalCreditUsed = creditCards.reduce((sum, card) => sum + parseFloat(card.balance || "0"), 0);
+  const availableCredit = totalCreditLimit - totalCreditUsed;
+  const totalLiquidity = liquidAssets + availableCredit;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -91,18 +97,22 @@ export function NetWorthSummary() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-liquid-assets">
+      <Card data-testid="card-total-liquidity">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Liquid Assets</CardTitle>
-          <Banknote className="h-4 w-4 text-blue-600" />
+          <CardTitle className="text-sm font-medium">Total Liquidity (Available Cash + Credit)</CardTitle>
+          <Target className="h-4 w-4 text-purple-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600" data-testid="text-liquid-assets">
-            {formatCurrency(liquidAssets)}
+          <div className="text-2xl font-bold text-purple-600" data-testid="text-total-liquidity">
+            {formatCurrency(totalLiquidity)}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Available for immediate use
-          </p>
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <span>Cash: {formatCurrency(liquidAssets)}</span>
+            <span>•</span>
+            <span>Credit: {formatCurrency(availableCredit)}</span>
+            <span>•</span>
+            <span>Total buying power available</span>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -2827,6 +2827,54 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
+              {/* Credit Summary Stats */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Credit Card Debt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Credit Limit</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit), 0))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Average Credit Utilization</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {creditCards.length > 0 
+                        ? Math.round(creditCards.reduce((sum, card) => 
+                            sum + ((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100), 0
+                          ) / creditCards.length)
+                        : 0}%
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Total Loan Debt</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">
+                      {formatCurrency(totalDebt)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Total Liquidity Card - Full Width */}
               <Card data-testid="card-total-liquidity">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -3007,54 +3055,6 @@ export default function ComprehensiveDashboard() {
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Credit Summary Stats */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Credit Card Debt</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Credit Limit</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.creditLimit), 0))}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Average Credit Utilization</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {creditCards.length > 0 
-                        ? Math.round(creditCards.reduce((sum, card) => 
-                            sum + ((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100), 0
-                          ) / creditCards.length)
-                        : 0}%
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Loan Debt</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(totalDebt)}
-                    </div>
                   </CardContent>
                 </Card>
               </div>
