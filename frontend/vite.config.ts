@@ -27,6 +27,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../dist/public"), // build goes outside frontend
     emptyOutDir: true,
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   server: {
     fs: {
