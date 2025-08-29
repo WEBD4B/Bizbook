@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertAssetSchema, type InsertAsset } from "@shared/schema";
+import { insertAssetSchema, type InsertAsset } from "@/types/schema";
 import { z } from "zod";
 
 const formSchema = insertAssetSchema.extend({

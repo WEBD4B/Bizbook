@@ -76,7 +76,7 @@ import { SavingsGoals } from "@/components/savings-goals";
 import { BudgetTracker } from "@/components/budget-tracker";
 import { InvestmentTracker } from "@/components/investment-tracker";
 import { ComprehensiveNetWorth } from "@/components/comprehensive-net-worth";
-import type { CreditCard, Loan, MonthlyPayment, Income, BusinessCreditCard, BusinessLoan, BusinessExpense, BusinessRevenue } from "@shared/schema";
+import type { CreditCard, Loan, MonthlyPayment, Income, BusinessCreditCard, BusinessLoan, BusinessExpense, BusinessRevenue } from "@/types/schema";
 import { Badge } from "@/components/ui/badge";
 import { 
   formatCurrency, 

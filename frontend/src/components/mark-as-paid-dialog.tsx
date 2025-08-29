@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { CheckCircle, CreditCard } from "lucide-react";
-import { Payment } from "@shared/schema";
+import { Payment } from "@/types/schema";
 import { useIncomes } from "@/lib/clerk-api-hooks";
 
 interface MarkAsPaidDialogProps {

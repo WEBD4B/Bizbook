@@ -15,7 +15,7 @@ import {
   PiggyBank,
   CheckCircle
 } from "lucide-react";
-import { CreditCard, Loan, MonthlyPayment } from "@shared/schema";
+import { CreditCard, Loan, MonthlyPayment } from "@/types/schema";
 import { formatCurrency, getNextDueDate, getDaysUntilDue } from "@/lib/financial-calculations";
 import { useCreditCards, useLoans, usePayments } from "@/lib/clerk-api-hooks";
 import { MarkAsPaidDialog } from "./mark-as-paid-dialog";

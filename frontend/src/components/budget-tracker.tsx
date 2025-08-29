@@ -12,7 +12,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { insertBudgetSchema, type Budget, type InsertBudget, type Expense } from "@shared/schema";
+import { insertBudgetSchema, type Budget, type InsertBudget, type Expense } from "@/types/schema";
 
 const categories = [
   "Housing", "Transportation", "Food", "Utilities", "Healthcare", "Entertainment", 

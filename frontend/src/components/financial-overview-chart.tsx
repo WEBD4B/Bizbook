@@ -25,7 +25,7 @@ import {
   Wallet,
   Target
 } from "lucide-react";
-import { CreditCard, Loan, Income, Asset } from "@shared/schema";
+import { CreditCard, Loan, Income, Asset } from "@/types/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
 interface FinancialOverviewChartProps {

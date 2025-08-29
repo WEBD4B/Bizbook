@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calendar, Plus } from "lucide-react";
 import { useIncomes } from "@/lib/clerk-api-hooks";
-import { Income } from "@shared/schema";
+import { Income } from "@/types/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 
 interface IncomeOverviewProps {

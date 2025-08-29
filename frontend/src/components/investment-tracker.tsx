@@ -11,7 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { insertInvestmentSchema, type Investment, type InsertInvestment } from "@shared/schema";
+import { insertInvestmentSchema, type Investment, type InsertInvestment } from "@/types/schema";
 import { useInvestments } from "@/hooks/useApi";
 
 export function InvestmentTracker() {

@@ -26,7 +26,7 @@ import { NetWorthSummary } from "@/components/net-worth-summary";
 import { SavingsGoals } from "@/components/savings-goals";
 import { BudgetTracker } from "@/components/budget-tracker";
 import { InvestmentTracker } from "@/components/investment-tracker";
-import { CreditCard, Loan, MonthlyPayment, Income } from "@shared/schema";
+import { CreditCard, Loan, MonthlyPayment, Income } from "@/types/schema";
 import { 
   formatCurrency, 
   calculateCreditUtilization, 

@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { AssetForm } from "./asset-form";
 import { LiabilityForm } from "./liability-form";
 import { useAssets, useLiabilities, useNetWorthSnapshots } from "@/hooks/useApi";
-import type { Asset, Liability, NetWorthSnapshot } from "@shared/schema";
+import type { Asset, Liability, NetWorthSnapshot } from "@/types/schema";
 
 const ASSET_COLORS = {
   cash_liquid: "#4f46e5",

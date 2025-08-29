@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { CreditCard, Loan } from "@shared/schema";
+import { CreditCard, Loan } from "@/types/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { PieChart as PieChartIcon } from "lucide-react";
 

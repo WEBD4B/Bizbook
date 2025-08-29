@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useExpenseMutation, useIncomes } from "@/lib/clerk-api-hooks";
 import { Plus, Receipt, Repeat, CreditCard, Calendar } from "lucide-react";
-import { insertExpenseSchema } from "@shared/schema";
+import { insertExpenseSchema } from "@/types/schema";
 
 const expenseFormSchema = insertExpenseSchema.extend({
   amount: z.string().min(1, "Amount is required"),
