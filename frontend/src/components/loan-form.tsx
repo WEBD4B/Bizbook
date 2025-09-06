@@ -1,22 +1,62 @@
 import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@clerk/clerk-react";
 
-export function LoanForm() {
+interface LoanFormProps {
+  onClose: () => void;
+  initialData?: any;
+}
+
+export function LoanForm({ onClose, initialData }: LoanFormProps) {
+  const { toast } = useToast();
+  const { getToken } = useAuth();
   const [formData, setFormData] = useState({
-    loanName: "",
-    loanAmount: "",
-    interestRate: "",
-    term: "",
-    startDate: ""
+    loanName: initialData?.loanName || "",
+    loanAmount: initialData?.loanAmount || "",
+    interestRate: initialData?.interestRate || "",
+    term: initialData?.term || "",
+    startDate: initialData?.startDate || ""
+  });
+
+  const createLoan = useMutation({
+    mutationFn: async (data: any) => {
+      console.log('Creating loan with data:', data);
+      const token = await getToken();
+      const result = await apiRequest("/loans", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }, token);
+      console.log('Loan creation result:', result);
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Loan added successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Loan creation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add loan",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Loan form submitted:", formData);
-    // Handle form submission here
+    createLoan.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,8 +137,8 @@ export function LoanForm() {
             />
           </div>
           
-          <Button type="submit" className="w-full">
-            Add Loan
+          <Button type="submit" className="w-full" disabled={createLoan.isPending}>
+            {createLoan.isPending ? "Adding..." : "Add Loan"}
           </Button>
         </form>
       </CardContent>

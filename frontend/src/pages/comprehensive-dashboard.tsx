@@ -31,7 +31,8 @@ import {
   useDeleteIncome,
   useDeleteVendor,
   useCreateBusinessRevenue,
-  useCreateBusinessExpense
+  useCreateBusinessExpense,
+  usePayments
 } from "@/hooks/useApi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -63,6 +64,7 @@ import { PurchaseOrderForm } from "@/components/purchase-order-form";
 import { PurchaseOrderList } from "@/components/purchase-order-list";
 import { VendorSearch } from "@/components/vendor-search";
 import { useAuth, useUser } from "@clerk/clerk-react";
+import { useIncomes } from "@/lib/clerk-api-hooks";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -87,6 +89,43 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useState } from "react";
 
 
+function UpcomingPaymentsSummary() {
+  const { data: creditCards = [], isLoading: creditCardsLoading } = useCreditCards();
+  const { data: loans = [], isLoading: loansLoading } = useLoans();
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments();
+  const isLoading = creditCardsLoading || loansLoading || paymentsLoading;
+
+  // Combine all upcoming payments
+  const allPayments = [
+    ...creditCards,
+    ...loans,
+    ...payments,
+  ];
+  const totalUpcoming = allPayments.reduce((sum, item) => sum + (item.minimumPayment || item.monthlyPayment || 0), 0);
+  const count = allPayments.length;
+
+  if (isLoading) return <div className="text-sm text-gray-400">Loading...</div>;
+  return (
+    <>
+      <div className="text-xl font-bold text-red-600">{formatCurrency(totalUpcoming)}</div>
+      <div className="text-sm text-gray-500">{count} payments due</div>
+    </>
+  );
+}
+
+function UpcomingIncomesSummary() {
+  const { data: incomes = [], isLoading } = useIncomes();
+  const totalUpcomingIncome = incomes.reduce((sum, income) => sum + (income.amount || 0), 0);
+  const count = incomes.length;
+  if (isLoading) return <div className="text-sm text-gray-400">Loading...</div>;
+  return (
+    <>
+      <div className="text-xl font-bold text-green-600">{formatCurrency(totalUpcomingIncome)}</div>
+      <div className="text-sm text-gray-500">{count} income source{count !== 1 ? 's' : ''}</div>
+    </>
+  );
+}
+
 export default function ComprehensiveDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -101,6 +140,13 @@ export default function ComprehensiveDashboard() {
   const [businessProfileDialogOpen, setBusinessProfileDialogOpen] = useState(false);
   const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
+
+  // Modal dialog states for forms
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [creditCardDialogOpen, setCreditCardDialogOpen] = useState(false);
+  const [loanDialogOpen, setLoanDialogOpen] = useState(false);
+  const [businessCreditCardDialogOpen, setBusinessCreditCardDialogOpen] = useState(false);
+  const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
 
   // Use authenticated API hooks
   const { data: creditCards = [], isLoading: creditCardsLoading } = useAuthenticatedQuery(
@@ -2925,8 +2971,8 @@ export default function ComprehensiveDashboard() {
                           </div>
                         </div>
                         <div className="text-right mr-6">
-                          <div className="text-xl font-bold text-red-600">$2,000.00</div>
-                          <div className="text-sm text-gray-500">5 payments due</div>
+                          {/* Show live summary from UpcomingPayments */}
+                          <UpcomingPaymentsSummary />
                         </div>
                       </div>
                     </AccordionTrigger>
@@ -2948,8 +2994,8 @@ export default function ComprehensiveDashboard() {
                           </div>
                         </div>
                         <div className="text-right mr-6">
-                          <div className="text-xl font-bold text-green-600">$52,000.00</div>
-                          <div className="text-sm text-gray-500">2 income sources</div>
+                          {/* Show live summary from UpcomingIncomes */}
+                          <UpcomingIncomesSummary />
                         </div>
                       </div>
                     </AccordionTrigger>
@@ -2969,7 +3015,7 @@ export default function ComprehensiveDashboard() {
                       <CreditCardIcon className="h-5 w-5" />
                       Credit Cards
                     </CardTitle>
-                    <Dialog>
+                    <Dialog open={creditCardDialogOpen} onOpenChange={setCreditCardDialogOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm" data-testid="button-add-credit-card">
                           <Plus className="h-4 w-4 mr-2" />
@@ -2980,7 +3026,7 @@ export default function ComprehensiveDashboard() {
                         <DialogHeader>
                           <DialogTitle>Add Credit Card</DialogTitle>
                         </DialogHeader>
-                        <CreditCardForm onClose={() => {}} />
+                        <CreditCardForm onClose={() => setCreditCardDialogOpen(false)} />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
@@ -3045,7 +3091,7 @@ export default function ComprehensiveDashboard() {
                       <Building2 className="h-5 w-5" />
                       Loans
                     </CardTitle>
-                    <Dialog>
+                    <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm" data-testid="button-add-loan">
                           <Plus className="h-4 w-4 mr-2" />
@@ -3056,7 +3102,7 @@ export default function ComprehensiveDashboard() {
                         <DialogHeader>
                           <DialogTitle>Add Loan</DialogTitle>
                         </DialogHeader>
-                        <LoanForm onClose={() => {}} />
+                        <LoanForm onClose={() => setLoanDialogOpen(false)} />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
@@ -3074,7 +3120,7 @@ export default function ComprehensiveDashboard() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-medium">{loan.name}</h3>
-                                <Badge variant="outline">{loan.interestRate}% Rate</Badge>
+                                <Badge variant="outline">{loan.interestRate}% APR</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
                                 <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
@@ -3120,7 +3166,7 @@ export default function ComprehensiveDashboard() {
                     <DollarSign className="h-5 w-5" />
                     Personal Income Management ({incomes.length})
                   </CardTitle>
-                  <Dialog>
+                  <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm" data-testid="button-add-income">
                         <Plus className="h-4 w-4 mr-2" />
@@ -3134,7 +3180,7 @@ export default function ComprehensiveDashboard() {
                           Add salary, wages, freelance payments, or other personal income sources
                         </DialogDescription>
                       </DialogHeader>
-                      <IncomeForm onClose={() => {}} />
+                      <IncomeForm onClose={() => setIncomeDialogOpen(false)} />
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
@@ -3452,7 +3498,7 @@ export default function ComprehensiveDashboard() {
                       <CreditCardIcon className="h-5 w-5" />
                       Business Credit Cards
                     </CardTitle>
-                    <Dialog>
+                    <Dialog open={businessCreditCardDialogOpen} onOpenChange={setBusinessCreditCardDialogOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm" data-testid="button-add-business-credit-card">
                           <Plus className="h-4 w-4 mr-2" />
@@ -3466,7 +3512,7 @@ export default function ComprehensiveDashboard() {
                             Add a new business credit card to track balances and payments.
                           </DialogDescription>
                         </DialogHeader>
-                        <BusinessCreditCardForm onClose={() => {}} />
+                        <BusinessCreditCardForm onClose={() => setBusinessCreditCardDialogOpen(false)} />
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
@@ -3628,7 +3674,7 @@ export default function ComprehensiveDashboard() {
                     <Building2 className="h-5 w-5" />
                     Vendor Management ({vendors.length})
                   </CardTitle>
-                  <Dialog>
+                  <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm" data-testid="button-add-vendor">
                         <Plus className="h-4 w-4 mr-2" />
@@ -3642,7 +3688,7 @@ export default function ComprehensiveDashboard() {
                           Add a new vendor to create purchase orders and manage business relationships
                         </DialogDescription>
                       </DialogHeader>
-                      <VendorForm onClose={() => {}} />
+                      <VendorForm onClose={() => setVendorDialogOpen(false)} />
                     </DialogContent>
                   </Dialog>
                 </CardHeader>

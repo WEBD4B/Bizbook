@@ -1,23 +1,63 @@
 import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@clerk/clerk-react";
 
-export function BusinessExpenseForm() {
+interface BusinessExpenseFormProps {
+  onClose: () => void;
+  initialData?: any;
+}
+
+export function BusinessExpenseForm({ onClose, initialData }: BusinessExpenseFormProps) {
+  const { toast } = useToast();
+  const { getToken } = useAuth();
   const [formData, setFormData] = useState({
-    description: "",
-    amount: "",
-    category: "",
-    date: "",
-    vendor: ""
+    description: initialData?.description || "",
+    amount: initialData?.amount || "",
+    category: initialData?.category || "",
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    vendor: initialData?.vendor || ""
+  });
+
+  const createBusinessExpense = useMutation({
+    mutationFn: async (data: any) => {
+      console.log('Creating business expense with data:', data);
+      const token = await getToken();
+      const result = await apiRequest("/business-expenses", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }, token);
+      console.log('Business expense creation result:', result);
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Business expense added successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["business-expenses"] });
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Business expense creation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add business expense",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Business expense form submitted:", formData);
-    // Handle form submission here
+    createBusinessExpense.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,8 +148,8 @@ export function BusinessExpenseForm() {
             />
           </div>
           
-          <Button type="submit" className="w-full">
-            Add Expense
+          <Button type="submit" className="w-full" disabled={createBusinessExpense.isPending}>
+            {createBusinessExpense.isPending ? "Adding..." : "Add Expense"}
           </Button>
         </form>
       </CardContent>
