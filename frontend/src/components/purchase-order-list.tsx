@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@clerk/clerk-react";
 import { Eye, Edit, Trash2, Package } from "lucide-react";
 import { PurchaseOrderForm } from "./purchase-order-form";
 
@@ -15,6 +17,7 @@ interface PurchaseOrderListProps {
 
 export function PurchaseOrderList({ vendorId, vendorName }: PurchaseOrderListProps) {
   const { toast } = useToast();
+  const { getToken } = useAuth();
   
   const { data: purchaseOrders = [], isLoading } = useQuery({
     queryKey: ["/api/purchase-orders", vendorId],
@@ -27,21 +30,31 @@ export function PurchaseOrderList({ vendorId, vendorName }: PurchaseOrderListPro
 
   const deletePO = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/purchase-orders/${id}`);
+      const token = await getToken();
+      return apiRequest(`/purchase-orders/${id}`, { method: "DELETE" }, token);
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Purchase order deleted successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete purchase order",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      // If it's a 404, the item was already deleted, so invalidate cache
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Purchase order removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete purchase order",
+          variant: "destructive"
+        });
+      }
     }
   });
 

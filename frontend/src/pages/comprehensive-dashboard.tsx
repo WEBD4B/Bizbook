@@ -2597,14 +2597,23 @@ export default function ComprehensiveDashboard() {
         title: "Success",
         description: "Credit card deleted successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/credit-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete credit card",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      // If it's a 404, the item was already deleted, so invalidate cache
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Credit card removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete credit card",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -2618,14 +2627,23 @@ export default function ComprehensiveDashboard() {
         title: "Success",
         description: "Loan deleted successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/loans"] });
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete loan",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      // If it's a 404, the item was already deleted, so invalidate cache
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Loan removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["loans"] });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete loan",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -2634,19 +2652,47 @@ export default function ComprehensiveDashboard() {
       const token = await getToken();
       return apiRequest(`/income/${id}`, { method: "DELETE" }, token);
     },
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ["income"] });
+      
+      // Snapshot the previous value
+      const previousIncomes = queryClient.getQueryData(["income"]);
+      
+      // Optimistically update to remove the income
+      queryClient.setQueryData(["income"], (old: any[]) => 
+        old ? old.filter((income: any) => income.id !== id) : []
+      );
+      
+      // Return a context with the previous and new data
+      return { previousIncomes };
+    },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Income deleted successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/income"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete income",
-        variant: "destructive"
-      });
+    onError: (error: any, id: string, context: any) => {
+      // If it's a 404, the item was already deleted, keep the optimistic update
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Income removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["income"] });
+      } else {
+        // Rollback the optimistic update
+        if (context?.previousIncomes) {
+          queryClient.setQueryData(["income"], context.previousIncomes);
+        }
+        toast({
+          title: "Error",
+          description: "Failed to delete income",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -2660,14 +2706,23 @@ export default function ComprehensiveDashboard() {
         title: "Success",
         description: "Vendor deleted successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete vendor",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      // If it's a 404, the item was already deleted, so invalidate cache
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Vendor removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["vendors"] });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete vendor",
+          variant: "destructive"
+        });
+      }
     }
   });
 
