@@ -116,7 +116,7 @@ export const expenses = pgTable('expenses', {
   isRecurring: boolean('is_recurring').default(false),
   frequency: varchar('frequency', { length: 20 }),
   paymentType: varchar('payment_type', { length: 20 }),
-  paidFromIncomeId: uuid('paid_from_income_id').references(() => incomes.id),
+  paidFromIncomeId: uuid('paid_from_income_id').references(() => income.id),
   paidFromIncome: varchar('paid_from_income', { length: 255 }),
   taxDeductible: boolean('tax_deductible').default(false),
   notes: text('notes'),
