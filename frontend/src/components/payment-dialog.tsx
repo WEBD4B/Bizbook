@@ -66,7 +66,7 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
         accountType: accountType,
         amount: data.amount,
         paymentDate: data.paymentDate,
-        incomeSourceId: data.incomeSourceId || null,
+        incomeSourceId: data.incomeSourceId === "none" ? null : data.incomeSourceId || null,
         notes: data.notes || null,
       };
       
@@ -78,25 +78,51 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
       
       if (accountType === "credit-card") {
         const newBalance = Math.max(0, parseFloat(account.balance) - parseFloat(data.amount));
+        
+        // Calculate next due date (advance by one month)
+        const currentDueDate = account.dueDate ? new Date(account.dueDate) : new Date();
+        const nextDueDate = new Date(currentDueDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        const nextDueDateString = nextDueDate.toISOString().split('T')[0];
+        
         await apiRequest(`/credit-cards/${account.id}`, {
           method: "PATCH",
           body: JSON.stringify({
             balance: newBalance.toString(),
+            dueDate: nextDueDateString, // Advance due date to next month
           })
         }, token);
       } else if (accountType === "loan") {
         const newBalance = Math.max(0, parseFloat(account.currentBalance) - parseFloat(data.amount));
+        
+        // Calculate next due date (advance by one month)
+        const currentDueDate = account.dueDate ? new Date(account.dueDate) : new Date();
+        const nextDueDate = new Date(currentDueDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        const nextDueDateString = nextDueDate.toISOString().split('T')[0];
+        
         await apiRequest(`/loans/${account.id}`, {
           method: "PATCH",
           body: JSON.stringify({
             currentBalance: newBalance.toString(),
+            dueDate: nextDueDateString, // Advance due date to next month
           })
         }, token);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${accountType}s`] });
+      // Invalidate the correct query keys that the components actually use
+      if (accountType === "credit-card") {
+        queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+      } else if (accountType === "loan") {
+        queryClient.invalidateQueries({ queryKey: ["loans"] });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      // Also invalidate net worth calculations since balances changed
+      queryClient.invalidateQueries({ queryKey: ["/api/calculate-net-worth"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/net-worth-snapshots"] });
+      
       toast({ 
         title: "Payment Recorded", 
         description: `Payment of ${formatCurrency(parseFloat(form.getValues().amount))} has been recorded successfully.` 
@@ -199,7 +225,7 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None selected</SelectItem>
+                      <SelectItem value="none">None selected</SelectItem>
                       {incomes.map((income: any) => (
                         <SelectItem key={income.id} value={income.id}>
                           {income.source} - {formatCurrency(parseFloat(income.amount))}

@@ -150,6 +150,10 @@ export default function ComprehensiveDashboard() {
   const [businessCreditCardDialogOpen, setBusinessCreditCardDialogOpen] = useState(false);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
 
+  // Editing states for form pre-population
+  const [editingCreditCard, setEditingCreditCard] = useState<any>(null);
+  const [editingLoan, setEditingLoan] = useState<any>(null);
+
   // Reset all user data function
   const handleResetAllData = async () => {
     if (!window.confirm("⚠️ WARNING: This will permanently delete ALL your financial data including income, expenses, credit cards, loans, assets, and payments. This action cannot be undone. Are you absolutely sure?")) {
@@ -2743,7 +2747,17 @@ export default function ComprehensiveDashboard() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-6 pb-6">
-                      <UpcomingPayments />
+                      <UpcomingPayments 
+                        onEdit={(account, type) => {
+                          if (type === 'credit-card') {
+                            setEditingCreditCard(account);
+                            setCreditCardDialogOpen(true);
+                          } else if (type === 'loan') {
+                            setEditingLoan(account);
+                            setLoanDialogOpen(true);
+                          }
+                        }}
+                      />
                     </AccordionContent>
                   </AccordionItem>
 
@@ -3555,27 +3569,45 @@ export default function ComprehensiveDashboard() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={creditCardDialogOpen} onOpenChange={setCreditCardDialogOpen}>
+          <Dialog open={creditCardDialogOpen} onOpenChange={(open) => {
+            setCreditCardDialogOpen(open);
+            if (!open) setEditingCreditCard(null);
+          }}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Credit Card</DialogTitle>
+                <DialogTitle>{editingCreditCard ? 'Edit Credit Card' : 'Add Credit Card'}</DialogTitle>
                 <DialogDescription>
-                  Add a new credit card to track balances and payments
+                  {editingCreditCard ? 'Update your credit card information' : 'Add a new credit card to track balances and payments'}
                 </DialogDescription>
               </DialogHeader>
-              <CreditCardForm onClose={() => setCreditCardDialogOpen(false)} />
+              <CreditCardForm 
+                onClose={() => {
+                  setCreditCardDialogOpen(false);
+                  setEditingCreditCard(null);
+                }} 
+                initialData={editingCreditCard}
+              />
             </DialogContent>
           </Dialog>
 
-          <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
+          <Dialog open={loanDialogOpen} onOpenChange={(open) => {
+            setLoanDialogOpen(open);
+            if (!open) setEditingLoan(null);
+          }}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Loan</DialogTitle>
+                <DialogTitle>{editingLoan ? 'Edit Loan' : 'Add Loan'}</DialogTitle>
                 <DialogDescription>
-                  Add a personal loan, mortgage, or other debt
+                  {editingLoan ? 'Update your loan information' : 'Add a personal loan, mortgage, or other debt'}
                 </DialogDescription>
               </DialogHeader>
-              <LoanForm onClose={() => setLoanDialogOpen(false)} />
+              <LoanForm 
+                onClose={() => {
+                  setLoanDialogOpen(false);
+                  setEditingLoan(null);
+                }} 
+                initialData={editingLoan}
+              />
             </DialogContent>
           </Dialog>
 

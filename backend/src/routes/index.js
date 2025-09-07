@@ -99,7 +99,13 @@ router.patch('/credit-cards/:id',
   validateParams(idParamSchema),
   validateBody(insertCreditCardSchema.partial()),
   asyncHandler(async (req, res) => {
+    console.log('🔵 [BACKEND] Credit card update request:', {
+      id: req.params.id,
+      body: req.body,
+      userId: req.user.id
+    });
     const creditCard = await dbService.updateCreditCard(req.params.id, req.body, req.user.id);
+    console.log('🔵 [BACKEND] Credit card update result:', creditCard);
     if (!creditCard) {
       return res.status(404).json({ success: false, error: 'Credit card not found' });
     }
@@ -157,7 +163,13 @@ router.patch('/loans/:id',
   validateParams(idParamSchema),
   validateBody(insertLoanSchema.partial()),
   asyncHandler(async (req, res) => {
+    console.log('🔵 [BACKEND] Loan update request:', {
+      id: req.params.id,
+      body: req.body,
+      userId: req.user.id
+    });
     const loan = await dbService.updateLoan(req.params.id, req.body, req.user.id);
+    console.log('🔵 [BACKEND] Loan update result:', loan);
     if (!loan) {
       return res.status(404).json({ success: false, error: 'Loan not found' });
     }

@@ -16,6 +16,26 @@ interface CreditCardFormProps {
 export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
   const { toast } = useToast();
   const { getToken } = useAuth();
+  
+  console.log('🟡 [CREDIT-CARD-FORM] Component initializing with data:', initialData);
+  
+  // Handle dueDate conversion for initialization
+  const initializeDueDate = (dueDate: any) => {
+    if (!dueDate) return 30; // Default to 30 days
+    
+    if (typeof dueDate === 'string' && dueDate.includes('-')) {
+      // If it's a date string, calculate days from now
+      const targetDate = new Date(dueDate);
+      const today = new Date();
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.max(diffDays, 1); // At least 1 day
+    }
+    
+    // If it's already a number, use it
+    return parseInt(dueDate) || 30;
+  };
+  
   const [formData, setFormData] = useState({
     name: initialData?.name || initialData?.cardName || '',
     balance: initialData?.balance || '',
@@ -23,15 +43,36 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
     interestRate: initialData?.interestRate || '',
     minimumPayment: initialData?.minimumPayment || '',
     paymentDate: initialData?.paymentDate || '',
-    dueDate: initialData?.dueDate || 30
+    dueDate: initializeDueDate(initialData?.dueDate)
   });
+
+  console.log('🟡 [CREDIT-CARD-FORM] Initial form data:', formData);
+
+  const isEditing = !!initialData?.id;
 
   const createCreditCardMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('🔵 [CREDIT-CARD-FORM] Starting credit card creation...');
+      console.log(`🔵 [CREDIT-CARD-FORM] Starting credit card ${isEditing ? 'update' : 'creation'}...`);
       console.log('🔵 [CREDIT-CARD-FORM] Form data:', data);
+      console.log('🔵 [CREDIT-CARD-FORM] DueDate debug - type:', typeof data.dueDate, 'value:', data.dueDate);
       
       const token = await getToken();
+      
+      // Handle dueDate calculation safely
+      let dueDateValue;
+      if (typeof data.dueDate === 'string' && data.dueDate.includes('-')) {
+        // If it's already a date string (YYYY-MM-DD), use it directly
+        dueDateValue = data.dueDate;
+        console.log('🔵 [CREDIT-CARD-FORM] Using existing date string:', dueDateValue);
+      } else {
+        // Convert days to date string
+        const daysFromNow = parseInt(data.dueDate) || 30; // Default to 30 days if invalid
+        console.log('🔵 [CREDIT-CARD-FORM] Converting days to date, days:', daysFromNow);
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + daysFromNow);
+        dueDateValue = dueDate.toISOString().split('T')[0];
+        console.log('🔵 [CREDIT-CARD-FORM] Calculated date:', dueDateValue);
+      }
       
       const requestPayload = {
         cardName: data.name, // Map 'name' to 'cardName' for backend
@@ -40,33 +81,40 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
         interestRate: data.interestRate,
         minimumPayment: data.minimumPayment,
         paymentDate: data.paymentDate,
-        dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Convert days to proper date format (YYYY-MM-DD)
+        dueDate: dueDateValue
       };
       
       console.log('🔵 [CREDIT-CARD-FORM] Mapped payload:', requestPayload);
       
-      const result = await apiRequest("/credit-cards", {
-        method: 'POST',
+      const endpoint = isEditing ? `/credit-cards/${initialData.id}` : "/credit-cards";
+      const method = isEditing ? 'PATCH' : 'POST';
+      
+      const result = await apiRequest(endpoint, {
+        method,
         body: JSON.stringify(requestPayload)
       }, token);
       
-      console.log('🔵 [CREDIT-CARD-FORM] API request successful:', result);
+      console.log(`🔵 [CREDIT-CARD-FORM] API request successful:`, result);
       return result;
     },
     onSuccess: (result) => {
-      console.log('🟢 [CREDIT-CARD-FORM] Credit card created successfully:', result);
+      console.log(`🟢 [CREDIT-CARD-FORM] Credit card ${isEditing ? 'updated' : 'created'} successfully:`, result);
       toast({
         title: "Success",
-        description: "Credit card added successfully"
+        description: `Credit card ${isEditing ? 'updated' : 'added'} successfully`
       });
+      // Invalidate all relevant queries that might display credit card data
       queryClient.invalidateQueries({ queryKey: ["credit-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["business-credit-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calculate-net-worth"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/net-worth-snapshots"] });
       onClose();
     },
     onError: (error: any) => {
-      console.error('❌ [CREDIT-CARD-FORM] Credit card creation failed:', error);
+      console.error(`❌ [CREDIT-CARD-FORM] Credit card ${isEditing ? 'update' : 'creation'} failed:`, error);
       toast({
         title: "Error",
-        description: `Failed to add credit card: ${error.message}`,
+        description: `Failed to ${isEditing ? 'update' : 'add'} credit card: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -158,7 +206,9 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={createCreditCardMutation.isPending}>
-          {createCreditCardMutation.isPending ? "Adding..." : "Add Credit Card"}
+          {createCreditCardMutation.isPending 
+            ? (isEditing ? "Updating..." : "Adding...") 
+            : (isEditing ? "Update Credit Card" : "Add Credit Card")}
         </Button>
       </div>
     </form>

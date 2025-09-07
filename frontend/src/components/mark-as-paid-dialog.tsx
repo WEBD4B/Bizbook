@@ -84,21 +84,81 @@ export function MarkAsPaidDialog({ open, onOpenChange, payment, accountName }: M
           }, token);
         }
       }
+
+      // Update the account balance and due date (same logic as payment dialog)
+      if (payment.accountType === 'credit_card' || payment.accountType === 'credit-card') {
+        console.log('🔵 [MARK-AS-PAID] Updating credit card:', payment.accountId);
+        // Get current account data first
+        const currentAccount = await apiRequest(`/credit-cards/${payment.accountId}`, {}, token);
+        console.log('🔵 [MARK-AS-PAID] Current credit card data:', currentAccount.data);
+        const newBalance = Math.max(0, parseFloat(currentAccount.data.balance) - parseFloat(payment.amount.toString()));
+        
+        // Calculate next due date (advance by one month)
+        const currentDueDate = currentAccount.data.dueDate ? new Date(currentAccount.data.dueDate) : new Date();
+        const nextDueDate = new Date(currentDueDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        const nextDueDateString = nextDueDate.toISOString().split('T')[0];
+        
+        console.log('🔵 [MARK-AS-PAID] Credit card update payload:', {
+          balance: newBalance.toString(),
+          dueDate: nextDueDateString,
+        });
+        
+        await apiRequest(`/credit-cards/${payment.accountId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            balance: newBalance.toString(),
+            dueDate: nextDueDateString,
+          })
+        }, token);
+        
+        console.log('🟢 [MARK-AS-PAID] Credit card updated successfully');
+      } else if (payment.accountType === 'loan') {
+        console.log('🔵 [MARK-AS-PAID] Updating loan:', payment.accountId);
+        // Get current account data first
+        const currentAccount = await apiRequest(`/loans/${payment.accountId}`, {}, token);
+        console.log('🔵 [MARK-AS-PAID] Current loan data:', currentAccount.data);
+        const newBalance = Math.max(0, parseFloat(currentAccount.data.currentBalance) - parseFloat(payment.amount.toString()));
+        
+        // Calculate next due date (advance by one month)
+        const currentDueDate = currentAccount.data.dueDate ? new Date(currentAccount.data.dueDate) : new Date();
+        const nextDueDate = new Date(currentDueDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        const nextDueDateString = nextDueDate.toISOString().split('T')[0];
+        
+        console.log('🔵 [MARK-AS-PAID] Loan update payload:', {
+          currentBalance: newBalance.toString(),
+          dueDate: nextDueDateString,
+        });
+        
+        await apiRequest(`/loans/${payment.accountId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            currentBalance: newBalance.toString(),
+            dueDate: nextDueDateString,
+          })
+        }, token);
+        
+        console.log('🟢 [MARK-AS-PAID] Loan updated successfully');
+      }
       
       return createResponse.data;
     },
     onSuccess: () => {
-      // Invalidate the correct query keys used by Clerk hooks
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['creditCards'] });
-      queryClient.invalidateQueries({ queryKey: ['loans'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyPayments'] });
-      queryClient.invalidateQueries({ queryKey: ['incomes'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      // Invalidate the correct query keys that components actually use
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-cards"] }); // Fixed: was 'creditCards'
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["monthlyPayments"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] }); // Fixed: was 'incomes'
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      // Also invalidate net worth calculations since balances changed
+      queryClient.invalidateQueries({ queryKey: ["/api/calculate-net-worth"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/net-worth-snapshots"] });
       
-      // Force refetch of payments data
-      queryClient.refetchQueries({ queryKey: ['payments'] });
-      queryClient.refetchQueries({ queryKey: ['creditCards'] });
+      // Force refetch of critical data
+      queryClient.refetchQueries({ queryKey: ["payments"] });
+      queryClient.refetchQueries({ queryKey: ["credit-cards"] }); // Fixed: was 'creditCards'
       
       toast({
         title: "Payment Marked as Paid",

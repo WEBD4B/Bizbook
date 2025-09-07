@@ -1,190 +1,267 @@
-import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api";
-import { queryClient } from "@/lib/queryClient";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { useAuthenticatedQuery } from "@/hooks/useAuthenticatedApi";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/apiWithAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoanFormProps {
-  onClose: () => void;
-  type?: 'personal' | 'business';
+  onClose?: () => void;
   initialData?: any;
+  isEditing?: boolean;
 }
 
-export function LoanForm({ onClose, type = 'personal', initialData }: LoanFormProps) {
-  const { toast } = useToast();
+export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEditing = false }) => {
   const { getToken } = useAuth();
-  const [formData, setFormData] = useState({
-    loanName: initialData?.loanName || "",
-    currentBalance: initialData?.currentBalance || "",
-    originalAmount: initialData?.originalAmount || "",
-    interestRate: initialData?.interestRate || "",
-    monthlyPayment: initialData?.monthlyPayment || "",
-    termLength: initialData?.termLength || "",
-    loanType: initialData?.loanType || (type === 'business' ? 'business' : 'personal'),
-    customLoanType: initialData?.customLoanType || "",
-    dueDate: initialData?.dueDate || 30,
-    ...(type === 'business' && { businessProfileId: initialData?.businessProfileId || '' })
-  });
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Fetch business profiles for business loans
-  const { data: businessProfiles = [] } = useAuthenticatedQuery(
-    ["business-profiles"],
-    async (token) => {
-      const response = await apiRequest("/business-profiles", {}, token);
-      return response.data || [];
-    },
-    { enabled: type === 'business' }
-  );
-
-  const createLoan = useMutation({
+  // React Query mutation for loan operations
+  const loanMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Creating loan with data:', data);
       const token = await getToken();
       
+      console.log('🔵 [LOAN-FORM] Form submission:', { data, isEditing, initialData });
+      
+      // Convert due date to proper date string format (YYYY-MM-DD)
+      let dueDateValue = null;
+      if (data.dueDate) {
+        // If it's already a date string from the date input, use it directly
+        dueDateValue = data.dueDate;
+        console.log('🔵 [LOAN-FORM] Using date string:', dueDateValue);
+      }
+      
+      // Calculate monthly payment using loan formula: P = L[c(1 + c)^n]/[(1 + c)^n - 1]
+      // where P = monthly payment, L = loan amount, c = monthly interest rate, n = number of months
+      let monthlyPayment = 0;
+      const amount = parseFloat(data.amount);
+      const annualRate = parseFloat(data.interestRate) / 100;
+      const termMonths = parseInt(data.termLength);
+      
+      if (amount > 0 && annualRate > 0 && termMonths > 0) {
+        const monthlyRate = annualRate / 12;
+        monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
+                        (Math.pow(1 + monthlyRate, termMonths) - 1);
+      } else if (amount > 0 && termMonths > 0) {
+        // If no interest rate, just divide principal by term
+        monthlyPayment = amount / termMonths;
+      }
+      
       const requestPayload = {
-        loanName: data.loanName,
-        currentBalance: data.currentBalance,
-        originalAmount: data.originalAmount,
+        loanName: data.name,
+        originalAmount: amount.toString(),
+        currentBalance: amount.toString(), // Initially, current balance equals original amount
+        monthlyPayment: monthlyPayment.toString(),
+        minimumPayment: monthlyPayment.toString(), // Set minimum payment same as monthly payment
         interestRate: data.interestRate,
-        monthlyPayment: data.monthlyPayment,
         termLength: parseInt(data.termLength),
-        loanType: data.loanType === 'other' ? data.customLoanType : data.loanType,
-        dueDate: new Date(Date.now() + data.dueDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        ...(type === 'business' && { businessProfileId: data.businessProfileId })
+        dueDate: dueDateValue, // Send as date string, not timestamp
+        loanType: data.loanType,
+        description: data.description,
+        ...(data.loanType === "business" && data.businessProfileId 
+          ? { businessProfileId: data.businessProfileId } 
+          : {})
       };
       
-      const endpoint = type === 'business' ? "/business-loans" : "/loans";
+      console.log('🔵 [LOAN-FORM] Mapped payload:', requestPayload);
+      
+      const endpoint = isEditing ? `/loans/${initialData.id}` : "/loans";
+      const method = isEditing ? 'PATCH' : 'POST';
+      
       const result = await apiRequest(endpoint, {
-        method: "POST",
-        body: JSON.stringify(requestPayload),
+        method,
+        body: JSON.stringify(requestPayload)
       }, token);
-      console.log('Loan creation result:', result);
+      
+      console.log('🔵 [LOAN-FORM] API response:', result);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log(`🟢 [LOAN-FORM] Loan ${isEditing ? 'updated' : 'created'} successfully:`, result);
       toast({
         title: "Success",
-        description: "Loan added successfully",
+        description: `Loan ${isEditing ? 'updated' : 'added'} successfully`
       });
-      const queryKey = type === 'business' ? ["business-loans"] : ["loans"];
-      queryClient.invalidateQueries({ queryKey });
-      onClose();
+      // Invalidate all relevant queries that might display loan data
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["business-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/calculate-net-worth"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/net-worth-snapshots"] });
+      if (onClose) {
+        onClose();
+      }
     },
-    onError: (error) => {
-      console.error('Loan creation error:', error);
+    onError: (error: any) => {
+      console.error(`❌ [LOAN-FORM] Loan ${isEditing ? 'update' : 'creation'} failed:`, error);
       toast({
         title: "Error",
-        description: `Failed to add loan: ${error.message}`,
+        description: `Failed to ${isEditing ? 'update' : 'add'} loan: ${error.message}`,
         variant: "destructive"
       });
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Helper function to safely convert date
+  const initializeDueDate = (date: any): string => {
+    if (!date) return '';
     
-    // Validate business profile selection for business loans
-    if (type === 'business' && !formData.businessProfileId) {
-      toast({
-        title: "Error",
-        description: "Please select a business profile first",
-        variant: "destructive"
-      });
-      return;
+    console.log('🔵 [LOAN-FORM] Raw due date:', { date, type: typeof date });
+    
+    if (typeof date === 'string') return date;
+    if (typeof date === 'number') {
+      const dateObj = new Date(date);
+      return dateObj.toISOString().split('T')[0];
     }
     
-    // Validate custom loan type when "Other" is selected
-    if (formData.loanType === 'other' && !formData.customLoanType.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a custom loan type",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    createLoan.mutate(formData);
+    return '';
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const [formData, setFormData] = useState({
+    name: initialData?.loan_name || initialData?.name || "",
+    amount: initialData?.original_amount || initialData?.current_balance || initialData?.amount || "",
+    interestRate: initialData?.interest_rate || "",
+    termLength: initialData?.term_length || "",
+    dueDate: initializeDueDate(initialData?.due_date),
+    loanType: initialData?.loan_type || "personal",
+    description: initialData?.description || "",
+    businessProfileId: initialData?.business_profile_id || ""
+  });
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      console.log('🔵 [LOAN-FORM] Initializing with data:', initialData);
+      setFormData({
+        name: initialData.loan_name || initialData.name || "",
+        amount: initialData.original_amount || initialData.current_balance || initialData.amount || "",
+        interestRate: initialData.interest_rate || "",
+        termLength: initialData.term_length || "",
+        dueDate: initializeDueDate(initialData.due_date),
+        loanType: initialData.loan_type || "personal",
+        description: initialData.description || "",
+        businessProfileId: initialData.business_profile_id || ""
+      });
+    }
+  }, [initialData]);
+
+  // Fetch business profiles for business loans
+  const { data: businessProfiles } = useQuery({
+    queryKey: ["business-profiles"],
+    queryFn: async () => {
+      const token = await getToken();
+      return apiRequest("/business-profiles", {}, token);
+    },
+    enabled: formData.loanType === "business"
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    loanMutation.mutate(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="loanName">Loan Name</Label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="loan-name">Loan Name</Label>
           <Input
-            id="loanName"
-            name="loanName"
-            value={formData.loanName}
-            onChange={handleChange}
-            placeholder="e.g., Home Mortgage"
+            id="loan-name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g., Car Loan, Mortgage"
             required
           />
         </div>
-        
-        <div>
-          <Label htmlFor="loanType">Loan Type</Label>
-          <Select 
-            value={formData.loanType} 
-            onValueChange={(value) => setFormData({ ...formData, loanType: value })}
+
+        <div className="space-y-2">
+          <Label htmlFor="loan-amount">Loan Amount</Label>
+          <Input
+            id="loan-amount"
+            type="number"
+            step="0.01"
+            value={formData.amount}
+            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+            placeholder="Enter loan amount"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="interest-rate">Interest Rate (%)</Label>
+          <Input
+            id="interest-rate"
+            type="number"
+            step="0.01"
+            value={formData.interestRate}
+            onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+            placeholder="e.g., 5.5"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="term-length">Term Length (months)</Label>
+          <Input
+            id="term-length"
+            type="number"
+            value={formData.termLength}
+            onChange={(e) => setFormData(prev => ({ ...prev, termLength: e.target.value }))}
+            placeholder="e.g., 60"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="due-date">Next Payment Due Date *</Label>
+          <Input
+            id="due-date"
+            type="date"
+            value={formData.dueDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Required for loan to appear in upcoming payments
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="loan-type">Loan Type</Label>
+          <Select
+            value={formData.loanType}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, loanType: value }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select loan type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="auto">Auto Loan</SelectItem>
-              <SelectItem value="home">Home Loan</SelectItem>
-              <SelectItem value="personal">Personal Loan</SelectItem>
-              <SelectItem value="student">Student Loan</SelectItem>
-              <SelectItem value="business">Business Loan</SelectItem>
-              <SelectItem value="credit-line">Credit Line</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              <SelectItem value="personal">Personal</SelectItem>
+              <SelectItem value="business">Business</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {formData.loanType === 'other' && (
-        <div>
-          <Label htmlFor="customLoanType">Custom Loan Type</Label>
-          <Input
-            id="customLoanType"
-            name="customLoanType"
-            type="text"
-            value={formData.customLoanType}
-            onChange={handleChange}
-            placeholder="Enter custom loan type"
-            required
-          />
-        </div>
-      )}
-
-      {type === 'business' && (
-        <div>
-          <Label htmlFor="businessProfileId">Business Profile</Label>
-          <Select 
-            value={formData.businessProfileId} 
-            onValueChange={(value) => setFormData({ ...formData, businessProfileId: value })}
+      {formData.loanType === "business" && (
+        <div className="space-y-2">
+          <Label htmlFor="business-profile">Business Profile</Label>
+          <Select
+            value={formData.businessProfileId}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select business profile" />
             </SelectTrigger>
             <SelectContent>
-              {businessProfiles?.map((profile: any) => (
+              {businessProfiles?.data?.map((profile: any) => (
                 <SelectItem key={profile.id} value={profile.id}>
-                  {profile.businessName}
+                  {profile.business_name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -192,98 +269,20 @@ export function LoanForm({ onClose, type = 'personal', initialData }: LoanFormPr
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="currentBalance">Current Balance</Label>
-          <Input
-            id="currentBalance"
-            name="currentBalance"
-            type="number"
-            value={formData.currentBalance}
-            onChange={handleChange}
-            placeholder="Enter current balance"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="originalAmount">Original Amount</Label>
-          <Input
-            id="originalAmount"
-            name="originalAmount"
-            type="number"
-            value={formData.originalAmount}
-            onChange={handleChange}
-            placeholder="Enter original loan amount"
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="interestRate">Interest Rate (%)</Label>
-          <Input
-            id="interestRate"
-            name="interestRate"
-            type="number"
-            step="0.01"
-            value={formData.interestRate}
-            onChange={handleChange}
-            placeholder="Enter interest rate"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="monthlyPayment">Monthly Payment</Label>
-          <Input
-            id="monthlyPayment"
-            name="monthlyPayment"
-            type="number"
-            step="0.01"
-            value={formData.monthlyPayment}
-            onChange={handleChange}
-            placeholder="Enter monthly payment amount"
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="termLength">Term (months)</Label>
-          <Input
-            id="termLength"
-            name="termLength"
-            type="number"
-            value={formData.termLength}
-            onChange={handleChange}
-            placeholder="Enter loan term in months"
-            required
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="dueDate">Days Until Due</Label>
-        <Input
-          id="dueDate"
-          name="dueDate"
-          type="number"
-          value={formData.dueDate}
-          onChange={handleChange}
-          placeholder="Enter days until next payment due"
-          required
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (Optional)</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Additional notes about this loan"
+          className="min-h-[80px]"
         />
       </div>
-      
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={createLoan.isPending}>
-          {createLoan.isPending ? "Adding..." : "Add Loan"}
-        </Button>
-      </div>
+
+      <Button type="submit" disabled={loanMutation.isPending} className="w-full">
+        {loanMutation.isPending ? "Processing..." : isEditing ? "Update Loan" : "Add Loan"}
+      </Button>
     </form>
   );
-}
+};
