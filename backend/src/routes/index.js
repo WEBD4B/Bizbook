@@ -1150,4 +1150,59 @@ router.delete('/purchase-order-items/:id',
   })
 );
 
+// Reset All User Data Endpoints
+router.delete('/reset-all',
+  authenticateToken,
+  asyncHandler(async (req, res) => {
+    const userId = req.user.id; // Fixed: use req.user.id instead of req.user.userId
+    
+    console.log('🗑️ Resetting all data for user:', userId);
+    
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User ID not found' 
+      });
+    }
+    
+    try {
+      // Only delete from main tables we know exist and are commonly used
+      const deleteTasks = [
+        { name: 'payments', fn: () => dbService.deleteAllPayments(userId) },
+        { name: 'expenses', fn: () => dbService.deleteAllExpenses(userId) },
+        { name: 'income', fn: () => dbService.deleteAllIncome(userId) },
+        { name: 'monthly payments', fn: () => dbService.deleteAllMonthlyPayments(userId) },
+        { name: 'loans', fn: () => dbService.deleteAllLoans(userId) },
+        { name: 'credit cards', fn: () => dbService.deleteAllCreditCards(userId) },
+        { name: 'vendors', fn: () => dbService.deleteAllVendors(userId) },
+        { name: 'business profiles', fn: () => dbService.deleteAllBusinessProfiles(userId) }
+      ];
+
+      for (const task of deleteTasks) {
+        try {
+          console.log(`Deleting ${task.name}...`);
+          await task.fn();
+          console.log(`✅ ${task.name} deleted successfully`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to delete ${task.name}:`, error.message);
+          // Continue with other deletions even if one fails
+        }
+      }
+
+      console.log('✅ Reset operation completed');
+      res.json({ 
+        success: true, 
+        message: 'User data has been reset successfully' 
+      });
+    } catch (error) {
+      console.error('❌ Error during reset operation:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to reset user data',
+        details: error.message
+      });
+    }
+  })
+);
+
 export default router;

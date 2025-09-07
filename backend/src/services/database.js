@@ -565,6 +565,87 @@ export class DatabaseService {
   async createBusinessExpense(data) {
     return this.create(businessExpenses, data);
   }
+
+  // Reset/Delete All Methods for User Data
+  async deleteAllCreditCards(userId) {
+    return this.delete(creditCards, eq(creditCards.userId, userId));
+  }
+
+  async deleteAllLoans(userId) {
+    return this.delete(loans, eq(loans.userId, userId));
+  }
+
+  async deleteAllMonthlyPayments(userId) {
+    return this.delete(monthlyPayments, eq(monthlyPayments.userId, userId));
+  }
+
+  async deleteAllIncome(userId) {
+    return this.delete(income, eq(income.userId, userId));
+  }
+
+  async deleteAllPayments(userId) {
+    return this.delete(payments, eq(payments.userId, userId));
+  }
+
+  async deleteAllExpenses(userId) {
+    return this.delete(expenses, eq(expenses.userId, userId));
+  }
+
+  async deleteAllSavingsGoals(userId) {
+    return this.delete(savingsGoals, eq(savingsGoals.userId, userId));
+  }
+
+  async deleteAllBudgets(userId) {
+    return this.delete(budgets, eq(budgets.userId, userId));
+  }
+
+  async deleteAllInvestments(userId) {
+    return this.delete(investments, eq(investments.userId, userId));
+  }
+
+  async deleteAllAssets(userId) {
+    return this.delete(assets, eq(assets.userId, userId));
+  }
+
+  async deleteAllLiabilities(userId) {
+    return this.delete(liabilities, eq(liabilities.userId, userId));
+  }
+
+  async deleteAllNetWorthSnapshots(userId) {
+    return this.delete(netWorthSnapshots, eq(netWorthSnapshots.userId, userId));
+  }
+
+  async deleteAllBusinessProfiles(userId) {
+    return this.delete(businessProfiles, eq(businessProfiles.userId, userId));
+  }
+
+  async deleteAllVendors(userId) {
+    return this.delete(vendors, eq(vendors.userId, userId));
+  }
+
+  async deleteAllPurchaseOrders(userId) {
+    return this.delete(purchaseOrders, eq(purchaseOrders.userId, userId));
+  }
+
+  async deleteAllPurchaseOrderItems(userId) {
+    return this.delete(purchaseOrderItems, eq(purchaseOrderItems.userId, userId));
+  }
+
+  async deleteAllBusinessCreditCards(userId) {
+    return this.delete(businessCreditCards, eq(businessCreditCards.userId, userId));
+  }
+
+  async deleteAllBusinessLoans(userId) {
+    return this.delete(businessLoans, eq(businessLoans.userId, userId));
+  }
+
+  async deleteAllBusinessRevenue(userId) {
+    return this.delete(businessRevenue, eq(businessRevenue.userId, userId));
+  }
+
+  async deleteAllBusinessExpenses(userId) {
+    return this.delete(businessExpenses, eq(businessExpenses.userId, userId));
+  }
 }
 
 export const dbService = new DatabaseService();

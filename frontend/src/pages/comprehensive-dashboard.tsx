@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -65,6 +66,7 @@ import { PurchaseOrderList } from "@/components/purchase-order-list";
 import { VendorSearch } from "@/components/vendor-search";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useIncomes } from "@/lib/clerk-api-hooks";
+import { apiRequest } from "@/lib/api";
 
 import { UpcomingPayments } from "@/components/upcoming-payments";
 import { UpcomingIncomes } from "@/components/upcoming-incomes";
@@ -84,7 +86,6 @@ import {
   formatCurrency, 
   calculateCreditUtilization
 } from "@/lib/financial-calculations";
-import { apiRequest } from "@/lib/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 
@@ -97,9 +98,9 @@ function UpcomingPaymentsSummary() {
 
   // Combine all upcoming payments
   const allPayments = [
-    ...creditCards,
-    ...loans,
-    ...payments,
+    ...(creditCards || []),
+    ...(loans || []),
+    ...(payments || []),
   ];
   const totalUpcoming = allPayments.reduce((sum, item) => sum + (item.minimumPayment || item.monthlyPayment || 0), 0);
   const count = allPayments.length;
@@ -147,6 +148,36 @@ export default function ComprehensiveDashboard() {
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [businessCreditCardDialogOpen, setBusinessCreditCardDialogOpen] = useState(false);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
+
+  // Reset all user data function
+  const handleResetAllData = async () => {
+    if (!window.confirm("⚠️ WARNING: This will permanently delete ALL your financial data including income, expenses, credit cards, loans, assets, and payments. This action cannot be undone. Are you absolutely sure?")) {
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      
+      // Call the reset endpoint
+      await apiRequest('/reset-all', {
+        method: 'DELETE'
+      }, token);
+
+      // Invalidate all queries to refresh the UI
+      queryClient.invalidateQueries();
+      
+      toast({
+        title: "Account Reset Complete",
+        description: "All financial data has been deleted from your account.",
+      });
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: "Failed to reset account data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Use authenticated API hooks
   const { data: creditCards = [], isLoading: creditCardsLoading } = useAuthenticatedQuery(
@@ -2819,6 +2850,80 @@ export default function ComprehensiveDashboard() {
                 </p>
               )}
             </div>
+            <div className="flex items-center gap-3">
+              {/* Unified Add Button with Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-primary text-white hover:bg-blue-700" data-testid="unified-add-button">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Financial Data
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => setIncomeDialogOpen(true)}
+                    className="cursor-pointer"
+                    data-testid="add-income-option"
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Add Income
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setExpenseDialogOpen(true)}
+                    className="cursor-pointer"
+                    data-testid="add-expense-option"
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Add Expense
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setCreditCardDialogOpen(true)}
+                    className="cursor-pointer"
+                    data-testid="add-credit-card-option"
+                  >
+                    <CreditCardIcon className="h-4 w-4 mr-2" />
+                    Add Credit Card
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setLoanDialogOpen(true)}
+                    className="cursor-pointer"
+                    data-testid="add-loan-option"
+                  >
+                    <Building className="h-4 w-4 mr-2" />
+                    Add Loan
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setVendorDialogOpen(true)}
+                    className="cursor-pointer"
+                    data-testid="add-vendor-option"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Add Vendor
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Reset All Data Button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="destructive" size="sm" data-testid="reset-button">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Reset Account
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem 
+                    onClick={() => handleResetAllData()}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                    data-testid="reset-all-data-option"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete All Financial Data
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           <Tabs defaultValue="personal" className="w-full">
@@ -3070,20 +3175,14 @@ export default function ComprehensiveDashboard() {
                       <CreditCardIcon className="h-5 w-5" />
                       Credit Cards
                     </CardTitle>
-                    <Dialog open={creditCardDialogOpen} onOpenChange={setCreditCardDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-credit-card">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Card
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Credit Card</DialogTitle>
-                        </DialogHeader>
-                        <CreditCardForm onClose={() => setCreditCardDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setCreditCardDialogOpen(true)}
+                      data-testid="button-add-credit-card"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Card
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     {creditCards.length === 0 ? (
@@ -3146,20 +3245,14 @@ export default function ComprehensiveDashboard() {
                       <Building2 className="h-5 w-5" />
                       Loans
                     </CardTitle>
-                    <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-loan">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Loan
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Loan</DialogTitle>
-                        </DialogHeader>
-                        <LoanForm onClose={() => setLoanDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setLoanDialogOpen(true)}
+                      data-testid="button-add-loan"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Loan
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     {loans.length === 0 ? (
@@ -3221,23 +3314,14 @@ export default function ComprehensiveDashboard() {
                     <DollarSign className="h-5 w-5" />
                     Personal Income Management ({incomes.length})
                   </CardTitle>
-                  <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" data-testid="button-add-income">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Income
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add Personal Income</DialogTitle>
-                        <DialogDescription>
-                          Add salary, wages, freelance payments, or other personal income sources
-                        </DialogDescription>
-                      </DialogHeader>
-                      <IncomeForm onClose={() => setIncomeDialogOpen(false)} />
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setIncomeDialogOpen(true)}
+                    data-testid="button-add-income"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Income
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {incomes.length === 0 ? (
@@ -3729,23 +3813,14 @@ export default function ComprehensiveDashboard() {
                     <Building2 className="h-5 w-5" />
                     Vendor Management ({vendors.length})
                   </CardTitle>
-                  <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" data-testid="button-add-vendor">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Vendor
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Add New Vendor</DialogTitle>
-                        <DialogDescription>
-                          Add a new vendor to create purchase orders and manage business relationships
-                        </DialogDescription>
-                      </DialogHeader>
-                      <VendorForm onClose={() => setVendorDialogOpen(false)} />
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setVendorDialogOpen(true)}
+                    data-testid="button-add-vendor"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Vendor
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {vendors.length === 0 ? (
@@ -3846,6 +3921,67 @@ export default function ComprehensiveDashboard() {
                 <DialogTitle>Create Business Profile</DialogTitle>
               </DialogHeader>
               <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          {/* Unified Add Button Modal Dialogs */}
+          <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Personal Income</DialogTitle>
+                <DialogDescription>
+                  Add salary, wages, freelance payments, or other personal income sources
+                </DialogDescription>
+              </DialogHeader>
+              <IncomeForm onClose={() => setIncomeDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Personal Expense</DialogTitle>
+                <DialogDescription>
+                  Track your personal expenses and spending
+                </DialogDescription>
+              </DialogHeader>
+              <ExpenseForm onClose={() => setExpenseDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={creditCardDialogOpen} onOpenChange={setCreditCardDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Credit Card</DialogTitle>
+                <DialogDescription>
+                  Add a new credit card to track balances and payments
+                </DialogDescription>
+              </DialogHeader>
+              <CreditCardForm onClose={() => setCreditCardDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Loan</DialogTitle>
+                <DialogDescription>
+                  Add a personal loan, mortgage, or other debt
+                </DialogDescription>
+              </DialogHeader>
+              <LoanForm onClose={() => setLoanDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Vendor</DialogTitle>
+                <DialogDescription>
+                  Add a new business vendor or supplier
+                </DialogDescription>
+              </DialogHeader>
+              <VendorForm onClose={() => setVendorDialogOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>

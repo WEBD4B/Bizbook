@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
@@ -14,10 +15,12 @@ import { usePaymentMutation } from "@/lib/clerk-api-hooks";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { PiggyBank } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
+import { useAuthenticatedQuery } from "@/hooks/useAuthenticatedApi";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Payment amount is required"),
   paymentDate: z.string().min(1, "Payment date is required"),
+  incomeSourceId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -36,11 +39,21 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
   const { getToken } = useAuth();
   const paymentMutation = usePaymentMutation();
   
+  // Fetch income sources for the dropdown
+  const { data: incomes = [] } = useAuthenticatedQuery(
+    ["income"],
+    async (token) => {
+      const response = await apiRequest("/income", {}, token);
+      return response.data || [];
+    }
+  );
+  
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       amount: "",
       paymentDate: new Date().toISOString().split('T')[0],
+      incomeSourceId: "",
       notes: "",
     },
   });
@@ -53,6 +66,7 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
         accountType: accountType,
         amount: data.amount,
         paymentDate: data.paymentDate,
+        incomeSourceId: data.incomeSourceId || null,
         notes: data.notes || null,
       };
       
@@ -167,6 +181,32 @@ export function PaymentDialog({ open, onOpenChange, account, accountType }: Paym
                       data-testid="input-payment-date"
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="incomeSourceId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Source (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-income-source">
+                        <SelectValue placeholder="Select income source" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None selected</SelectItem>
+                      {incomes.map((income: any) => (
+                        <SelectItem key={income.id} value={income.id}>
+                          {income.source} - {formatCurrency(parseFloat(income.amount))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
