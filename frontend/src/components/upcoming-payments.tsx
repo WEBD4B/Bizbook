@@ -198,14 +198,15 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
   return (
     <Card data-testid="card-upcoming-payments">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle>Upcoming Payments</CardTitle>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant={filter === "all" ? "default" : "outline"} 
               size="sm" 
               onClick={() => setFilter("all")}
               data-testid="filter-all"
+              className="flex-1 sm:flex-initial"
             >
               All
             </Button>
@@ -214,6 +215,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
               size="sm" 
               onClick={() => setFilter("week")}
               data-testid="filter-week"
+              className="flex-1 sm:flex-initial"
             >
               This Week
             </Button>
@@ -222,6 +224,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
               size="sm" 
               onClick={() => setFilter("month")}
               data-testid="filter-month"
+              className="flex-1 sm:flex-initial"
             >
               This Month
             </Button>
@@ -251,7 +254,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
             return (
               <div
                 key={`${payment.type}-${payment.id}`}
-                className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors gap-3"
                 data-testid={`payment-item-${payment.id}`}
               >
                 <div className="flex items-center space-x-4">
@@ -260,7 +263,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                       <Icon className="text-blue-600" size={24} />
                     </div>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <h3 className="font-medium text-neutral-900" data-testid={`payment-name-${payment.id}`}>
                         {accountName}
@@ -269,7 +272,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                         {getTypeLabel(payment.type)}
                       </Badge>
                     </div>
-                    <div className="flex items-center space-x-4 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 sm:space-x-4 mt-1">
                       <span className="text-sm font-medium text-primary" data-testid={`payment-amount-${payment.id}`}>
                         {formatCurrency(payment.payment)}
                       </span>
@@ -288,12 +291,13 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                     </div>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex sm:space-x-2 w-full sm:w-auto">
                   <Button 
                     variant="default" 
                     size="sm" 
                     onClick={() => handleMarkAsPaid(payment)}
                     data-testid={`button-pay-${payment.id}`}
+                    className="w-full sm:w-auto"
                   >
                     <CheckCircle size={16} className="mr-1" />
                     Mark as Paid

@@ -2452,7 +2452,7 @@ export default function ComprehensiveDashboard() {
     <div className="min-h-screen bg-gray-50">
       <main className="p-4">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Personal Finance Center</h1>
               {user && (
@@ -2461,11 +2461,11 @@ export default function ComprehensiveDashboard() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Unified Add Button with Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="bg-primary text-white hover:bg-blue-700" data-testid="unified-add-button">
+                  <Button className="bg-primary text-white hover:bg-blue-700 w-full sm:w-auto" data-testid="unified-add-button">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Financial Data
                   </Button>
@@ -2518,7 +2518,7 @@ export default function ComprehensiveDashboard() {
               {/* Reset All Data Button */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="destructive" size="sm" data-testid="reset-button">
+                  <Button variant="destructive" size="sm" className="w-full sm:w-auto" data-testid="reset-button">
                     <Trash2 className="h-4 w-4 mr-2" />
                     Reset Account
                   </Button>
@@ -2730,24 +2730,24 @@ export default function ComprehensiveDashboard() {
               <div className="space-y-4">
                 <Accordion type="multiple" defaultValue={["payments", "income"]} className="space-y-4">
                   <AccordionItem value="payments" className="border rounded-lg bg-white shadow-sm">
-                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                      <div className="flex items-center justify-between w-full">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
                             <CreditCardIcon className="h-5 w-5 text-red-600" />
                           </div>
                           <div className="text-left">
                             <h3 className="text-lg font-semibold text-gray-900">Upcoming Payments</h3>
-                            <p className="text-sm text-gray-500">Track and manage your upcoming financial obligations</p>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track and manage your upcoming financial obligations</p>
                           </div>
                         </div>
-                        <div className="text-right mr-6">
+                        <div className="text-left sm:text-right sm:mr-6">
                           {/* Show live summary from UpcomingPayments */}
                           <UpcomingPaymentsSummary />
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
                       <UpcomingPayments 
                         onEdit={(account, type) => {
                           if (type === 'credit-card') {
@@ -2763,24 +2763,24 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   <AccordionItem value="income" className="border rounded-lg bg-white shadow-sm">
-                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                      <div className="flex items-center justify-between w-full">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
                             <DollarSign className="h-5 w-5 text-green-600" />
                           </div>
                           <div className="text-left">
                             <h3 className="text-lg font-semibold text-gray-900">Upcoming Income</h3>
-                            <p className="text-sm text-gray-500">Monitor your expected income and cash flow</p>
+                            <p className="text-sm text-gray-500 hidden sm:block">Monitor your expected income and cash flow</p>
                           </div>
                         </div>
-                        <div className="text-right mr-6">
+                        <div className="text-left sm:text-right sm:mr-6">
                           {/* Show live summary from UpcomingIncomes */}
                           <UpcomingIncomesSummary />
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
                       <UpcomingIncomes />
                     </AccordionContent>
                   </AccordionItem>

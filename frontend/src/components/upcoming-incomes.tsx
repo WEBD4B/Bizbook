@@ -110,17 +110,18 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Upcoming Income
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={filter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setFilter("all")}
               data-testid="filter-all-incomes"
+              className="flex-1 sm:flex-initial"
             >
               All
             </Button>
@@ -129,6 +130,7 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
               size="sm"
               onClick={() => setFilter("week")}
               data-testid="filter-week-incomes"
+              className="flex-1 sm:flex-initial"
             >
               This Week
             </Button>
@@ -137,6 +139,7 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
               size="sm"
               onClick={() => setFilter("month")}
               data-testid="filter-month-incomes"
+              className="flex-1 sm:flex-initial"
             >
               This Month
             </Button>
@@ -164,16 +167,16 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
               return (
                 <div
                   key={income.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors gap-3"
                   data-testid={`income-${income.name.replace(/\s+/g, '-').toLowerCase()}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/20">
                       <IconComponent className="h-4 w-4 text-green-600" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-medium">{income.name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         <span>Expected: {income.nextIncomeDate.toLocaleDateString()}</span>
                         <Badge variant={getBadgeVariant(income.daysUntilIncome)} className={getBadgeColor(income.daysUntilIncome)}>
@@ -184,8 +187,8 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                    <div className="text-left sm:text-right">
                       <div className="font-semibold text-green-600" data-testid={`text-income-amount-${income.name.replace(/\s+/g, '-').toLowerCase()}`}>
                         {formatCurrency(income.amount)}
                       </div>
@@ -199,6 +202,7 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
                         size="sm"
                         onClick={() => onEdit(income)}
                         data-testid={`button-edit-income-${income.name.replace(/\s+/g, '-').toLowerCase()}`}
+                        className="flex-shrink-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

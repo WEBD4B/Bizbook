@@ -39,18 +39,27 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
       
       // Calculate monthly payment using loan formula: P = L[c(1 + c)^n]/[(1 + c)^n - 1]
       // where P = monthly payment, L = loan amount, c = monthly interest rate, n = number of months
-      let monthlyPayment = 0;
       const amount = parseFloat(data.amount);
-      const annualRate = parseFloat(data.interestRate) / 100;
-      const termMonths = parseInt(data.termLength);
+      let monthlyPayment = 0;
       
-      if (amount > 0 && annualRate > 0 && termMonths > 0) {
-        const monthlyRate = annualRate / 12;
-        monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
-                        (Math.pow(1 + monthlyRate, termMonths) - 1);
-      } else if (amount > 0 && termMonths > 0) {
-        // If no interest rate, just divide principal by term
-        monthlyPayment = amount / termMonths;
+      // Use manually entered monthly payment if provided, otherwise calculate it
+      if (data.monthlyPayment && parseFloat(data.monthlyPayment) > 0) {
+        monthlyPayment = parseFloat(data.monthlyPayment);
+        console.log('🔵 [LOAN-FORM] Using manually entered monthly payment:', monthlyPayment);
+      } else {
+        // Auto-calculate monthly payment
+        const annualRate = parseFloat(data.interestRate) / 100;
+        const termMonths = parseInt(data.termLength);
+        
+        if (amount > 0 && annualRate > 0 && termMonths > 0) {
+          const monthlyRate = annualRate / 12;
+          monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
+                          (Math.pow(1 + monthlyRate, termMonths) - 1);
+        } else if (amount > 0 && termMonths > 0) {
+          // If no interest rate, just divide principal by term
+          monthlyPayment = amount / termMonths;
+        }
+        console.log('🔵 [LOAN-FORM] Auto-calculated monthly payment:', monthlyPayment);
       }
       
       const requestPayload = {
@@ -140,6 +149,7 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
     amount: initialData?.originalAmount || initialData?.original_amount || initialData?.currentBalance || initialData?.current_balance || initialData?.amount || "",
     interestRate: initialData?.interestRate || initialData?.interest_rate || "",
     termLength: initialData?.termLength || initialData?.term_length || "",
+    monthlyPayment: initialData?.monthlyPayment || initialData?.monthly_payment || "",
     dueDate: initializeDueDate(initialData?.dueDate || initialData?.due_date),
     loanType: initialData?.loanType || initialData?.loan_type || "personal",
     description: initialData?.description || "",
@@ -155,6 +165,7 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
         amount: initialData.originalAmount || initialData.original_amount || initialData.currentBalance || initialData.current_balance || initialData.amount || "",
         interestRate: initialData.interestRate || initialData.interest_rate || "",
         termLength: initialData.termLength || initialData.term_length || "",
+        monthlyPayment: initialData.monthlyPayment || initialData.monthly_payment || "",
         dueDate: initializeDueDate(initialData.dueDate || initialData.due_date),
         loanType: initialData.loanType || initialData.loan_type || "personal",
         description: initialData.description || "",
@@ -226,6 +237,19 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
             value={formData.termLength}
             onChange={(e) => setFormData(prev => ({ ...prev, termLength: e.target.value }))}
             placeholder="e.g., 60"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="monthly-payment">Monthly Payment</Label>
+          <Input
+            id="monthly-payment"
+            type="number"
+            step="0.01"
+            value={formData.monthlyPayment}
+            onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: e.target.value }))}
+            placeholder="e.g., 250.00"
             required
           />
         </div>
