@@ -109,28 +109,41 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
 
   // Helper function to safely convert date
   const initializeDueDate = (date: any): string => {
+    console.log('🔍 [LOAN-FORM] initializeDueDate called with:', { date, type: typeof date });
     if (!date) return '';
     
     console.log('🔵 [LOAN-FORM] Raw due date:', { date, type: typeof date });
     
-    if (typeof date === 'string') return date;
+    if (typeof date === 'string') {
+      // Handle ISO date strings by extracting just the date part
+      if (date.includes('T')) {
+        const result = date.split('T')[0];
+        console.log('🔍 [LOAN-FORM] ISO string converted to date:', result);
+        return result;
+      }
+      console.log('🔍 [LOAN-FORM] Simple date string, returning as-is:', date);
+      return date;
+    }
     if (typeof date === 'number') {
       const dateObj = new Date(date);
-      return dateObj.toISOString().split('T')[0];
+      const result = dateObj.toISOString().split('T')[0];
+      console.log('🔍 [LOAN-FORM] Number date, converted to:', result);
+      return result;
     }
     
+    console.log('🔍 [LOAN-FORM] Unknown date format, returning empty');
     return '';
   };
 
   const [formData, setFormData] = useState({
-    name: initialData?.loan_name || initialData?.name || "",
-    amount: initialData?.original_amount || initialData?.current_balance || initialData?.amount || "",
-    interestRate: initialData?.interest_rate || "",
-    termLength: initialData?.term_length || "",
-    dueDate: initializeDueDate(initialData?.due_date),
-    loanType: initialData?.loan_type || "personal",
+    name: initialData?.loanName || initialData?.loan_name || initialData?.name || "",
+    amount: initialData?.originalAmount || initialData?.original_amount || initialData?.currentBalance || initialData?.current_balance || initialData?.amount || "",
+    interestRate: initialData?.interestRate || initialData?.interest_rate || "",
+    termLength: initialData?.termLength || initialData?.term_length || "",
+    dueDate: initializeDueDate(initialData?.dueDate || initialData?.due_date),
+    loanType: initialData?.loanType || initialData?.loan_type || "personal",
     description: initialData?.description || "",
-    businessProfileId: initialData?.business_profile_id || ""
+    businessProfileId: initialData?.businessProfileId || initialData?.business_profile_id || ""
   });
 
   // Reset form when initialData changes
@@ -138,14 +151,14 @@ export const LoanForm: React.FC<LoanFormProps> = ({ onClose, initialData, isEdit
     if (initialData) {
       console.log('🔵 [LOAN-FORM] Initializing with data:', initialData);
       setFormData({
-        name: initialData.loan_name || initialData.name || "",
-        amount: initialData.original_amount || initialData.current_balance || initialData.amount || "",
-        interestRate: initialData.interest_rate || "",
-        termLength: initialData.term_length || "",
-        dueDate: initializeDueDate(initialData.due_date),
-        loanType: initialData.loan_type || "personal",
+        name: initialData.loanName || initialData.loan_name || initialData.name || "",
+        amount: initialData.originalAmount || initialData.original_amount || initialData.currentBalance || initialData.current_balance || initialData.amount || "",
+        interestRate: initialData.interestRate || initialData.interest_rate || "",
+        termLength: initialData.termLength || initialData.term_length || "",
+        dueDate: initializeDueDate(initialData.dueDate || initialData.due_date),
+        loanType: initialData.loanType || initialData.loan_type || "personal",
         description: initialData.description || "",
-        businessProfileId: initialData.business_profile_id || ""
+        businessProfileId: initialData.businessProfileId || initialData.business_profile_id || ""
       });
     }
   }, [initialData]);

@@ -290,15 +290,6 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                 </div>
                 <div className="flex space-x-2">
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onEdit?.(payment, payment.type)}
-                    data-testid={`button-edit-${payment.id}`}
-                  >
-                    <Edit size={16} className="mr-1" />
-                    Edit
-                  </Button>
-                  <Button 
                     variant="default" 
                     size="sm" 
                     onClick={() => handleMarkAsPaid(payment)}

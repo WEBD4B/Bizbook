@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,20 +20,53 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
   console.log('🟡 [CREDIT-CARD-FORM] Component initializing with data:', initialData);
   
   // Handle dueDate conversion for initialization
+  const initializeDueDateAsString = (dueDate: any): string => {
+    console.log('🔍 [CREDIT-CARD-FORM] initializeDueDateAsString called with:', { dueDate, type: typeof dueDate });
+    if (!dueDate) return '';
+    
+    if (typeof dueDate === 'string') {
+      // Handle ISO strings by taking just the date part
+      if (dueDate.includes('T')) {
+        const result = dueDate.split('T')[0];
+        console.log('🔍 [CREDIT-CARD-FORM] ISO string converted to date:', result);
+        return result;
+      }
+      console.log('🔍 [CREDIT-CARD-FORM] Simple date string, returning as-is:', dueDate);
+      return dueDate;
+    }
+    
+    if (typeof dueDate === 'number') {
+      const dateObj = new Date(dueDate);
+      const result = dateObj.toISOString().split('T')[0];
+      console.log('🔍 [CREDIT-CARD-FORM] Number date, converted to:', result);
+      return result;
+    }
+    
+    console.log('🔍 [CREDIT-CARD-FORM] Unknown date format, returning empty');
+    return '';
+  };
+
+  // Handle dueDate conversion for initialization (days format - keeping for backward compatibility)
   const initializeDueDate = (dueDate: any) => {
+    console.log('🔍 [CREDIT-CARD-FORM] initializeDueDate called with:', { dueDate, type: typeof dueDate });
     if (!dueDate) return 30; // Default to 30 days
     
     if (typeof dueDate === 'string' && dueDate.includes('-')) {
       // If it's a date string, calculate days from now
-      const targetDate = new Date(dueDate);
+      // Handle ISO strings by taking just the date part
+      const dateString = dueDate.includes('T') ? dueDate.split('T')[0] : dueDate;
+      const targetDate = new Date(dateString);
       const today = new Date();
       const diffTime = targetDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      console.log('🔍 [CREDIT-CARD-FORM] Date string converted to days:', diffDays);
       return Math.max(diffDays, 1); // At least 1 day
     }
     
     // If it's already a number, use it
-    return parseInt(dueDate) || 30;
+    const result = parseInt(dueDate) || 30;
+    console.log('🔍 [CREDIT-CARD-FORM] Using numeric days:', result);
+    return result;
   };
   
   const [formData, setFormData] = useState({
@@ -42,11 +75,27 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
     creditLimit: initialData?.creditLimit || '',
     interestRate: initialData?.interestRate || '',
     minimumPayment: initialData?.minimumPayment || '',
-    paymentDate: initialData?.paymentDate || '',
-    dueDate: initializeDueDate(initialData?.dueDate)
+    paymentDate: initializeDueDateAsString(initialData?.dueDate || initialData?.due_date),
+    dueDate: initializeDueDate(initialData?.dueDate || initialData?.due_date)
   });
 
   console.log('🟡 [CREDIT-CARD-FORM] Initial form data:', formData);
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      console.log('🔵 [CREDIT-CARD-FORM] Initializing with data:', initialData);
+      setFormData({
+        name: initialData.name || initialData.cardName || '',
+        balance: initialData.balance || '',
+        creditLimit: initialData.creditLimit || '',
+        interestRate: initialData.interestRate || '',
+        minimumPayment: initialData.minimumPayment || '',
+        paymentDate: initializeDueDateAsString(initialData.dueDate || initialData.due_date),
+        dueDate: initializeDueDate(initialData.dueDate || initialData.due_date)
+      });
+    }
+  }, [initialData]);
 
   const isEditing = !!initialData?.id;
 

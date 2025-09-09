@@ -53,6 +53,7 @@ import {
   Plus,
   Trash2,
   Eye,
+  Edit,
   CalendarDays
 } from "lucide-react";
 import { DebtChart } from "@/components/debt-chart";
@@ -2834,13 +2835,15 @@ export default function ComprehensiveDashboard() {
                                 size="sm" 
                                 variant="outline"
                                 onClick={() => {
-                                  setSelectedAccount(card);
-                                  setSelectedAccountType('credit-card');
-                                  setPaymentDialogOpen(true);
+                                  console.log('🔍 [EDIT-CREDIT-CARD] Card data:', card);
+                                  console.log('🔍 [EDIT-CREDIT-CARD] Due date:', card.dueDate, typeof card.dueDate);
+                                  setEditingCreditCard(card);
+                                  setCreditCardDialogOpen(true);
                                 }}
-                                data-testid={`button-pay-${card.id}`}
+                                data-testid={`button-edit-${card.id}`}
                               >
-                                Pay
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
                               </Button>
                               <Button 
                                 size="sm" 
@@ -2902,13 +2905,15 @@ export default function ComprehensiveDashboard() {
                                 size="sm" 
                                 variant="outline"
                                 onClick={() => {
-                                  setSelectedAccount(loan);
-                                  setSelectedAccountType('loan');
-                                  setPaymentDialogOpen(true);
+                                  console.log('🔍 [EDIT-LOAN] Loan data:', loan);
+                                  console.log('🔍 [EDIT-LOAN] Due date:', loan.dueDate, typeof loan.dueDate);
+                                  setEditingLoan(loan);
+                                  setLoanDialogOpen(true);
                                 }}
-                                data-testid={`button-pay-loan-${loan.id}`}
+                                data-testid={`button-edit-loan-${loan.id}`}
                               >
-                                Pay
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
                               </Button>
                               <Button 
                                 size="sm" 
@@ -3586,6 +3591,7 @@ export default function ComprehensiveDashboard() {
                   setEditingCreditCard(null);
                 }} 
                 initialData={editingCreditCard}
+                isEditing={!!editingCreditCard}
               />
             </DialogContent>
           </Dialog>
@@ -3607,6 +3613,7 @@ export default function ComprehensiveDashboard() {
                   setEditingLoan(null);
                 }} 
                 initialData={editingLoan}
+                isEditing={!!editingLoan}
               />
             </DialogContent>
           </Dialog>
