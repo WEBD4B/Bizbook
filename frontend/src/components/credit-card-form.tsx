@@ -45,29 +45,6 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
     console.log('🔍 [CREDIT-CARD-FORM] Unknown date format, returning empty');
     return '';
   };
-
-  // Handle dueDate conversion for initialization (days format - keeping for backward compatibility)
-  const initializeDueDate = (dueDate: any) => {
-    console.log('🔍 [CREDIT-CARD-FORM] initializeDueDate called with:', { dueDate, type: typeof dueDate });
-    if (!dueDate) return 30; // Default to 30 days
-    
-    if (typeof dueDate === 'string' && dueDate.includes('-')) {
-      // If it's a date string, calculate days from now
-      // Handle ISO strings by taking just the date part
-      const dateString = dueDate.includes('T') ? dueDate.split('T')[0] : dueDate;
-      const targetDate = new Date(dateString);
-      const today = new Date();
-      const diffTime = targetDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      console.log('🔍 [CREDIT-CARD-FORM] Date string converted to days:', diffDays);
-      return Math.max(diffDays, 1); // At least 1 day
-    }
-    
-    // If it's already a number, use it
-    const result = parseInt(dueDate) || 30;
-    console.log('🔍 [CREDIT-CARD-FORM] Using numeric days:', result);
-    return result;
-  };
   
   const [formData, setFormData] = useState({
     name: initialData?.name || initialData?.cardName || '',
@@ -75,8 +52,7 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
     creditLimit: initialData?.creditLimit || '',
     interestRate: initialData?.interestRate || '',
     minimumPayment: initialData?.minimumPayment || '',
-    paymentDate: initializeDueDateAsString(initialData?.dueDate || initialData?.due_date),
-    dueDate: initializeDueDate(initialData?.dueDate || initialData?.due_date)
+    paymentDate: initializeDueDateAsString(initialData?.dueDate || initialData?.due_date)
   });
 
   console.log('🟡 [CREDIT-CARD-FORM] Initial form data:', formData);
@@ -91,8 +67,7 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
         creditLimit: initialData.creditLimit || '',
         interestRate: initialData.interestRate || '',
         minimumPayment: initialData.minimumPayment || '',
-        paymentDate: initializeDueDateAsString(initialData.dueDate || initialData.due_date),
-        dueDate: initializeDueDate(initialData.dueDate || initialData.due_date)
+        paymentDate: initializeDueDateAsString(initialData.dueDate || initialData.due_date)
       });
     }
   }, [initialData]);
@@ -103,25 +78,13 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
     mutationFn: async (data: any) => {
       console.log(`🔵 [CREDIT-CARD-FORM] Starting credit card ${isEditing ? 'update' : 'creation'}...`);
       console.log('🔵 [CREDIT-CARD-FORM] Form data:', data);
-      console.log('🔵 [CREDIT-CARD-FORM] DueDate debug - type:', typeof data.dueDate, 'value:', data.dueDate);
+      console.log('🔵 [CREDIT-CARD-FORM] PaymentDate debug - type:', typeof data.paymentDate, 'value:', data.paymentDate);
       
       const token = await getToken();
       
-      // Handle dueDate calculation safely
-      let dueDateValue;
-      if (typeof data.dueDate === 'string' && data.dueDate.includes('-')) {
-        // If it's already a date string (YYYY-MM-DD), use it directly
-        dueDateValue = data.dueDate;
-        console.log('🔵 [CREDIT-CARD-FORM] Using existing date string:', dueDateValue);
-      } else {
-        // Convert days to date string
-        const daysFromNow = parseInt(data.dueDate) || 30; // Default to 30 days if invalid
-        console.log('🔵 [CREDIT-CARD-FORM] Converting days to date, days:', daysFromNow);
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + daysFromNow);
-        dueDateValue = dueDate.toISOString().split('T')[0];
-        console.log('🔵 [CREDIT-CARD-FORM] Calculated date:', dueDateValue);
-      }
+      // Use the paymentDate directly since it's already in the correct YYYY-MM-DD format
+      let dueDateValue = data.paymentDate || '';
+      console.log('🔵 [CREDIT-CARD-FORM] Using payment date as due date:', dueDateValue);
       
       const requestPayload = {
         cardName: data.name, // Map 'name' to 'cardName' for backend
@@ -129,8 +92,7 @@ export function CreditCardForm({ onClose, initialData }: CreditCardFormProps) {
         creditLimit: data.creditLimit,
         interestRate: data.interestRate,
         minimumPayment: data.minimumPayment,
-        paymentDate: data.paymentDate,
-        dueDate: dueDateValue
+        dueDate: dueDateValue // Use the actual date from the date input
       };
       
       console.log('🔵 [CREDIT-CARD-FORM] Mapped payload:', requestPayload);

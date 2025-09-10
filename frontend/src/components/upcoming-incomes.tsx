@@ -35,6 +35,11 @@ interface TransformedIncome {
 function getDaysUntilIncome(nextPayDate: string): number {
   const nextDate = new Date(nextPayDate);
   const today = new Date();
+  
+  // Set both dates to start of day to avoid time zone issues
+  today.setHours(0, 0, 0, 0);
+  nextDate.setHours(0, 0, 0, 0);
+  
   const diffTime = nextDate.getTime() - today.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
@@ -59,7 +64,16 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   const filteredIncomes = upcomingIncomes.filter((income: TransformedIncome) => {
     if (filter === "all") return true;
     if (filter === "week") return income.daysUntilIncome <= 7;
-    if (filter === "month") return income.daysUntilIncome <= 30;
+    if (filter === "month") {
+      // Filter by current calendar month
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      const incomeMonth = income.nextIncomeDate.getMonth();
+      const incomeYear = income.nextIncomeDate.getFullYear();
+      
+      return incomeMonth === currentMonth && incomeYear === currentYear;
+    }
     return true;
   }).sort((a: TransformedIncome, b: TransformedIncome) => a.daysUntilIncome - b.daysUntilIncome);
 
@@ -182,6 +196,7 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
                         <Badge variant={getBadgeVariant(income.daysUntilIncome)} className={getBadgeColor(income.daysUntilIncome)}>
                           {income.daysUntilIncome === 0 ? "Today" : 
                            income.daysUntilIncome === 1 ? "Tomorrow" : 
+                           income.daysUntilIncome < 0 ? `${Math.abs(income.daysUntilIncome)} days late` :
                            `${income.daysUntilIncome} days`}
                         </Badge>
                       </div>

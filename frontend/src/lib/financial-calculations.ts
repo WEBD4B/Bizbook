@@ -91,6 +91,18 @@ export function getDaysUntilDue(dayOfMonth: number): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export function getDaysUntilDate(targetDate: string | Date): number {
+  const now = new Date();
+  const target = new Date(targetDate);
+  
+  // Set both dates to start of day to avoid time zone issues
+  now.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  
+  const diffTime = target.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
 export function calculateAvailableCash(incomes: any[], expenses: any[], cashAssets: any[] = []): {
   totalIncome: number;
   totalExpenses: number;

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calendar, Plus } from "lucide-react";
 import { useIncomes } from "@/lib/clerk-api-hooks";
 import { Income } from "@/types/schema";
-import { formatCurrency } from "@/lib/financial-calculations";
+import { formatCurrency, getDaysUntilDate } from "@/lib/financial-calculations";
 
 interface IncomeOverviewProps {
   onAddIncome?: () => void;
@@ -15,7 +15,7 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
 
   const calculateMonthlyIncome = (incomes: Income[]) => {
     return incomes.reduce((total, income) => {
-      const amount = parseFloat(income.amount);
+      const amount = parseFloat(income.amount.toString());
       switch (income.frequency) {
         case "weekly": return total + (amount * 4.33);
         case "biweekly": return total + (amount * 2.17);
@@ -31,10 +31,7 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
   };
 
   const getDaysUntilPay = (income: Income) => {
-    const nextPay = new Date(income.nextPayDate);
-    const now = new Date();
-    const diffTime = nextPay.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return getDaysUntilDate(income.nextPayDate);
   };
 
   const monthlyIncome = calculateMonthlyIncome(incomes);
@@ -114,6 +111,7 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
                     <Badge variant="secondary" className="text-xs mt-1">
                       {getDaysUntilPay(nextPayday) === 0 ? "Today" : 
                        getDaysUntilPay(nextPayday) === 1 ? "Tomorrow" :
+                       getDaysUntilPay(nextPayday) < 0 ? `${Math.abs(getDaysUntilPay(nextPayday))} days late` :
                        `${getDaysUntilPay(nextPayday)} days`}
                     </Badge>
                   </div>
@@ -140,7 +138,7 @@ export function IncomeOverview({ onAddIncome }: IncomeOverviewProps) {
                       </div>
                       <div className="flex items-center space-x-2 text-sm text-neutral-500">
                         <span data-testid={`income-amount-${income.id}`}>
-                          {formatCurrency(parseFloat(income.amount))}
+                          {formatCurrency(parseFloat(income.amount.toString()))}
                         </span>
                         <span>•</span>
                         <Badge variant="outline" className="text-xs">

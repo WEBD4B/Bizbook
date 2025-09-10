@@ -16,7 +16,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { CreditCard, Loan, MonthlyPayment } from "@/types/schema";
-import { formatCurrency, getNextDueDate, getDaysUntilDue } from "@/lib/financial-calculations";
+import { formatCurrency, getNextDueDate, getDaysUntilDue, getDaysUntilDate } from "@/lib/financial-calculations";
 import { useCreditCards, useLoans, usePayments } from "@/lib/clerk-api-hooks";
 import { MarkAsPaidDialog } from "./mark-as-paid-dialog";
 
@@ -96,8 +96,8 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
         ...card,
         type: "credit-card",
         payment: card.minimumPayment || 0,
-        daysUntilDue: getDaysUntilDue(card.dueDate ? new Date(card.dueDate).getDate() : new Date().getDate()),
-        nextDueDate: getNextDueDate(card.dueDate ? new Date(card.dueDate).getDate() : new Date().getDate()),
+        daysUntilDue: card.dueDate ? getDaysUntilDate(card.dueDate) : 0,
+        nextDueDate: card.dueDate ? new Date(card.dueDate) : new Date(),
       })),
     ...loans
       .filter((loan: Loan) => !hasRecentPayment(loan.id, 'loan'))
@@ -105,8 +105,8 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
         ...loan,
         type: "loan",
         payment: loan.monthlyPayment || 0,
-        daysUntilDue: getDaysUntilDue(loan.dueDate ? new Date(loan.dueDate).getDate() : new Date().getDate()),
-        nextDueDate: getNextDueDate(loan.dueDate ? new Date(loan.dueDate).getDate() : new Date().getDate()),
+        daysUntilDue: loan.dueDate ? getDaysUntilDate(loan.dueDate) : 0,
+        nextDueDate: loan.dueDate ? new Date(loan.dueDate) : new Date(),
       })),
     ...monthlyPayments
       .filter((payment: MonthlyPayment) => !hasRecentPayment(payment.id, 'monthly_payment'))
@@ -114,8 +114,8 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
         ...payment,
         type: "monthly-payment",
         payment: payment.amount || 0,
-        daysUntilDue: getDaysUntilDue(payment.dueDate ? new Date(payment.dueDate).getDate() : new Date().getDate()),
-        nextDueDate: getNextDueDate(payment.dueDate ? new Date(payment.dueDate).getDate() : new Date().getDate()),
+        daysUntilDue: payment.dueDate ? getDaysUntilDate(payment.dueDate) : 0,
+        nextDueDate: payment.dueDate ? new Date(payment.dueDate) : new Date(),
       })),
   ];
 
@@ -123,7 +123,12 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
   const filteredPayments = allPayments.filter(payment => {
     if (filter === "all") return true;
     if (filter === "week") return payment.daysUntilDue <= 7;
-    if (filter === "month") return payment.daysUntilDue <= 30;
+    if (filter === "month") {
+      // Only show payments due in the current calendar month
+      const now = new Date();
+      const paymentDate = payment.nextDueDate;
+      return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
+    }
     return true;
   }).sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
@@ -286,6 +291,7 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
                       >
                         {payment.daysUntilDue === 0 ? "Due Today" : 
                          payment.daysUntilDue === 1 ? "Due Tomorrow" :
+                         payment.daysUntilDue < 0 ? `${Math.abs(payment.daysUntilDue)} days overdue` :
                          `${payment.daysUntilDue} days`}
                       </Badge>
                     </div>

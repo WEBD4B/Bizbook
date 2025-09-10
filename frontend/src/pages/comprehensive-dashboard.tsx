@@ -86,7 +86,8 @@ import type { CreditCard, Loan, MonthlyPayment, Income, BusinessCreditCard, Busi
 import { Badge } from "@/components/ui/badge";
 import { 
   formatCurrency, 
-  calculateCreditUtilization
+  calculateCreditUtilization,
+  getDaysUntilDate
 } from "@/lib/financial-calculations";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
@@ -2818,7 +2819,7 @@ export default function ComprehensiveDashboard() {
                           <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{card.name}</h3>
+                                <h3 className="font-medium">{card.cardName}</h3>
                                 <Badge variant="outline">
                                   {Math.round((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100)}% Used
                                 </Badge>
@@ -2890,7 +2891,7 @@ export default function ComprehensiveDashboard() {
                           <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{loan.name}</h3>
+                                <h3 className="font-medium">{loan.loanName}</h3>
                                 <Badge variant="outline">{loan.interestRate}% APR</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
@@ -2969,7 +2970,20 @@ export default function ComprehensiveDashboard() {
                             <div className="text-sm text-muted-foreground space-y-1">
                               <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(income.amount))}</span></div>
                               <div>Type: {income.type || 'Regular Income'}</div>
-                              <div>Next Payment: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                              <div className="flex items-center gap-2">
+                                Next Payment: {income.nextPayDate ? new Date(income.nextPayDate).toLocaleDateString() : 'Not scheduled'}
+                                {income.nextPayDate && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {(() => {
+                                      const days = getDaysUntilDate(income.nextPayDate);
+                                      return days === 0 ? "Today" : 
+                                             days === 1 ? "Tomorrow" :
+                                             days < 0 ? `${Math.abs(days)} days late` :
+                                             `${days} days`;
+                                    })()}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -3333,7 +3347,7 @@ export default function ComprehensiveDashboard() {
                           <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{loan.name}</h3>
+                                <h3 className="font-medium">{loan.loanName}</h3>
                                 <Badge variant="outline">{loan.interestRate}% APR</Badge>
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
