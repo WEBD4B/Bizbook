@@ -150,11 +150,13 @@ export default function ComprehensiveDashboard() {
   const [creditCardDialogOpen, setCreditCardDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
   const [businessCreditCardDialogOpen, setBusinessCreditCardDialogOpen] = useState(false);
+  const [businessLoanDialogOpen, setBusinessLoanDialogOpen] = useState(false);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
 
   // Editing states for form pre-population
   const [editingCreditCard, setEditingCreditCard] = useState<any>(null);
   const [editingLoan, setEditingLoan] = useState<any>(null);
+  const [editingBusinessRevenue, setEditingBusinessRevenue] = useState<any>(null);
 
   // Reset all user data function
   const handleResetAllData = async () => {
@@ -281,22 +283,26 @@ export default function ComprehensiveDashboard() {
   const isLoading = creditCardsLoading || loansLoading || monthlyPaymentsLoading || incomesLoading || assetsLoading || expensesLoading;
 
   // Business form components
-  const BusinessRevenueForm = ({ onClose }: { onClose: () => void }) => {
+  const BusinessRevenueForm = ({ onClose, initialData }: { onClose: () => void; initialData?: any }) => {
     const [formData, setFormData] = useState({
-      amount: '',
-      description: '',
-      source: '',
-      category: '',
-      customCategory: '',
-      revenueType: '',
-      frequency: '',
-      date: new Date().toISOString().split('T')[0]
+      amount: initialData?.amount || '',
+      description: initialData?.description || '',
+      source: initialData?.source || '',
+      category: initialData?.category || '',
+      customCategory: initialData?.customCategory || '',
+      revenueType: initialData?.revenueType || '',
+      frequency: initialData?.frequency || '',
+      date: initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : 
+            (initialData?.revenueDate ? new Date(initialData.revenueDate).toISOString().split('T')[0] : 
+            new Date().toISOString().split('T')[0])
     });
 
     const revenueMutation = useAuthenticatedMutation(
       async (data: any, token: string | null) => {
-        const response = await apiRequest("/business-revenue", {
-          method: "POST",
+        const url = initialData ? `/business-revenue/${initialData.id}` : "/business-revenue";
+        const method = initialData ? "PUT" : "POST";
+        const response = await apiRequest(url, {
+          method,
           body: JSON.stringify(data)
         }, token);
         return response.data;
@@ -305,7 +311,7 @@ export default function ComprehensiveDashboard() {
         onSuccess: () => {
           toast({
             title: "Success",
-            description: "Business revenue added successfully"
+            description: initialData ? "Business revenue updated successfully" : "Business revenue added successfully"
           });
           queryClient.invalidateQueries({ queryKey: ["business-revenue"] });
           onClose();
@@ -314,7 +320,7 @@ export default function ComprehensiveDashboard() {
           console.error('🔴 [BUSINESS REVENUE] Error:', error);
           toast({
             title: "Error",
-            description: `Failed to add business revenue: ${error.message}`,
+            description: `Failed to ${initialData ? 'update' : 'add'} business revenue: ${error.message}`,
             variant: "destructive"
           });
         }
@@ -618,6 +624,7 @@ export default function ComprehensiveDashboard() {
             title: "Success",
             description: "Business profile created successfully"
           });
+          queryClient.invalidateQueries({ queryKey: ["business-profiles"] });
           onClose();
         },
         onError: () => {
@@ -712,6 +719,164 @@ export default function ComprehensiveDashboard() {
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={profileMutation.isPending}>
             {profileMutation.isPending ? "Creating..." : "Create Profile"}
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  // Business Loan Form
+  const BusinessLoanForm = ({ onClose }: { onClose: () => void }) => {
+    const [formData, setFormData] = useState({
+      loanName: '',
+      currentBalance: '',
+      interestRate: '',
+      monthlyPayment: '',
+      loanType: '',
+      lender: '',
+      dueDate: new Date().toISOString().split('T')[0],
+      businessProfileId: businessProfiles.length > 0 ? businessProfiles[0].id : ''
+    });
+
+    const loanMutation = useAuthenticatedMutation(
+      async (data: any, token: string | null) => {
+        const response = await apiRequest("/business-loans", {
+          method: "POST",
+          body: JSON.stringify(data)
+        }, token);
+        return response.data;
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Business loan added successfully"
+          });
+          queryClient.invalidateQueries({ queryKey: ["business-loans"] });
+          onClose();
+        },
+        onError: (error: any) => {
+          console.error('🔴 [BUSINESS LOAN] Error:', error);
+          toast({
+            title: "Error",
+            description: `Failed to add business loan: ${error.message}`,
+            variant: "destructive"
+          });
+        }
+      }
+    );
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      loanMutation.mutate(formData);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {businessProfiles.length > 0 && (
+          <div>
+            <Label htmlFor="business-profile">Business Profile</Label>
+            <Select value={formData.businessProfileId} onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select business profile" />
+              </SelectTrigger>
+              <SelectContent>
+                {businessProfiles.map((profile: any) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.businessName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div>
+          <Label htmlFor="loan-name">Loan Name</Label>
+          <Input
+            id="loan-name"
+            value={formData.loanName}
+            onChange={(e) => setFormData(prev => ({ ...prev, loanName: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="current-balance">Current Balance</Label>
+            <Input
+              id="current-balance"
+              type="number"
+              step="0.01"
+              value={formData.currentBalance}
+              onChange={(e) => setFormData(prev => ({ ...prev, currentBalance: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="interest-rate">Interest Rate (%)</Label>
+            <Input
+              id="interest-rate"
+              type="number"
+              step="0.01"
+              value={formData.interestRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="monthly-payment">Monthly Payment</Label>
+            <Input
+              id="monthly-payment"
+              type="number"
+              step="0.01"
+              value={formData.monthlyPayment}
+              onChange={(e) => setFormData(prev => ({ ...prev, monthlyPayment: e.target.value }))}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="loan-type">Loan Type</Label>
+            <Select value={formData.loanType} onValueChange={(value) => setFormData(prev => ({ ...prev, loanType: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select loan type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sba">SBA Loan</SelectItem>
+                <SelectItem value="equipment">Equipment Financing</SelectItem>
+                <SelectItem value="line-of-credit">Line of Credit</SelectItem>
+                <SelectItem value="term-loan">Term Loan</SelectItem>
+                <SelectItem value="real-estate">Real Estate Loan</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="lender">Lender</Label>
+          <Input
+            id="lender"
+            value={formData.lender}
+            onChange={(e) => setFormData(prev => ({ ...prev, lender: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="due-date">Next Payment Due Date</Label>
+          <Input
+            id="due-date"
+            type="date"
+            value={formData.dueDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loanMutation.isPending}>
+            {loanMutation.isPending ? "Adding..." : "Add Loan"}
           </Button>
         </div>
       </form>
@@ -2339,6 +2504,54 @@ export default function ComprehensiveDashboard() {
     }
   });
 
+  const deleteBusinessRevenue = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getToken();
+      return apiRequest(`/business-revenue/${id}`, { method: "DELETE" }, token);
+    },
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["business-revenue"] });
+      
+      // Snapshot the previous value
+      const previousRevenues = queryClient.getQueryData(["business-revenue"]);
+      
+      // Optimistically update to remove the revenue
+      queryClient.setQueryData(["business-revenue"], (old: any[]) => 
+        old ? old.filter((revenue: any) => revenue.id !== id) : []
+      );
+      
+      return { previousRevenues };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Business revenue deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ["business-revenue"] });
+    },
+    onError: (error: any, id: string, context: any) => {
+      // If it's a 404, the item was already deleted, keep the optimistic update
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        toast({
+          title: "Success",
+          description: "Business revenue removed successfully"
+        });
+        queryClient.invalidateQueries({ queryKey: ["business-revenue"] });
+      } else {
+        // Rollback the optimistic update
+        if (context?.previousRevenues) {
+          queryClient.setQueryData(["business-revenue"], context.previousRevenues);
+        }
+        toast({
+          title: "Error",
+          description: "Failed to delete business revenue",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
   const deleteVendor = useMutation({
     mutationFn: async (id: string) => {
       const token = await getToken();
@@ -2721,15 +2934,57 @@ export default function ComprehensiveDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Full Width Sections */}
-              <div className="space-y-6">
-                <IncomeOverview />
-                <ExpenseOverview />
-              </div>
-
-              {/* Upcoming Payments and Income - Full Width Accordions */}
+              {/* Full Width Sections - Now in Accordion Format */}
               <div className="space-y-4">
-                <Accordion type="multiple" defaultValue={["payments", "income"]} className="space-y-4">
+                <Accordion type="multiple" defaultValue={["income-overview", "expenses", "payments", "income", "income-management", "credit-cards", "loans"]} className="space-y-4">
+                  
+                  {/* Income Overview Accordion */}
+                  <AccordionItem value="income-overview" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Income Overview</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track your income sources and monthly earnings</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Monthly Income</div>
+                          <div className="text-lg font-semibold text-green-600">{formatCurrency(totalMonthlyIncome)}</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <IncomeOverview />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Monthly Expenses Accordion */}
+                  <AccordionItem value="expenses" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                            <Receipt className="h-5 w-5 text-red-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Monthly Expenses</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Monitor your spending and expense categories</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">This Month</div>
+                          <div className="text-lg font-semibold text-red-600">{formatCurrency(totalExpenses)}</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <ExpenseOverview />
+                    </AccordionContent>
+                  </AccordionItem>
                   <AccordionItem value="payments" className="border rounded-lg bg-white shadow-sm">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
@@ -2785,223 +3040,270 @@ export default function ComprehensiveDashboard() {
                       <UpcomingIncomes />
                     </AccordionContent>
                   </AccordionItem>
+
+                  {/* Personal Income Management Accordion */}
+                  <AccordionItem value="income-management" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <DollarSign className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Personal Income Management</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Manage your income sources and payment schedules</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">{incomes.length} source{incomes.length !== 1 ? 's' : ''}</div>
+                          <div className="text-lg font-semibold text-blue-600">{formatCurrency(totalMonthlyIncome)}</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Income Sources</h4>
+                        <Button 
+                          size="sm" 
+                          onClick={() => setIncomeDialogOpen(true)}
+                          data-testid="button-add-income"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Income
+                        </Button>
+                      </div>
+                      
+                      {incomes.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-500">
+                          <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
+                          <p className="mb-4">No personal income sources added yet</p>
+                          <p className="text-sm">Add your salary, freelance payments, and other personal income</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {incomes.map((income: any) => (
+                            <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold">{income.source}</h3>
+                                  <Badge variant={income.frequency === 'monthly' ? 'default' : 'secondary'}>
+                                    {income.frequency}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(income.amount))}</span></div>
+                                  <div>Type: {income.type || 'Regular Income'}</div>
+                                  <div className="flex items-center gap-2">
+                                    Next Payment: {income.nextPayDate ? new Date(income.nextPayDate).toLocaleDateString() : 'Not scheduled'}
+                                    {income.nextPayDate && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {(() => {
+                                          const days = getDaysUntilDate(income.nextPayDate);
+                                          return days === 0 ? "Today" : 
+                                                 days === 1 ? "Tomorrow" :
+                                                 days < 0 ? `${Math.abs(days)} days late` :
+                                                 `${days} days`;
+                                        })()}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => deleteIncome.mutate(income.id)}
+                                  data-testid={`button-delete-income-${income.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Credit Cards Accordion */}
+                  <AccordionItem value="credit-cards" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <CreditCardIcon className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Credit Cards</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track your credit card balances and payments</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">{creditCards.length} card{creditCards.length !== 1 ? 's' : ''}</div>
+                          <div className="text-lg font-semibold text-purple-600">
+                            {formatCurrency(creditCards.reduce((sum, card) => sum + parseFloat(card.balance || 0), 0))}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Your Credit Cards</h4>
+                        <Button 
+                          size="sm" 
+                          onClick={() => setCreditCardDialogOpen(true)}
+                          data-testid="button-add-credit-card"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Card
+                        </Button>
+                      </div>
+                      
+                      {creditCards.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-500">
+                          <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
+                          <p className="mb-4">No credit cards added yet</p>
+                          <p className="text-sm">Add your credit cards to track balances and payments</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {creditCards.map((card: any) => (
+                            <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{card.cardName}</h3>
+                                  <Badge variant="outline">
+                                    {Math.round((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100)}% Used
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
+                                  <div>Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
+                                  <div>Rate: {card.interestRate}% APR</div>
+                                  <div>Due: {new Date(card.dueDate).toLocaleDateString()}</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    console.log('🔍 [EDIT-CREDIT-CARD] Card data:', card);
+                                    console.log('🔍 [EDIT-CREDIT-CARD] Due date:', card.dueDate, typeof card.dueDate);
+                                    setEditingCreditCard(card);
+                                    setCreditCardDialogOpen(true);
+                                  }}
+                                  data-testid={`button-edit-${card.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => deleteCreditCard.mutate(card.id)}
+                                  data-testid={`button-delete-${card.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Loans Accordion */}
+                  <AccordionItem value="loans" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-orange-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Loans</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Manage your loan balances and payment schedules</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">{loans.length} loan{loans.length !== 1 ? 's' : ''}</div>
+                          <div className="text-lg font-semibold text-orange-600">
+                            {formatCurrency(loans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance || 0), 0))}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Your Loans</h4>
+                        <Button 
+                          size="sm" 
+                          onClick={() => setLoanDialogOpen(true)}
+                          data-testid="button-add-loan"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Loan
+                        </Button>
+                      </div>
+                      
+                      {loans.length === 0 ? (
+                        <div className="text-center py-8 text-neutral-500">
+                          <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
+                          <p className="mb-4">No loans added yet</p>
+                          <p className="text-sm">Add your loans to track balances and payments</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {loans.map((loan: any) => (
+                            <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{loan.loanName}</h3>
+                                  <Badge variant="outline">{loan.interestRate}% APR</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
+                                  <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
+                                  <div>Term: {loan.termLength} months</div>
+                                  <div>Due: {new Date(loan.dueDate).toLocaleDateString()}</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    console.log('🔍 [EDIT-LOAN] Loan data:', loan);
+                                    console.log('🔍 [EDIT-LOAN] Due date:', loan.dueDate, typeof loan.dueDate);
+                                    setEditingLoan(loan);
+                                    setLoanDialogOpen(true);
+                                  }}
+                                  data-testid={`button-edit-loan-${loan.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => deleteLoan.mutate(loan.id)}
+                                  data-testid={`button-delete-loan-${loan.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </div>
 
-              {/* Credit Management Section */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Credit Cards Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCardIcon className="h-5 w-5" />
-                      Credit Cards
-                    </CardTitle>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setCreditCardDialogOpen(true)}
-                      data-testid="button-add-credit-card"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Card
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {creditCards.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No credit cards added yet</p>
-                        <p className="text-sm">Add your credit cards to track balances and payments</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {creditCards.map((card: any) => (
-                          <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{card.cardName}</h3>
-                                <Badge variant="outline">
-                                  {Math.round((parseFloat(card.balance) / parseFloat(card.creditLimit)) * 100)}% Used
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
-                                <div>Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
-                                <div>Rate: {card.interestRate}% APR</div>
-                                <div>Due: {new Date(card.dueDate).toLocaleDateString()}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  console.log('🔍 [EDIT-CREDIT-CARD] Card data:', card);
-                                  console.log('🔍 [EDIT-CREDIT-CARD] Due date:', card.dueDate, typeof card.dueDate);
-                                  setEditingCreditCard(card);
-                                  setCreditCardDialogOpen(true);
-                                }}
-                                data-testid={`button-edit-${card.id}`}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => deleteCreditCard.mutate(card.id)}
-                                data-testid={`button-delete-${card.id}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Loans Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5" />
-                      Loans
-                    </CardTitle>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setLoanDialogOpen(true)}
-                      data-testid="button-add-loan"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Loan
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {loans.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No loans added yet</p>
-                        <p className="text-sm">Add your loans to track balances and payments</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {loans.map((loan: any) => (
-                          <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{loan.loanName}</h3>
-                                <Badge variant="outline">{loan.interestRate}% APR</Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance))}</span></div>
-                                <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment))}</span></div>
-                                <div>Term: {loan.termLength} months</div>
-                                <div>Due: {new Date(loan.dueDate).toLocaleDateString()}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  console.log('🔍 [EDIT-LOAN] Loan data:', loan);
-                                  console.log('🔍 [EDIT-LOAN] Due date:', loan.dueDate, typeof loan.dueDate);
-                                  setEditingLoan(loan);
-                                  setLoanDialogOpen(true);
-                                }}
-                                data-testid={`button-edit-loan-${loan.id}`}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => deleteLoan.mutate(loan.id)}
-                                data-testid={`button-delete-loan-${loan.id}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Personal Income Management Section */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Personal Income Management ({incomes.length})
-                  </CardTitle>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setIncomeDialogOpen(true)}
-                    data-testid="button-add-income"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Income
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {incomes.length === 0 ? (
-                    <div className="text-center py-8 text-neutral-500">
-                      <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
-                      <p className="mb-4">No personal income sources added yet</p>
-                      <p className="text-sm">Add your salary, freelance payments, and other personal income</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {incomes.map((income: any) => (
-                        <div key={income.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold">{income.source}</h3>
-                              <Badge variant={income.frequency === 'monthly' ? 'default' : 'secondary'}>
-                                {income.frequency}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(income.amount))}</span></div>
-                              <div>Type: {income.type || 'Regular Income'}</div>
-                              <div className="flex items-center gap-2">
-                                Next Payment: {income.nextPayDate ? new Date(income.nextPayDate).toLocaleDateString() : 'Not scheduled'}
-                                {income.nextPayDate && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {(() => {
-                                      const days = getDaysUntilDate(income.nextPayDate);
-                                      return days === 0 ? "Today" : 
-                                             days === 1 ? "Tomorrow" :
-                                             days < 0 ? `${Math.abs(days)} days late` :
-                                             `${days} days`;
-                                    })()}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => deleteIncome.mutate(income.id)}
-                              data-testid={`button-delete-income-${income.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </TabsContent>
 
             <TabsContent value="business" className="space-y-6 mt-8">
@@ -3038,192 +3340,7 @@ export default function ComprehensiveDashboard() {
                 </CardContent>
               </Card>
 
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Business Revenue Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Business Revenue
-                    </CardTitle>
-                    <Dialog open={revenueDialogOpen} onOpenChange={setRevenueDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-revenue">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Revenue
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Revenue</DialogTitle>
-                        </DialogHeader>
-                        <BusinessRevenueForm onClose={() => setRevenueDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    {businessRevenue.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <DollarSign size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No business revenue added yet</p>
-                        <p className="text-sm">Track your business income and subscriptions</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {businessRevenue.map((revenue: any) => (
-                          <div key={revenue.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{revenue.description}</h3>
-                                <Badge variant="outline">{revenue.category}</Badge>
-                              </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
-                                <div>Source: <span className="font-medium">{revenue.source}</span></div>
-                                <div>Date: {new Date(revenue.date).toLocaleDateString()}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                data-testid={`button-edit-revenue-${revenue.id}`}
-                              >
-                                Edit
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                data-testid={`button-delete-revenue-${revenue.id}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Upcoming Business Payments and Revenue */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Upcoming Business Payments */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarDays className="h-5 w-5" />
-                      Upcoming Business Payments
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Filter upcoming business expenses and loan payments */}
-                    {(() => {
-                      const upcomingBusinessPayments = [
-                        ...businessExpenses.filter(expense => {
-                          const expenseDate = new Date(expense.dueDate || expense.date);
-                          const today = new Date();
-                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                          return expenseDate >= today && expenseDate <= thirtyDaysFromNow;
-                        }).map(expense => ({
-                          ...expense,
-                          type: 'expense',
-                          name: expense.description,
-                          amount: expense.amount,
-                          dueDate: expense.dueDate || expense.date
-                        })),
-                        ...businessLoans.filter(loan => {
-                          const loanDueDate = new Date(loan.dueDate);
-                          const today = new Date();
-                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                          return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow;
-                        }).map(loan => ({
-                          ...loan,
-                          type: 'loan',
-                          name: loan.loanName,
-                          amount: loan.monthlyPayment,
-                          dueDate: loan.dueDate
-                        }))
-                      ];
-                      
-                      return upcomingBusinessPayments.length === 0 ? (
-                        <div className="text-center py-8 text-neutral-500">
-                          <CalendarDays size={48} className="mx-auto mb-4 text-neutral-300" />
-                          <p className="mb-4">No upcoming business payments</p>
-                          <p className="text-sm">Business expenses and loan payments will appear here</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {upcomingBusinessPayments.map((payment: any, index) => (
-                            <div key={`${payment.type}-${payment.id}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium">{payment.name}</h4>
-                                  <Badge variant="outline">{payment.type === 'expense' ? 'Expense' : 'Loan'}</Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <div>Amount: <span className="font-medium text-red-600">{formatCurrency(parseFloat(payment.amount))}</span></div>
-                                  <div>Due: {new Date(payment.dueDate).toLocaleDateString()}</div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
-
-                {/* Upcoming Business Revenue */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Upcoming Business Revenue
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Filter upcoming business revenue */}
-                    {(() => {
-                      const upcomingBusinessRevenue = businessRevenue.filter(revenue => {
-                        if (!revenue.expectedDate) return false;
-                        const revenueDate = new Date(revenue.expectedDate);
-                        const today = new Date();
-                        const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                        return revenueDate >= today && revenueDate <= thirtyDaysFromNow;
-                      });
-                      
-                      return upcomingBusinessRevenue.length === 0 ? (
-                        <div className="text-center py-8 text-neutral-500">
-                          <TrendingUp size={48} className="mx-auto mb-4 text-neutral-300" />
-                          <p className="mb-4">No upcoming business revenue</p>
-                          <p className="text-sm">Expected business income will appear here</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {upcomingBusinessRevenue.map((revenue: any) => (
-                            <div key={revenue.id} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium">{revenue.description}</h4>
-                                  <Badge variant="outline">{revenue.source}</Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
-                                  <div>Expected: {new Date(revenue.expectedDate).toLocaleDateString()}</div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Summary Stats */}
+              {/* Business Debt Summary Stats - moved below chart */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader className="pb-2">
@@ -3241,7 +3358,7 @@ export default function ComprehensiveDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-red-600">
-                      {formatCurrency(businessLoans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance), 0))}
+                      {formatCurrency(businessLoans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance || loan.balance || 0), 0))}
                     </div>
                   </CardContent>
                 </Card>
@@ -3267,101 +3384,523 @@ export default function ComprehensiveDashboard() {
                 </Card>
               </div>
 
-              {/* Business Credit Cards and Loans Section */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Business Credit Cards */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCardIcon className="h-5 w-5" />
-                      Business Credit Cards
-                    </CardTitle>
-                    <Dialog open={businessCreditCardDialogOpen} onOpenChange={setBusinessCreditCardDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm" data-testid="button-add-business-credit-card">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Card
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Business Credit Card</DialogTitle>
-                          <DialogDescription>
-                            Add a new business credit card to track balances and payments.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <BusinessCreditCardForm onClose={() => setBusinessCreditCardDialogOpen(false)} />
-                      </DialogContent>
-                    </Dialog>
-                  </CardHeader>
-                  <CardContent>
-                    {businessCreditCards.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <CreditCardIcon size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No business credit cards added yet</p>
-                        <p className="text-sm">Track your business credit cards separately from personal ones</p>
+              {/* Business Sections - Accordion Format */}
+              <div className="space-y-6">
+                <Accordion type="multiple" defaultValue={["business-profile", "business-revenue", "upcoming-business-payments", "upcoming-business-revenue", "business-credit-cards", "business-loans"]} className="w-full space-y-4">
+                  
+                  {/* Business Profile Section */}
+                  <AccordionItem value="business-profile" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                            <Building className="h-5 w-5 text-indigo-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Business Profile</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Manage your business information and settings</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Profile Setup</div>
+                          <div className="text-lg font-semibold text-indigo-600">Manage</div>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {businessCreditCards.map((card: any) => (
-                          <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{card.name}</h3>
-                                <Badge variant="outline">{card.interestRate}% APR</Badge>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Business Information</h4>
+                        <Dialog open={businessProfileDialogOpen} onOpenChange={setBusinessProfileDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Profile
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create Business Profile</DialogTitle>
+                            </DialogHeader>
+                            <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      
+                      {businessProfiles.length === 0 ? (
+                        <div className="text-center py-12 text-neutral-500">
+                          <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
+                            <Building size={32} className="text-indigo-600" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">Set up your business profile</h4>
+                          <p className="text-sm text-gray-500 mb-4">Add business details, tax information, and preferences</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {businessProfiles.map((profile: any) => (
+                            <div key={profile.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{profile.businessName}</h3>
+                                  <Badge variant="outline">{profile.businessType}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>EIN: {profile.ein}</div>
+                                  <div>Address: {profile.address}</div>
+                                  <div>Phone: {profile.phone}</div>
+                                  <div>Email: {profile.email}</div>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
-                                <div>Credit Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    console.log('🔍 [EDIT-BUSINESS-PROFILE] Profile data:', profile);
+                                    // setEditingProfile(profile);
+                                    // setBusinessProfileDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
 
-                {/* Business Loans */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5" />
-                      Business Loans
-                    </CardTitle>
-                    <Button size="sm" data-testid="button-add-business-loan">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Loan
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {businessLoans.length === 0 ? (
-                      <div className="text-center py-8 text-neutral-500">
-                        <Building2 size={48} className="mx-auto mb-4 text-neutral-300" />
-                        <p className="mb-4">No business loans added yet</p>
-                        <p className="text-sm">Track SBA loans, equipment financing, and business lines of credit</p>
+                  {/* Business Revenue Section */}
+                  <AccordionItem value="business-revenue" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <DollarSign className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Business Revenue</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track your business income and revenue streams</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Total Revenue</div>
+                          <div className="text-lg font-semibold text-green-600">
+                            {formatCurrency(businessRevenue.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0))}
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {businessLoans.map((loan: any) => (
-                          <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium">{loan.loanName}</h3>
-                                <Badge variant="outline">{loan.interestRate}% APR</Badge>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Revenue Sources</h4>
+                        <Dialog open={revenueDialogOpen} onOpenChange={(open) => {
+                          setRevenueDialogOpen(open);
+                          if (!open) setEditingBusinessRevenue(null);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" data-testid="button-add-revenue">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Revenue
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{editingBusinessRevenue ? 'Edit Business Revenue' : 'Add Business Revenue'}</DialogTitle>
+                            </DialogHeader>
+                            <BusinessRevenueForm 
+                              onClose={() => {
+                                setRevenueDialogOpen(false);
+                                setEditingBusinessRevenue(null);
+                              }}
+                              initialData={editingBusinessRevenue}
+                            />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      {businessRevenue.length === 0 ? (
+                        <div className="text-center py-12 text-neutral-500">
+                          <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                            <DollarSign size={32} className="text-green-600" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">No business revenue added yet</h4>
+                          <p className="text-sm text-gray-500 mb-4">Track your business income and revenue streams</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {businessRevenue.map((revenue: any) => (
+                            <div key={revenue.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{revenue.description}</h3>
+                                  <Badge variant="outline">{revenue.category}</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
+                                  <div>Source: <span className="font-medium">{revenue.source}</span></div>
+                                  <div>Date: {(() => {
+                                    const dateField = revenue.date || revenue.revenueDate;
+                                    return dateField ? (isNaN(new Date(dateField).getTime()) ? 'Invalid Date' : new Date(dateField).toLocaleDateString()) : 'No Date';
+                                  })()}</div>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.balance))}</span></div>
-                                <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment || 0))}</span></div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingBusinessRevenue(revenue);
+                                    setRevenueDialogOpen(true);
+                                  }}
+                                  data-testid={`button-edit-revenue-${revenue.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this revenue entry?')) {
+                                      deleteBusinessRevenue.mutate(revenue.id);
+                                    }
+                                  }}
+                                  data-testid={`button-delete-revenue-${revenue.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Upcoming Business Payments Section */}
+                  <AccordionItem value="upcoming-business-payments" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                            <CalendarDays className="h-5 w-5 text-red-600" />
                           </div>
-                        ))}
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Business Payments</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track upcoming business expenses and loan payments</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Next 30 Days</div>
+                          <div className="text-lg font-semibold text-red-600">
+                            {(() => {
+                              const upcomingPayments = [
+                                ...businessExpenses.filter(expense => {
+                                  const expenseDate = new Date(expense.dueDate || expense.date || expense.expenseDate);
+                                  const today = new Date();
+                                  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                  return expenseDate >= today && expenseDate <= thirtyDaysFromNow && !isNaN(expenseDate.getTime());
+                                }),
+                                ...businessLoans.filter(loan => {
+                                  const loanDueDate = new Date(loan.dueDate);
+                                  const today = new Date();
+                                  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                  return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow && !isNaN(loanDueDate.getTime());
+                                })
+                              ];
+                              const total = upcomingPayments.reduce((sum, payment) => 
+                                sum + parseFloat(payment.amount || payment.monthlyPayment || 0), 0
+                              );
+                              return formatCurrency(total);
+                            })()}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      {/* Filter upcoming business expenses and loan payments */}
+                      {(() => {
+                        const upcomingBusinessPayments = [
+                          ...businessExpenses.filter(expense => {
+                            const expenseDate = new Date(expense.dueDate || expense.date || expense.expenseDate);
+                            const today = new Date();
+                            const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                            return expenseDate >= today && expenseDate <= thirtyDaysFromNow && !isNaN(expenseDate.getTime());
+                          }).map(expense => ({
+                            ...expense,
+                            type: 'expense',
+                            name: expense.description,
+                            amount: expense.amount,
+                            dueDate: expense.dueDate || expense.date || expense.expenseDate
+                          })),
+                          ...businessLoans.filter(loan => {
+                            const loanDueDate = new Date(loan.dueDate);
+                            const today = new Date();
+                            const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                            return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow && !isNaN(loanDueDate.getTime());
+                          }).map(loan => ({
+                            ...loan,
+                            type: 'loan',
+                            name: loan.loanName,
+                            amount: loan.monthlyPayment,
+                            dueDate: loan.dueDate
+                          }))
+                        ];
+                        
+                        return upcomingBusinessPayments.length === 0 ? (
+                          <div className="text-center py-8 text-neutral-500">
+                            <CalendarDays size={48} className="mx-auto mb-4 text-neutral-300" />
+                            <p className="mb-4">No upcoming business payments</p>
+                            <p className="text-sm">Business expenses and loan payments will appear here</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {upcomingBusinessPayments.map((payment: any, index) => (
+                              <div key={`${payment.type}-${payment.id}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-medium">{payment.name}</h4>
+                                    <Badge variant="outline">{payment.type === 'expense' ? 'Expense' : 'Loan'}</Badge>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    <div>Amount: <span className="font-medium text-red-600">{formatCurrency(parseFloat(payment.amount))}</span></div>
+                                    <div>Due: {new Date(payment.dueDate).toLocaleDateString()}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Upcoming Business Revenue Section */}
+                  <AccordionItem value="upcoming-business-revenue" className="border rounded-lg bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Business Revenue</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Monitor expected business income and cash flow</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Expected Income</div>
+                          <div className="text-lg font-semibold text-green-600">
+                            {(() => {
+                              const upcomingRevenue = businessRevenue.filter(revenue => {
+                                const dateField = revenue.date || revenue.revenueDate;
+                                if (!dateField) return false;
+                                const revenueDate = new Date(dateField);
+                                const today = new Date();
+                                const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                return revenueDate >= today && revenueDate <= thirtyDaysFromNow && !isNaN(revenueDate.getTime());
+                              });
+                              const total = upcomingRevenue.reduce((sum, revenue) => sum + parseFloat(revenue.amount || 0), 0);
+                              return formatCurrency(total);
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      {/* Filter upcoming business revenue */}
+                      {(() => {
+                        console.log('🔍 [DEBUG] Business Revenue Data:', businessRevenue);
+                        const upcomingBusinessRevenue = businessRevenue.filter(revenue => {
+                          const dateField = revenue.date || revenue.revenueDate;
+                          console.log('🔍 [DEBUG] Revenue item:', revenue, 'Date field:', dateField);
+                          if (!dateField) return false;
+                          const revenueDate = new Date(dateField);
+                          const today = new Date();
+                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+                          const isUpcoming = revenueDate >= today && revenueDate <= thirtyDaysFromNow && !isNaN(revenueDate.getTime());
+                          console.log('🔍 [DEBUG] Revenue date:', revenueDate, 'Is upcoming:', isUpcoming);
+                          return isUpcoming;
+                        });
+                        console.log('🔍 [DEBUG] Upcoming business revenue count:', upcomingBusinessRevenue.length);
+                        
+                        return upcomingBusinessRevenue.length === 0 ? (
+                          <div className="text-center py-8 text-neutral-500">
+                            <TrendingUp size={48} className="mx-auto mb-4 text-neutral-300" />
+                            <p className="mb-4">No upcoming business revenue</p>
+                            <p className="text-sm">Expected business income will appear here</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {upcomingBusinessRevenue.map((revenue: any) => (
+                              <div key={revenue.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-medium">{revenue.description}</h4>
+                                    <Badge variant="outline">{revenue.source}</Badge>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    <div>Amount: <span className="font-medium text-green-600">{formatCurrency(parseFloat(revenue.amount))}</span></div>
+                                    <div>Expected: {(() => {
+                                      const dateField = revenue.date || revenue.revenueDate;
+                                      return dateField ? new Date(dateField).toLocaleDateString() : 'No Date';
+                                    })()}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Business Credit Cards Section */}
+                  <AccordionItem value="business-credit-cards" className="border rounded-lg px-6 bg-white">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <CreditCardIcon className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Business Credit Cards</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Manage your business credit cards and track utilization</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Total Balance</div>
+                          <div className="text-lg font-semibold text-red-600">
+                            {formatCurrency(businessCreditCards.reduce((sum, card) => sum + parseFloat(card.balance), 0))}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Business Credit Cards</h4>
+                        <Dialog open={businessCreditCardDialogOpen} onOpenChange={setBusinessCreditCardDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" data-testid="button-add-business-credit-card">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Card
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Business Credit Card</DialogTitle>
+                              <DialogDescription>
+                                Add a new business credit card to track balances and payments.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <BusinessCreditCardForm onClose={() => setBusinessCreditCardDialogOpen(false)} />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      {businessCreditCards.length === 0 ? (
+                        <div className="text-center py-12 text-neutral-500">
+                          <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                            <CreditCardIcon size={32} className="text-blue-600" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">No business credit cards added yet</h4>
+                          <p className="text-sm text-gray-500 mb-4">Track your business credit cards separately from personal ones</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {businessCreditCards.map((card: any) => (
+                            <div key={card.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{card.name}</h3>
+                                  <Badge variant="outline">{card.interestRate}% APR</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(card.balance))}</span></div>
+                                  <div>Credit Limit: <span className="font-medium">{formatCurrency(parseFloat(card.creditLimit))}</span></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Business Loans Section */}
+                  <AccordionItem value="business-loans" className="border rounded-lg px-6 bg-white">
+                    <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-gray-900">Business Loans</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track SBA loans, equipment financing, and business lines of credit</p>
+                          </div>
+                        </div>
+                        <div className="text-left sm:text-right sm:mr-6">
+                          <div className="text-sm text-gray-500">Total Balance</div>
+                          <div className="text-lg font-semibold text-red-600">
+                            {formatCurrency(businessLoans.reduce((sum, loan) => sum + parseFloat(loan.currentBalance || loan.balance || 0), 0))}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 sm:px-6 pb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="text-lg font-medium">Business Loans</h4>
+                        <Dialog open={businessLoanDialogOpen} onOpenChange={setBusinessLoanDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" data-testid="button-add-business-loan">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Loan
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Business Loan</DialogTitle>
+                              <DialogDescription>
+                                Add a new business loan to track payments and balances.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <BusinessLoanForm onClose={() => setBusinessLoanDialogOpen(false)} />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      {businessLoans.length === 0 ? (
+                        <div className="text-center py-12 text-neutral-500">
+                          <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+                            <Building2 size={32} className="text-purple-600" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">No business loans added yet</h4>
+                          <p className="text-sm text-gray-500 mb-4">Track SBA loans, equipment financing, and business lines of credit</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {businessLoans.map((loan: any) => (
+                            <div key={loan.id} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-medium">{loan.loanName}</h3>
+                                  <Badge variant="outline">{loan.interestRate}% APR</Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <div>Balance: <span className="font-medium text-red-600">{formatCurrency(parseFloat(loan.currentBalance || 0))}</span></div>
+                                  <div>Monthly Payment: <span className="font-medium">{formatCurrency(parseFloat(loan.monthlyPayment || 0))}</span></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                </Accordion>
               </div>
+
             </TabsContent>
 
             <TabsContent value="office" className="space-y-6 mt-8">
