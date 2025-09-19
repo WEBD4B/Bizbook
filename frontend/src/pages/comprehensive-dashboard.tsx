@@ -91,6 +91,7 @@ import {
 } from "@/lib/financial-calculations";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useState } from "react";
+import { useEffect } from "react";
 
 
 function UpcomingPaymentsSummary() {
@@ -191,12 +192,15 @@ export default function ComprehensiveDashboard() {
   const [selectedAccountType, setSelectedAccountType] = useState<string>("");
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
+  const [currentTab, setCurrentTab] = useState('personal');
   
   const [businessProfileDialogOpen, setBusinessProfileDialogOpen] = useState(false);
   const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
 
   // Modal dialog states for forms
+
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [creditCardDialogOpen, setCreditCardDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
@@ -208,36 +212,6 @@ export default function ComprehensiveDashboard() {
   const [editingCreditCard, setEditingCreditCard] = useState<any>(null);
   const [editingLoan, setEditingLoan] = useState<any>(null);
   const [editingBusinessRevenue, setEditingBusinessRevenue] = useState<any>(null);
-
-  // Reset all user data function
-  const handleResetAllData = async () => {
-    if (!window.confirm("⚠️ WARNING: This will permanently delete ALL your financial data including income, expenses, credit cards, loans, assets, and payments. This action cannot be undone. Are you absolutely sure?")) {
-      return;
-    }
-
-    try {
-      const token = await getToken();
-      
-      // Call the reset endpoint
-      await apiRequest('/reset-all', {
-        method: 'DELETE'
-      }, token);
-
-      // Invalidate all queries to refresh the UI
-      queryClient.invalidateQueries();
-      
-      toast({
-        title: "Account Reset Complete",
-        description: "All financial data has been deleted from your account.",
-      });
-    } catch (error) {
-      toast({
-        title: "Reset Failed",
-        description: "Failed to reset account data. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Use authenticated API hooks
   const { data: creditCards = [], isLoading: creditCardsLoading } = useAuthenticatedQuery(
@@ -2684,6 +2658,48 @@ export default function ComprehensiveDashboard() {
   const availableCredit = totalCreditLimit - totalCreditUsed;
   const totalLiquidity = availableCash + availableCredit;
 
+  // Intersection Observer for tracking active section
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-20% 0px -60% 0px',
+      threshold: 0.1
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+          // Notify header about section change
+          window.dispatchEvent(new CustomEvent('dashboard-section-change', {
+            detail: { section: entry.target.id }
+          }));
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    
+    // Observe all sections with IDs
+    const sectionIds = [
+      'overview', 'income-overview', 'expenses', 'upcoming-payments', 'upcoming-income', 
+      'income-management', 'credit-cards', 'loans', 'business-overview', 'business-profile',
+      'business-revenue', 'business-payments', 'business-revenue-week', 'business-credit-cards',
+      'business-loans', 'office-overview', 'purchase-orders', 'vendors'
+    ];
+    
+    sectionIds.forEach(sectionId => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [currentTab]);
+
   // Add user authentication check
   if (!isLoaded) {
     return (
@@ -2781,28 +2797,16 @@ export default function ComprehensiveDashboard() {
               </DropdownMenu>
 
               {/* Reset All Data Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="destructive" size="sm" className="w-full sm:w-auto" data-testid="reset-button">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Reset Account
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem 
-                    onClick={() => handleResetAllData()}
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                    data-testid="reset-all-data-option"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete All Financial Data
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 
-          <Tabs defaultValue="personal" className="w-full">
+          <Tabs defaultValue="personal" className="w-full" onValueChange={(value) => {
+            setCurrentTab(value);
+            // Notify header about tab change
+            window.dispatchEvent(new CustomEvent('dashboard-tab-change', {
+              detail: { tab: value }
+            }));
+          }}>
             <TabsList className="grid w-full grid-cols-3 lg:w-fit mb-6">
               <TabsTrigger value="personal" className="flex items-center gap-2" data-testid="tab-personal">
                 <Home className="h-4 w-4" />
@@ -2820,19 +2824,21 @@ export default function ComprehensiveDashboard() {
 
             <TabsContent value="personal" className="space-y-6 mt-8">
               {/* Full Width Visual Chart at Top */}
-              <FinancialOverviewChart 
-                creditCards={creditCards} 
-                loans={loans} 
-                incomes={incomes} 
-                assets={assets} 
-                expenses={expenses} 
-              />
+              <div id="overview">
+                <FinancialOverviewChart 
+                  creditCards={creditCards} 
+                  loans={loans} 
+                  incomes={incomes} 
+                  assets={assets} 
+                  expenses={expenses} 
+                />
+              </div>
 
               {/* Net Worth Summary - Full Width */}
               <NetWorthSummary />
 
               {/* Financial Summary Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5" id="income-overview">
                 <Card data-testid="card-total-debt">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Debt</CardTitle>
@@ -2990,7 +2996,7 @@ export default function ComprehensiveDashboard() {
                 <Accordion type="multiple" defaultValue={["income-overview", "expenses", "payments", "income", "income-management", "credit-cards", "loans"]} className="space-y-4">
                   
                   {/* Income Overview Accordion */}
-                  <AccordionItem value="income-overview" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem id="income-overview" value="income-overview" className="border rounded-lg bg-white shadow-sm">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3014,7 +3020,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Monthly Expenses Accordion */}
-                  <AccordionItem value="expenses" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem id="expenses" value="expenses" className="border rounded-lg bg-white shadow-sm">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3069,7 +3075,7 @@ export default function ComprehensiveDashboard() {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="income" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="income" className="border rounded-lg bg-white shadow-sm" id="upcoming-income">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3093,7 +3099,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Personal Income Management Accordion */}
-                  <AccordionItem value="income-management" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="income-management" className="border rounded-lg bg-white shadow-sm" id="income-management">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3178,7 +3184,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Credit Cards Accordion */}
-                  <AccordionItem value="credit-cards" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="credit-cards" className="border rounded-lg bg-white shadow-sm" id="credit-cards">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3267,7 +3273,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Loans Accordion */}
-                  <AccordionItem value="loans" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="loans" className="border rounded-lg bg-white shadow-sm" id="loans">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3440,7 +3446,7 @@ export default function ComprehensiveDashboard() {
                 <Accordion type="multiple" defaultValue={["business-profile", "business-revenue", "upcoming-business-payments", "upcoming-business-revenue", "business-credit-cards", "business-loans"]} className="w-full space-y-4">
                   
                   {/* Business Profile Section */}
-                  <AccordionItem value="business-profile" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="business-profile" className="border rounded-lg bg-white shadow-sm" id="business-profile">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3523,7 +3529,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Business Revenue Section */}
-                  <AccordionItem value="business-revenue" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="business-revenue" className="border rounded-lg bg-white shadow-sm" id="business-revenue">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3630,7 +3636,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Upcoming Business Payments Section */}
-                  <AccordionItem value="upcoming-business-payments" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="upcoming-business-payments" className="border rounded-lg bg-white shadow-sm" id="business-payments">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3749,7 +3755,7 @@ export default function ComprehensiveDashboard() {
                   </AccordionItem>
 
                   {/* Upcoming Business Revenue Section */}
-                  <AccordionItem value="upcoming-business-revenue" className="border rounded-lg bg-white shadow-sm">
+                  <AccordionItem value="upcoming-business-revenue" className="border rounded-lg bg-white shadow-sm" id="business-revenue-week">
                     <AccordionTrigger className="px-4 sm:px-6 py-4 hover:no-underline">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
                         <div className="flex items-center gap-3">
@@ -3993,7 +3999,7 @@ export default function ComprehensiveDashboard() {
 
             <TabsContent value="office" className="space-y-6 mt-8">
               {/* All Purchase Orders Section */}
-              <Card>
+              <Card id="office-overview">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Receipt className="h-5 w-5" />
