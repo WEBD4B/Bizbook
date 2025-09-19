@@ -232,10 +232,23 @@ export class DatabaseService {
   }
 
   async updateExpense(id, data, userId = null) {
+    console.log('🔄 updateExpense called with:', { id, userId, data });
     const where = userId 
       ? and(eq(expenses.id, id), eq(expenses.userId, userId))
       : eq(expenses.id, id);
-    return this.update(expenses, where, { ...data, updatedAt: new Date() });
+    
+    // First, let's check if the expense exists
+    const existingExpense = await this.findOne(expenses, where);
+    console.log('📋 Existing expense found:', existingExpense);
+    
+    if (!existingExpense) {
+      console.log('❌ No expense found with id:', id, 'and userId:', userId);
+      return null;
+    }
+    
+    const result = await this.update(expenses, where, { ...data, updatedAt: new Date() });
+    console.log('✅ Update result:', result);
+    return result;
   }
 
   async deleteExpense(id, userId = null) {

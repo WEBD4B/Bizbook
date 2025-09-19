@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useExpenseMutation, useIncomes } from "@/lib/clerk-api-hooks";
+import { useUpdateExpense } from "@/hooks/useApi";
 import { Plus, Receipt, Repeat, CreditCard, Calendar } from "lucide-react";
 import { insertExpenseSchema } from "@/types/schema";
 
@@ -28,30 +29,43 @@ type ExpenseFormData = z.infer<typeof expenseFormSchema>;
 
 interface ExpenseFormProps {
   onExpenseAdded?: () => void;
+  initialData?: any;
+  isEditing?: boolean;
+  onClose?: () => void;
 }
 
-export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
+export function ExpenseForm({ onExpenseAdded, initialData, isEditing = false, onClose }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: incomes = [] } = useIncomes();
 
+  // Set dialog open state based on editing mode
+  useEffect(() => {
+    if (isEditing) {
+      setOpen(true);
+    }
+  }, [isEditing]);
+
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
-      description: "",
-      amount: "",
-      category: "",
-      expenseDate: new Date().toISOString().split('T')[0],
-      paymentMethod: "",
-      paymentType: "one-time",
-      paidFromIncomeId: "",
-      notes: "",
-      isRecurring: false,
+      description: initialData?.description || "",
+      amount: initialData?.amount || "",
+      category: initialData?.category || "",
+      expenseDate: initialData?.expenseDate 
+        ? new Date(initialData.expenseDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
+      paymentMethod: initialData?.paymentMethod || "",
+      paymentType: initialData?.paymentType || "one-time",
+      paidFromIncomeId: initialData?.paidFromIncomeId || "",
+      notes: initialData?.notes || "",
+      isRecurring: initialData?.isRecurring || false,
     },
   });
 
   const createExpenseMutation = useExpenseMutation();
+  const updateExpenseMutation = useUpdateExpense();
 
   const onSubmit = (data: ExpenseFormData) => {
     // Find the selected income source to include its name
@@ -61,43 +75,79 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
       paidFromIncome: selectedIncome?.source || "",
     };
     
-    createExpenseMutation.mutate(formData, {
-      onSuccess: () => {
-        toast({ 
-          title: "Expense Added", 
-          description: "Your expense has been recorded successfully." 
-        });
-        setOpen(false);
-        form.reset();
-        onExpenseAdded?.();
-      },
-      onError: () => {
-        toast({ 
-          title: "Error", 
-          description: "Failed to add expense", 
-          variant: "destructive" 
-        });
-      },
-    });
+    if (isEditing && initialData?.id) {
+      // Update existing expense
+      updateExpenseMutation.mutate(
+        { id: initialData.id, data: formData },
+        {
+          onSuccess: () => {
+            toast({ 
+              title: "Expense Updated", 
+              description: "Your expense has been updated successfully." 
+            });
+            // More aggressive cache invalidation
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            queryClient.refetchQueries({ queryKey: ['expenses'] });
+            onClose?.();
+            form.reset();
+            onExpenseAdded?.();
+          },
+          onError: () => {
+            toast({ 
+              title: "Error", 
+              description: "Failed to update expense", 
+              variant: "destructive" 
+            });
+          },
+        }
+      );
+    } else {
+      // Create new expense
+      createExpenseMutation.mutate(formData, {
+        onSuccess: () => {
+          toast({ 
+            title: "Expense Added", 
+            description: "Your expense has been recorded successfully." 
+          });
+          setOpen(false);
+          form.reset();
+          onExpenseAdded?.();
+        },
+        onError: () => {
+          toast({ 
+            title: "Error", 
+            description: "Failed to add expense", 
+            variant: "destructive" 
+          });
+        },
+      });
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="default" 
-          className="bg-primary text-white hover:bg-blue-700"
-          data-testid="button-add-expense"
-        >
-          <Plus size={16} className="mr-2" />
-          Add Expense
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      setOpen(newOpen);
+      if (!newOpen && isEditing) {
+        onClose?.();
+      }
+    }}>
+      {!isEditing && (
+        <DialogTrigger asChild>
+          <Button 
+            variant="default" 
+            className="bg-primary text-white hover:bg-blue-700"
+            data-testid="button-add-expense"
+          >
+            <Plus size={16} className="mr-2" />
+            Add Expense
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-add-expense">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Receipt size={20} className="text-primary" />
-            <span>Add Expense</span>
+            <span>{isEditing ? 'Edit Expense' : 'Add Expense'}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -319,7 +369,13 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
                 type="button" 
                 variant="outline" 
                 className="flex-1" 
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  if (isEditing) {
+                    onClose?.();
+                  } else {
+                    setOpen(false);
+                  }
+                }}
                 data-testid="button-cancel-expense"
               >
                 Cancel
@@ -327,10 +383,13 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               <Button 
                 type="submit" 
                 className="flex-1 bg-primary text-white hover:bg-blue-700" 
-                disabled={createExpenseMutation.isPending}
+                disabled={createExpenseMutation.isPending || updateExpenseMutation.isPending}
                 data-testid="button-submit-expense"
               >
-                {createExpenseMutation.isPending ? "Adding..." : "Add Expense"}
+                {(createExpenseMutation.isPending || updateExpenseMutation.isPending)
+                  ? (isEditing ? "Updating..." : "Adding...") 
+                  : (isEditing ? "Update Expense" : "Add Expense")
+                }
               </Button>
             </div>
           </form>

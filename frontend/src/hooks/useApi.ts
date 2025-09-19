@@ -256,9 +256,13 @@ export const useCreateExpense = () => {
 
 export const useUpdateExpense = () => {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+  
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      expensesApi.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const token = await getToken();
+      return expensesApi.update(id, data, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
     },

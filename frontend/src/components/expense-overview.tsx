@@ -1,18 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Receipt, Calendar, TrendingDown, DollarSign, Repeat, Clock } from "lucide-react";
+import { Receipt, Calendar, TrendingDown, DollarSign, Repeat, Clock, Edit2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useExpenses } from "@/lib/clerk-api-hooks";
 import { Expense } from "@/types/schema";
 import { formatCurrency } from "@/lib/financial-calculations";
 import { ExpenseForm } from "@/components/expense-form";
+import { useState } from "react";
 
 interface ExpenseOverviewProps {
   onAddExpense?: () => void;
 }
 
+const EXPENSES_PER_PAGE = 5;
+
 export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  
   // Get all expenses
-  const { data: allExpenses = [], isLoading } = useExpenses();
+  const { data: allExpenses = [], isLoading, refetch } = useExpenses();
   
   // Filter current month expenses on client side
   const currentDate = new Date();
@@ -26,7 +32,7 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
 
   // Calculate monthly total
   const monthlyTotal = monthlyExpenses.reduce((sum: number, expense: Expense) => 
-    sum + parseFloat(expense.amount), 0);
+    sum + parseFloat(expense.amount?.toString() || "0"), 0);
 
   // Separate subscription and one-time expenses
   const subscriptionExpenses = monthlyExpenses.filter((expense: Expense) => 
@@ -35,28 +41,39 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
     expense.paymentType === 'one-time' || !expense.isRecurring);
   
   const subscriptionTotal = subscriptionExpenses.reduce((sum: number, expense: Expense) => 
-    sum + parseFloat(expense.amount), 0);
+    sum + parseFloat(expense.amount?.toString() || "0"), 0);
   const oneTimeTotal = oneTimeExpenses.reduce((sum: number, expense: Expense) => 
-    sum + parseFloat(expense.amount), 0);
+    sum + parseFloat(expense.amount?.toString() || "0"), 0);
 
   // Calculate spending by category this month
   const categorySpending = monthlyExpenses.reduce((acc: Record<string, number>, expense: Expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + parseFloat(expense.amount);
+    const amount = parseFloat(expense.amount?.toString() || "0");
+    acc[expense.category] = (acc[expense.category] || 0) + amount;
     return acc;
   }, {});
 
   const topCategories = Object.entries(categorySpending)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
     .slice(0, 5);
 
-  // Get recent expenses (last 7 days)
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Get recent expenses (last 30 days for better pagination)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   
   const recentExpenses = allExpenses
-    .filter((expense: Expense) => new Date(expense.expenseDate) >= sevenDaysAgo)
-    .sort((a: Expense, b: Expense) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())
-    .slice(0, 5);
+    .filter((expense: Expense) => new Date(expense.expenseDate) >= thirtyDaysAgo)
+    .sort((a: Expense, b: Expense) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime());
+
+  // Pagination calculations
+  const totalPages = Math.ceil(recentExpenses.length / EXPENSES_PER_PAGE);
+  const startIndex = (currentPage - 1) * EXPENSES_PER_PAGE;
+  const endIndex = startIndex + EXPENSES_PER_PAGE;
+  const paginatedExpenses = recentExpenses.slice(startIndex, endIndex);
+
+  // Reset to first page if current page is out of bounds
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(1);
+  }
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
@@ -197,10 +214,10 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-medium text-red-600" data-testid={`category-amount-${category}`}>
-                        {formatCurrency(amount)}
+                        {formatCurrency(amount as number)}
                       </div>
                       <div className="text-xs text-neutral-500">
-                        {((amount / monthlyTotal) * 100).toFixed(0)}%
+                        {(((amount as number) / monthlyTotal) * 100).toFixed(0)}%
                       </div>
                     </div>
                   </div>
@@ -208,27 +225,38 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
               </div>
             )}
 
-            {/* Recent Expenses */}
+            {/* Recent Expenses with Pagination */}
             {recentExpenses.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-medium text-neutral-900">Recent Expenses</h4>
-                {recentExpenses.map((expense: Expense) => (
-                  <div 
-                    key={expense.id} 
-                    className="flex items-center justify-between p-2 hover:bg-neutral-50 rounded"
-                    data-testid={`recent-expense-${expense.id}`}
-                  >
-                    <div className="flex items-center space-x-3">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-neutral-900">Recent Expenses (Last 30 Days)</h4>
+                  {totalPages > 1 && (
+                    <div className="flex items-center space-x-2 text-sm text-neutral-500">
+                      <span>
+                        Page {currentPage} of {totalPages} ({recentExpenses.length} total)
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  {paginatedExpenses.map((expense: Expense) => (
+                    <div 
+                      key={expense.id} 
+                      className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                      data-testid={`recent-expense-${expense.id}`}
+                    >
+                    <div className="flex items-center space-x-3 flex-1">
                       <div className="text-lg">
                         {getCategoryIcon(expense.category)}
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <div className="text-sm font-medium text-neutral-900" data-testid={`expense-description-${expense.id}`}>
                             {expense.description}
                           </div>
                           {(expense.paymentType === 'subscription' || expense.isRecurring) && (
-                            <Repeat size={12} className="text-blue-500" title="Subscription/Recurring expense" />
+                            <Repeat size={12} className="text-blue-500" />
                           )}
                         </div>
                         <div className="text-xs text-neutral-500">
@@ -245,11 +273,88 @@ export function ExpenseOverview({ onAddExpense }: ExpenseOverviewProps) {
                         </div>
                       </div>
                     </div>
-                    <div className="text-sm font-medium text-red-600" data-testid={`expense-amount-${expense.id}`}>
-                      {formatCurrency(parseFloat(expense.amount))}
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm font-medium text-red-600" data-testid={`expense-amount-${expense.id}`}>
+                        {formatCurrency(parseFloat(expense.amount?.toString() || "0"))}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingExpenseId(expense.id)}
+                        className="h-8 w-8 p-0 hover:bg-blue-100"
+                        data-testid={`button-edit-expense-${expense.id}`}
+                      >
+                        <Edit2 className="h-3 w-3 text-blue-600" />
+                      </Button>
                     </div>
                   </div>
-                ))}
+                  ))}
+                </div>
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="flex items-center space-x-2"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>Previous</span>
+                    </Button>
+                    
+                    <div className="flex items-center space-x-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}                {/* Edit Expense Dialog */}
+                {editingExpenseId && (() => {
+                  // Get the current expense data (fresh from the current list)
+                  const currentExpense = allExpenses.find(exp => exp.id === editingExpenseId);
+                  
+                  if (!currentExpense) {
+                    // If expense not found, close the dialog
+                    setEditingExpenseId(null);
+                    return null;
+                  }
+                  
+                  return (
+                    <ExpenseForm 
+                      initialData={currentExpense}
+                      onExpenseAdded={() => {
+                        setEditingExpenseId(null);
+                        setCurrentPage(1); // Reset to first page after edit
+                        refetch(); // Refresh the expense list
+                        onAddExpense?.();
+                      }}
+                      isEditing={true}
+                      onClose={() => setEditingExpenseId(null)}
+                    />
+                  );
+                })()}
               </div>
             )}
           </>
