@@ -99,32 +99,83 @@ function UpcomingPaymentsSummary() {
   const { data: payments = [], isLoading: paymentsLoading } = usePayments();
   const isLoading = creditCardsLoading || loansLoading || paymentsLoading;
 
-  // Combine all upcoming payments
-  const allPayments = [
-    ...(creditCards || []),
-    ...(loans || []),
-    ...(payments || []),
+  // Calculate current week boundaries
+  const today = new Date();
+  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // Filter payments due this week
+  const thisWeekCreditCards = creditCards.filter(card => {
+    if (!card.dueDate) return false;
+    const dueDate = new Date(card.dueDate);
+    return dueDate >= startOfWeek && dueDate <= endOfWeek;
+  });
+  
+  const thisWeekLoans = loans.filter(loan => {
+    if (!loan.dueDate) return false;
+    const dueDate = new Date(loan.dueDate);
+    return dueDate >= startOfWeek && dueDate <= endOfWeek;
+  });
+
+  // Combine this week's payments
+  const thisWeekPayments = [
+    ...thisWeekCreditCards,
+    ...thisWeekLoans,
+    ...(payments || []).filter(payment => {
+      if (!payment.dueDate) return false;
+      const dueDate = new Date(payment.dueDate);
+      return dueDate >= startOfWeek && dueDate <= endOfWeek;
+    })
   ];
-  const totalUpcoming = allPayments.reduce((sum, item) => sum + (item.minimumPayment || item.monthlyPayment || 0), 0);
-  const count = allPayments.length;
+  
+  const totalThisWeek = thisWeekPayments.reduce((sum, item) => sum + (item.minimumPayment || item.monthlyPayment || item.amount || 0), 0);
+  const count = thisWeekPayments.length;
 
   if (isLoading) return <div className="text-sm text-gray-400">Loading...</div>;
   return (
     <>
-      <div className="text-xl font-bold text-red-600">{formatCurrency(totalUpcoming)}</div>
-      <div className="text-sm text-gray-500">{count} payments due</div>
+      <div className="text-sm text-gray-500">This Week</div>
+      <div className="text-xl font-bold text-red-600">{formatCurrency(totalThisWeek)}</div>
+      <div className="text-sm text-gray-500">{count} payment{count !== 1 ? 's' : ''} due</div>
     </>
   );
 }
 
 function UpcomingIncomesSummary() {
   const { data: incomes = [], isLoading } = useIncomes();
-  const totalUpcomingIncome = incomes.reduce((sum, income) => sum + (income.amount || 0), 0);
-  const count = incomes.length;
+  
+  // Calculate current week boundaries
+  const today = new Date();
+  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // Filter incomes for this week (if they have a next income date)
+  const thisWeekIncomes = incomes.filter(income => {
+    if (!income.nextIncomeDate) return false;
+    const incomeDate = new Date(income.nextIncomeDate);
+    return incomeDate >= startOfWeek && incomeDate <= endOfWeek;
+  });
+  
+  const totalThisWeekIncome = thisWeekIncomes.reduce((sum, income) => sum + (income.amount || 0), 0);
+  const count = thisWeekIncomes.length;
+  
   if (isLoading) return <div className="text-sm text-gray-400">Loading...</div>;
   return (
     <>
-      <div className="text-xl font-bold text-green-600">{formatCurrency(totalUpcomingIncome)}</div>
+      <div className="text-sm text-gray-500">This Week</div>
+      <div className="text-xl font-bold text-green-600">{formatCurrency(totalThisWeekIncome)}</div>
       <div className="text-sm text-gray-500">{count} income source{count !== 1 ? 's' : ''}</div>
     </>
   );
@@ -2993,8 +3044,8 @@ export default function ComprehensiveDashboard() {
                             <CreditCardIcon className="h-5 w-5 text-red-600" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Payments</h3>
-                            <p className="text-sm text-gray-500 hidden sm:block">Track and manage your upcoming financial obligations</p>
+                            <h3 className="text-lg font-semibold text-gray-900">This Week's Payments</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track and manage your financial obligations due this week</p>
                           </div>
                         </div>
                         <div className="text-left sm:text-right sm:mr-6">
@@ -3026,8 +3077,8 @@ export default function ComprehensiveDashboard() {
                             <DollarSign className="h-5 w-5 text-green-600" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Income</h3>
-                            <p className="text-sm text-gray-500 hidden sm:block">Monitor your expected income and cash flow</p>
+                            <h3 className="text-lg font-semibold text-gray-900">This Week's Income</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Monitor your expected income and cash flow for this week</p>
                           </div>
                         </div>
                         <div className="text-left sm:text-right sm:mr-6">
@@ -3587,31 +3638,37 @@ export default function ComprehensiveDashboard() {
                             <CalendarDays className="h-5 w-5 text-red-600" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Business Payments</h3>
-                            <p className="text-sm text-gray-500 hidden sm:block">Track upcoming business expenses and loan payments</p>
+                            <h3 className="text-lg font-semibold text-gray-900">This Week's Business Payments</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Track business expenses and loan payments due this week</p>
                           </div>
                         </div>
                         <div className="text-left sm:text-right sm:mr-6">
-                          <div className="text-sm text-gray-500">Next 30 Days</div>
+                          <div className="text-sm text-gray-500">This Week</div>
                           <div className="text-lg font-semibold text-red-600">
                             {(() => {
-                              const upcomingPayments = [
+                              const today = new Date();
+                              const currentDay = today.getDay();
+                              const startOfWeek = new Date(today);
+                              startOfWeek.setDate(today.getDate() - currentDay);
+                              startOfWeek.setHours(0, 0, 0, 0);
+                              
+                              const endOfWeek = new Date(startOfWeek);
+                              endOfWeek.setDate(startOfWeek.getDate() + 6);
+                              endOfWeek.setHours(23, 59, 59, 999);
+                              
+                              const thisWeekPayments = [
                                 ...businessExpenses.filter(expense => {
                                   const expenseDate = new Date(expense.dueDate || expense.date || expense.expenseDate);
-                                  const today = new Date();
-                                  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                                  return expenseDate >= today && expenseDate <= thirtyDaysFromNow && !isNaN(expenseDate.getTime());
+                                  return expenseDate >= startOfWeek && expenseDate <= endOfWeek && !isNaN(expenseDate.getTime());
                                 }),
                                 ...businessLoans.filter(loan => {
                                   const loanDueDate = new Date(loan.dueDate);
-                                  const today = new Date();
-                                  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                                  return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow && !isNaN(loanDueDate.getTime());
+                                  return loanDueDate >= startOfWeek && loanDueDate <= endOfWeek && !isNaN(loanDueDate.getTime());
                                 })
                               ];
-                              const total = upcomingPayments.reduce((sum, payment) => 
-                                sum + parseFloat(payment.amount || payment.monthlyPayment || 0), 0
-                              );
+                              const total = thisWeekPayments.reduce((sum, payment) => {
+                                return sum + parseFloat(payment.amount || payment.monthlyPayment || 0);
+                              }, 0);
                               return formatCurrency(total);
                             })()}
                           </div>
@@ -3619,14 +3676,28 @@ export default function ComprehensiveDashboard() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 sm:px-6 pb-6">
-                      {/* Filter upcoming business expenses and loan payments */}
+                      {/* Filter business payments for this week */}
                       {(() => {
-                        const upcomingBusinessPayments = [
+                        const today = new Date();
+                        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+                        startOfWeek.setHours(0, 0, 0, 0);
+                        
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+                        endOfWeek.setHours(23, 59, 59, 999);
+                        
+                        console.log('🔍 [DEBUG] This week:', startOfWeek.toLocaleDateString(), 'to', endOfWeek.toLocaleDateString());
+                        console.log('🔍 [DEBUG] Business Expenses Data:', businessExpenses);
+                        console.log('🔍 [DEBUG] Business Loans Data:', businessLoans);
+                        
+                        const thisWeekBusinessPayments = [
                           ...businessExpenses.filter(expense => {
                             const expenseDate = new Date(expense.dueDate || expense.date || expense.expenseDate);
-                            const today = new Date();
-                            const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                            return expenseDate >= today && expenseDate <= thirtyDaysFromNow && !isNaN(expenseDate.getTime());
+                            const isThisWeek = expenseDate >= startOfWeek && expenseDate <= endOfWeek && !isNaN(expenseDate.getTime());
+                            console.log('🔍 [DEBUG] Expense:', expense.description, 'Date:', expenseDate.toLocaleDateString(), 'Is this week:', isThisWeek);
+                            return isThisWeek;
                           }).map(expense => ({
                             ...expense,
                             type: 'expense',
@@ -3636,9 +3707,9 @@ export default function ComprehensiveDashboard() {
                           })),
                           ...businessLoans.filter(loan => {
                             const loanDueDate = new Date(loan.dueDate);
-                            const today = new Date();
-                            const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                            return loanDueDate >= today && loanDueDate <= thirtyDaysFromNow && !isNaN(loanDueDate.getTime());
+                            const isThisWeek = loanDueDate >= startOfWeek && loanDueDate <= endOfWeek && !isNaN(loanDueDate.getTime());
+                            console.log('🔍 [DEBUG] Loan:', loan.loanName, 'Due date:', loanDueDate.toLocaleDateString(), 'Is this week:', isThisWeek);
+                            return isThisWeek;
                           }).map(loan => ({
                             ...loan,
                             type: 'loan',
@@ -3647,16 +3718,17 @@ export default function ComprehensiveDashboard() {
                             dueDate: loan.dueDate
                           }))
                         ];
+                        console.log('🔍 [DEBUG] Total this week business payments:', thisWeekBusinessPayments.length);
                         
-                        return upcomingBusinessPayments.length === 0 ? (
+                        return thisWeekBusinessPayments.length === 0 ? (
                           <div className="text-center py-8 text-neutral-500">
                             <CalendarDays size={48} className="mx-auto mb-4 text-neutral-300" />
-                            <p className="mb-4">No upcoming business payments</p>
+                            <p className="mb-4">No business payments this week</p>
                             <p className="text-sm">Business expenses and loan payments will appear here</p>
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {upcomingBusinessPayments.map((payment: any, index) => (
+                            {thisWeekBusinessPayments.map((payment: any, index) => (
                               <div key={`${payment.type}-${payment.id}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
@@ -3685,23 +3757,31 @@ export default function ComprehensiveDashboard() {
                             <TrendingUp className="h-5 w-5 text-green-600" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-lg font-semibold text-gray-900">Upcoming Business Revenue</h3>
-                            <p className="text-sm text-gray-500 hidden sm:block">Monitor expected business income and cash flow</p>
+                            <h3 className="text-lg font-semibold text-gray-900">This Week's Business Revenue</h3>
+                            <p className="text-sm text-gray-500 hidden sm:block">Monitor expected business income and cash flow for this week</p>
                           </div>
                         </div>
                         <div className="text-left sm:text-right sm:mr-6">
-                          <div className="text-sm text-gray-500">Expected Income</div>
+                          <div className="text-sm text-gray-500">This Week's Income</div>
                           <div className="text-lg font-semibold text-green-600">
                             {(() => {
-                              const upcomingRevenue = businessRevenue.filter(revenue => {
+                              const today = new Date();
+                              const currentDay = today.getDay();
+                              const startOfWeek = new Date(today);
+                              startOfWeek.setDate(today.getDate() - currentDay);
+                              startOfWeek.setHours(0, 0, 0, 0);
+                              
+                              const endOfWeek = new Date(startOfWeek);
+                              endOfWeek.setDate(startOfWeek.getDate() + 6);
+                              endOfWeek.setHours(23, 59, 59, 999);
+                              
+                              const thisWeekRevenue = businessRevenue.filter(revenue => {
                                 const dateField = revenue.date || revenue.revenueDate;
                                 if (!dateField) return false;
                                 const revenueDate = new Date(dateField);
-                                const today = new Date();
-                                const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                                return revenueDate >= today && revenueDate <= thirtyDaysFromNow && !isNaN(revenueDate.getTime());
+                                return revenueDate >= startOfWeek && revenueDate <= endOfWeek && !isNaN(revenueDate.getTime());
                               });
-                              const total = upcomingRevenue.reduce((sum, revenue) => sum + parseFloat(revenue.amount || 0), 0);
+                              const total = thisWeekRevenue.reduce((sum, revenue) => sum + parseFloat(revenue.amount || 0), 0);
                               return formatCurrency(total);
                             })()}
                           </div>
@@ -3709,31 +3789,39 @@ export default function ComprehensiveDashboard() {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 sm:px-6 pb-6">
-                      {/* Filter upcoming business revenue */}
+                      {/* Filter business revenue for this week */}
                       {(() => {
+                        const today = new Date();
+                        const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+                        startOfWeek.setHours(0, 0, 0, 0);
+                        
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+                        endOfWeek.setHours(23, 59, 59, 999);
+                        
                         console.log('🔍 [DEBUG] Business Revenue Data:', businessRevenue);
-                        const upcomingBusinessRevenue = businessRevenue.filter(revenue => {
+                        const thisWeekBusinessRevenue = businessRevenue.filter(revenue => {
                           const dateField = revenue.date || revenue.revenueDate;
-                          console.log('🔍 [DEBUG] Revenue item:', revenue, 'Date field:', dateField);
+                          console.log('🔍 [DEBUG] Revenue item:', revenue.description, 'Date field:', dateField);
                           if (!dateField) return false;
                           const revenueDate = new Date(dateField);
-                          const today = new Date();
-                          const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                          const isUpcoming = revenueDate >= today && revenueDate <= thirtyDaysFromNow && !isNaN(revenueDate.getTime());
-                          console.log('🔍 [DEBUG] Revenue date:', revenueDate, 'Is upcoming:', isUpcoming);
-                          return isUpcoming;
+                          const isThisWeek = revenueDate >= startOfWeek && revenueDate <= endOfWeek && !isNaN(revenueDate.getTime());
+                          console.log('🔍 [DEBUG] Revenue date:', revenueDate.toLocaleDateString(), 'Is this week:', isThisWeek);
+                          return isThisWeek;
                         });
-                        console.log('🔍 [DEBUG] Upcoming business revenue count:', upcomingBusinessRevenue.length);
+                        console.log('🔍 [DEBUG] This week business revenue count:', thisWeekBusinessRevenue.length);
                         
-                        return upcomingBusinessRevenue.length === 0 ? (
+                        return thisWeekBusinessRevenue.length === 0 ? (
                           <div className="text-center py-8 text-neutral-500">
                             <TrendingUp size={48} className="mx-auto mb-4 text-neutral-300" />
-                            <p className="mb-4">No upcoming business revenue</p>
+                            <p className="mb-4">No business revenue this week</p>
                             <p className="text-sm">Expected business income will appear here</p>
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {upcomingBusinessRevenue.map((revenue: any) => (
+                            {thisWeekBusinessRevenue.map((revenue: any) => (
                               <div key={revenue.id} className="flex items-center justify-between p-3 border rounded-lg">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">

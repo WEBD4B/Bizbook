@@ -122,7 +122,21 @@ export function UpcomingPayments({ onEdit, onPay }: UpcomingPaymentsProps) {
   // Filter payments based on selected filter
   const filteredPayments = allPayments.filter(payment => {
     if (filter === "all") return true;
-    if (filter === "week") return payment.daysUntilDue <= 7;
+    if (filter === "week") {
+      // Filter by current calendar week (Sunday to Saturday)
+      const today = new Date();
+      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const paymentDate = payment.nextDueDate;
+      return paymentDate >= startOfWeek && paymentDate <= endOfWeek;
+    }
     if (filter === "month") {
       // Only show payments due in the current calendar month
       const now = new Date();

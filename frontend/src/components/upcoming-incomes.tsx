@@ -63,7 +63,21 @@ export function UpcomingIncomes({ onEdit }: UpcomingIncomesProps) {
   // Filter incomes based on selected filter
   const filteredIncomes = upcomingIncomes.filter((income: TransformedIncome) => {
     if (filter === "all") return true;
-    if (filter === "week") return income.daysUntilIncome <= 7;
+    if (filter === "week") {
+      // Filter by current calendar week (Sunday to Saturday)
+      const today = new Date();
+      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - currentDay); // Start of week (Sunday)
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Saturday)
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const incomeDate = income.nextIncomeDate;
+      return incomeDate >= startOfWeek && incomeDate <= endOfWeek;
+    }
     if (filter === "month") {
       // Filter by current calendar month
       const today = new Date();
