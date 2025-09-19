@@ -488,6 +488,10 @@ export class DatabaseService {
   }
 
   async deletePurchaseOrder(id, userId = null) {
+    // First, delete all associated purchase order items
+    await this.delete(purchaseOrderItems, eq(purchaseOrderItems.purchaseOrderId, id));
+    
+    // Then delete the purchase order itself
     const where = userId 
       ? and(eq(purchaseOrders.id, id), eq(purchaseOrders.userId, userId))
       : eq(purchaseOrders.id, id);

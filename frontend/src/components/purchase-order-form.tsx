@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
 import { Plus, Trash2 } from "lucide-react";
 import { useVendors } from "@/hooks/useApi";
+import { useAuth } from "@clerk/clerk-react";
 
 interface PurchaseOrderFormProps {
   onClose: () => void;
@@ -27,6 +29,7 @@ interface LineItem {
 
 export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: PurchaseOrderFormProps) {
   const { toast } = useToast();
+  const { getToken } = useAuth();
   
   const { data: vendors = [] } = useVendors();
 
@@ -53,11 +56,29 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
     notes: initialData?.notes || "",
   });
 
-  const [lineItems, setLineItems] = useState<LineItem[]>(
-    initialData?.items || [
-      { id: "1", description: "", quantity: 1, unitPrice: 0, total: 0 }
-    ]
-  );
+  const [lineItems, setLineItems] = useState<LineItem[]>([
+    { id: "1", description: "", quantity: 1, unitPrice: 0, total: 0 }
+  ]);
+
+  // Recalculate totals when line items change or when editing existing data
+  useEffect(() => {
+    if (initialData?.items && initialData.items.length > 0) {
+      const updatedItems = initialData.items.map((item: any, index: number) => {
+        const quantity = parseFloat(String(item.quantity || "1"));
+        const unitPrice = parseFloat(String(item.unitPrice || "0"));
+        const calculatedTotal = quantity * unitPrice;
+        
+        return {
+          id: item.id || `item-${index}`,
+          description: String(item.description || ""),
+          quantity,
+          unitPrice,
+          total: calculatedTotal
+        };
+      });
+      setLineItems(updatedItems);
+    }
+  }, [initialData?.items]);
 
   // Auto-fill vendor details when vendor is selected
   const handleVendorChange = (vendorId: string) => {
@@ -106,14 +127,21 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
 
   const createPurchaseOrder = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/purchase-orders", data);
+      const token = await getToken();
+      return apiRequest("/purchase-orders", {
+        method: "POST",
+        body: JSON.stringify(data)
+      }, token);
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Purchase order created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+      // Invalidate all purchase order queries
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      // Also invalidate vendor queries
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
       onClose();
     },
     onError: () => {
@@ -127,14 +155,21 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
 
   const updatePurchaseOrder = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("PUT", `/api/purchase-orders/${initialData.id}`, data);
+      const token = await getToken();
+      return apiRequest(`/purchase-orders/${initialData.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      }, token);
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Purchase order updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
+      // Invalidate all purchase order queries
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      // Also invalidate vendor queries
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
       onClose();
     },
     onError: () => {
@@ -149,18 +184,24 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const totalAmount = lineItems.reduce((sum, item) => sum + item.total, 0);
+    const totalAmount = lineItems.reduce((sum, item) => {
+      const itemTotal = parseFloat(String(item.total || '0'));
+      return sum + (isNaN(itemTotal) ? 0 : itemTotal);
+    }, 0);
     
     const mutation = initialData ? updatePurchaseOrder : createPurchaseOrder;
     mutation.mutate({
       ...formData,
       items: lineItems,
-      totalAmount,
+      totalAmount: String(totalAmount), // Convert to string for backend validation
       status: initialData?.status || "pending"
     });
   };
 
-  const totalAmount = lineItems.reduce((sum, item) => sum + item.total, 0);
+  const totalAmount = lineItems.reduce((sum, item) => {
+    const itemTotal = parseFloat(String(item.total || '0'));
+    return sum + (isNaN(itemTotal) ? 0 : itemTotal);
+  }, 0);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
@@ -281,9 +322,10 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
                 <Label>Quantity</Label>
                 <Input
                   type="number"
+                  step="0.01"
                   min="1"
                   value={item.quantity}
-                  onChange={(e) => updateLineItem(item.id, "quantity", parseInt(e.target.value) || 0)}
+                  onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
                   data-testid={`input-item-quantity-${index}`}
                 />
               </div>
@@ -301,7 +343,7 @@ export function PurchaseOrderForm({ onClose, initialData, selectedVendorId }: Pu
               <div className="col-span-2">
                 <Label>Total</Label>
                 <Input
-                  value={`$${item.total.toFixed(2)}`}
+                  value={`$${parseFloat(String(item.total || '0')).toFixed(2)}`}
                   readOnly
                   className="bg-gray-100"
                   data-testid={`text-item-total-${index}`}

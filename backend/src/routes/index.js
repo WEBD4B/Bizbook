@@ -1061,10 +1061,25 @@ router.get('/purchase-orders', authenticateToken, asyncHandler(async (req, res) 
     }
   }
 
+  // Add items and vendor information to each purchase order
+  const ordersWithDetails = await Promise.all(orders.map(async (order) => {
+    const items = await dbService.getPurchaseOrderItems(order.id);
+    const vendor = await dbService.getVendor(order.vendorId, req.user.id);
+    
+    return {
+      ...order,
+      items: items,
+      itemCount: items.length,
+      vendorName: vendor?.companyName || 'Unknown Vendor',
+      vendorPhone: vendor?.phone || '',
+      vendorAddress: vendor?.address || ''
+    };
+  }));
+
   res.json({
     success: true,
-    data: orders,
-    total: orders.length
+    data: ordersWithDetails,
+    total: ordersWithDetails.length
   });
 }));
 

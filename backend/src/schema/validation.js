@@ -254,7 +254,7 @@ export const insertVendorSchema = z.object({
 // Purchase Order schemas
 export const insertPurchaseOrderSchema = z.object({
   userId: z.string().uuid().optional(),
-  businessProfileId: z.string().uuid(),
+  businessProfileId: z.string().uuid().optional(),
   vendorId: z.string().uuid(),
   poNumber: z.string().min(1).max(100),
   status: z.string().max(50).default('pending'),

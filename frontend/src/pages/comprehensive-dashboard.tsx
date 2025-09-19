@@ -64,6 +64,7 @@ import { BusinessExpenseForm } from "@/components/business-expense-form";
 import { IncomeForm } from "@/components/income-form";
 import { VendorForm } from "@/components/vendor-form";
 import { PurchaseOrderForm } from "@/components/purchase-order-form";
+import { PurchaseOrderFormComprehensive } from "@/components/purchase-order-form-comprehensive";
 import { PurchaseOrderList } from "@/components/purchase-order-list";
 import { VendorSearch } from "@/components/vendor-search";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -197,6 +198,7 @@ export default function ComprehensiveDashboard() {
   
   const [businessProfileDialogOpen, setBusinessProfileDialogOpen] = useState(false);
   const [purchaseOrderDialogOpen, setPurchaseOrderDialogOpen] = useState(false);
+  const [selectedVendorForPO, setSelectedVendorForPO] = useState<string | null>(null);
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false);
 
   // Modal dialog states for forms
@@ -902,367 +904,6 @@ export default function ComprehensiveDashboard() {
           </Button>
           <Button type="submit" disabled={loanMutation.isPending}>
             {loanMutation.isPending ? "Adding..." : "Add Loan"}
-          </Button>
-        </div>
-      </form>
-    );
-  };
-
-  // Purchase Order Form 
-  const PurchaseOrderForm = ({ onClose }: { onClose: () => void }) => {
-    const [formData, setFormData] = useState({
-      businessProfileId: '',
-      vendorId: '',
-      poNumber: `PO-${Date.now()}`,
-      vendorName: '',
-      vendorAddress: '',
-      vendorPhone: '',
-      shipToName: '',
-      shipToAddress: '',
-      shipToPhone: '',
-      requisitioner: '',
-      shipVia: '',
-      fobPoint: '',
-      shippingTerms: '',
-      specialInstructions: '',
-      items: [{ itemNumber: '', description: '', quantity: '', unitPrice: '', total: '' }]
-    });
-
-    const orderMutation = useMutation({
-      mutationFn: async (data: any) => {
-        const { items, ...orderData } = data;
-        const subtotal = items.reduce((sum: number, item: any) => sum + parseFloat(item.total || '0'), 0);
-        const salesTax = subtotal * 0.08; // 8% tax
-        const totalDue = subtotal + salesTax;
-
-        const token = await getToken();
-        const orderResponse = await apiRequest("/purchase-orders", {
-          method: "POST",
-          body: JSON.stringify({
-            ...orderData,
-            subtotal: subtotal.toString(),
-            salesTax: salesTax.toString(),
-            shippingHandling: "0",
-            totalDue: totalDue.toString()
-          })
-        }, token);
-        const order = orderResponse.data;
-
-        // Create order items
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item.description) {
-            await apiRequest("/purchase-order-items", {
-              method: "POST",
-              body: JSON.stringify({
-                purchaseOrderId: order.id,
-                lineNumber: i + 1, // Convert array index to 1-based line number
-                description: item.description,
-                quantity: item.quantity || '0',
-                unitPrice: item.unitPrice || '0',
-                totalPrice: item.total || '0', // Map 'total' to 'totalPrice'
-                partNumber: item.itemNumber || '', // Map 'itemNumber' to 'partNumber'
-                unitOfMeasure: 'each' // Default value
-              })
-            }, token);
-          }
-        }
-
-        // Automatically create business expense for the purchase order
-        await apiRequest("/business-expenses", {
-          method: "POST",
-          body: JSON.stringify({
-            amount: totalDue.toString(),
-            description: `Purchase Order ${orderData.poNumber} - ${orderData.vendorName}`,
-            vendor: orderData.vendorName,
-            category: "Purchase Orders",
-            expenseType: "operational",
-            date: new Date().toISOString().split('T')[0],
-            notes: `Auto-generated from PO ${orderData.poNumber}`,
-            purchaseOrderId: order.id
-          })
-        }, token);
-
-        return order;
-      },
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Purchase order created and added to business expenses"
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/purchase-orders"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/business-expenses"] });
-        onClose();
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to create purchase order",
-          variant: "destructive"
-        });
-      }
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!formData.businessProfileId) {
-        toast({
-          title: "Error",
-          description: "Please select a business profile first",
-          variant: "destructive"
-        });
-        return;
-      }
-      if (!formData.vendorId) {
-        toast({
-          title: "Error",
-          description: "Please select a vendor first",
-          variant: "destructive"
-        });
-        return;
-      }
-      orderMutation.mutate(formData);
-    };
-
-    const addItem = () => {
-      setFormData(prev => ({
-        ...prev,
-        items: [...prev.items, { itemNumber: '', description: '', quantity: '', unitPrice: '', total: '' }]
-      }));
-    };
-
-    const updateItem = (index: number, field: string, value: string) => {
-      const newItems = [...formData.items];
-      newItems[index] = { ...newItems[index], [field]: value };
-      
-      if (field === 'quantity' || field === 'unitPrice') {
-        const quantity = parseFloat(newItems[index].quantity || '0');
-        const unitPrice = parseFloat(newItems[index].unitPrice || '0');
-        newItems[index].total = (quantity * unitPrice).toFixed(2);
-      }
-      
-      setFormData(prev => ({ ...prev, items: newItems }));
-    };
-
-    const removeItem = (index: number) => {
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items.filter((_, i) => i !== index)
-      }));
-    };
-
-    return (
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="business-profile">Business Profile</Label>
-            <Select value={formData.businessProfileId} onValueChange={(value) => setFormData(prev => ({ ...prev, businessProfileId: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select business profile" />
-              </SelectTrigger>
-              <SelectContent>
-                {businessProfiles.map((profile: any) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.businessName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="po-number">PO Number</Label>
-            <Input
-              id="po-number"
-              value={formData.poNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, poNumber: e.target.value }))}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Vendor Information</h3>
-          <div>
-            <Label htmlFor="vendor-select">Select Vendor</Label>
-            <Select 
-              value={formData.vendorId} 
-              onValueChange={(value) => {
-                const selectedVendor = vendors.find(v => v.id === value);
-                if (selectedVendor) {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    vendorId: value,
-                    vendorName: selectedVendor.companyName,
-                    vendorAddress: selectedVendor.address || '',
-                    vendorPhone: selectedVendor.phone || ''
-                  }));
-                }
-              }}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={vendors.length === 0 ? "No vendors available" : "Select a vendor"} />
-              </SelectTrigger>
-              <SelectContent>
-                {vendors.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    No vendors available. Please add a vendor first.
-                  </SelectItem>
-                ) : (
-                  vendors.map((vendor: any) => (
-                    <SelectItem key={vendor.id} value={vendor.id}>
-                      {vendor.companyName}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {vendors.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-1">
-                You need to add vendors before creating purchase orders. Go to the Office tab to add vendors.
-              </p>
-            )}
-          </div>
-          {formData.vendorId && (
-            <>
-              <div>
-                <Label>Vendor Address (auto-filled)</Label>
-                <Textarea
-                  value={formData.vendorAddress}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vendorAddress: e.target.value }))}
-                  placeholder="Vendor address will be auto-filled when you select a vendor"
-                />
-              </div>
-              <div>
-                <Label>Vendor Phone (auto-filled)</Label>
-                <Input
-                  value={formData.vendorPhone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vendorPhone: e.target.value }))}
-                  placeholder="Vendor phone will be auto-filled when you select a vendor"
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Ship To Information</h3>
-          <div>
-            <Label htmlFor="ship-to-name">Ship To Name</Label>
-            <Input
-              id="ship-to-name"
-              value={formData.shipToName}
-              onChange={(e) => setFormData(prev => ({ ...prev, shipToName: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="ship-to-address">Ship To Address</Label>
-            <Textarea
-              id="ship-to-address"
-              value={formData.shipToAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, shipToAddress: e.target.value }))}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="requisitioner">Requisitioner</Label>
-            <Input
-              id="requisitioner"
-              value={formData.requisitioner}
-              onChange={(e) => setFormData(prev => ({ ...prev, requisitioner: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="ship-via">Ship Via</Label>
-            <Input
-              id="ship-via"
-              value={formData.shipVia}
-              onChange={(e) => setFormData(prev => ({ ...prev, shipVia: e.target.value }))}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Items</h3>
-            <Button type="button" onClick={addItem} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
-          {formData.items.map((item, index) => (
-            <div key={index} className="grid grid-cols-6 gap-2 items-end">
-              <div>
-                <Label>Item #</Label>
-                <Input
-                  value={item.itemNumber}
-                  onChange={(e) => updateItem(index, 'itemNumber', e.target.value)}
-                  placeholder="Item number"
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Description</Label>
-                <Input
-                  value={item.description}
-                  onChange={(e) => updateItem(index, 'description', e.target.value)}
-                  placeholder="Description"
-                />
-              </div>
-              <div>
-                <Label>Qty</Label>
-                <Input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                  placeholder="Quantity"
-                />
-              </div>
-              <div>
-                <Label>Unit Price</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={item.unitPrice}
-                  onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={item.total}
-                  readOnly
-                  placeholder="Total"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeItem(index)}
-                  disabled={formData.items.length === 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <Label htmlFor="special-instructions">Special Instructions</Label>
-          <Textarea
-            id="special-instructions"
-            value={formData.specialInstructions}
-            onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
-            placeholder="Any special instructions or notes"
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={orderMutation.isPending}>
-            {orderMutation.isPending ? "Creating..." : "Create Purchase Order"}
           </Button>
         </div>
       </form>
@@ -4064,11 +3705,13 @@ export default function ComprehensiveDashboard() {
                                 View {purchaseOrders.length - 3} more purchase orders
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-6xl max-h-[90vh]">
-                              <DialogHeader>
+                            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+                              <DialogHeader className="flex-shrink-0">
                                 <DialogTitle>All Purchase Orders</DialogTitle>
                               </DialogHeader>
-                              <PurchaseOrderList />
+                              <div className="flex-1 overflow-y-auto pr-2">
+                                <PurchaseOrderList />
+                              </div>
                             </DialogContent>
                           </Dialog>
                         </div>
@@ -4116,26 +3759,18 @@ export default function ComprehensiveDashboard() {
                             <div>Terms: {vendor.paymentTerms}</div>
                           </div>
                           <div className="flex gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="flex-1">
-                                  <Receipt className="h-4 w-4 mr-2" />
-                                  Create PO
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl">
-                                <DialogHeader>
-                                  <DialogTitle>Create Purchase Order</DialogTitle>
-                                  <DialogDescription>
-                                    Create a new purchase order for {vendor.companyName}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <PurchaseOrderForm 
-                                  selectedVendorId={vendor.id}
-                                  onClose={() => {}} 
-                                />
-                              </DialogContent>
-                            </Dialog>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => {
+                                setSelectedVendorForPO(vendor.id);
+                                setPurchaseOrderDialogOpen(true);
+                              }}
+                            >
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Create PO
+                            </Button>
                             
                             <Dialog>
                               <DialogTrigger asChild>
@@ -4193,6 +3828,21 @@ export default function ComprehensiveDashboard() {
                 <DialogTitle>Create Business Profile</DialogTitle>
               </DialogHeader>
               <BusinessProfileForm onClose={() => setBusinessProfileDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={purchaseOrderDialogOpen} onOpenChange={setPurchaseOrderDialogOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Create Purchase Order</DialogTitle>
+                <DialogDescription>
+                  Create a new purchase order for the selected vendor
+                </DialogDescription>
+              </DialogHeader>
+              <PurchaseOrderFormComprehensive 
+                selectedVendorId={selectedVendorForPO}
+                onClose={() => setPurchaseOrderDialogOpen(false)} 
+              />
             </DialogContent>
           </Dialog>
 

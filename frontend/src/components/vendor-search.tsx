@@ -30,7 +30,7 @@ export function VendorSearch() {
   });
 
   // Filter purchase orders based on search term (including items)
-  const filteredPOs = purchaseOrders.filter(po => {
+  const filteredPOs = (purchaseOrders as any[] || []).filter(po => {
     if (!searchTerm) return false; // Only show POs when actively searching
     
     const term = searchTerm.toLowerCase();
@@ -177,7 +177,7 @@ export function VendorSearch() {
                             {po.status || 'Pending'}
                           </Badge>
                           <div className="text-right text-sm">
-                            <div className="font-medium">${po.totalAmount?.toFixed(2) || '0.00'}</div>
+                            <div className="font-medium">${parseFloat(po.totalAmount || '0').toFixed(2)}</div>
                             <div className="text-muted-foreground">
                               {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : 'N/A'}
                             </div>
@@ -196,7 +196,7 @@ export function VendorSearch() {
                             .map((item: any, index: number) => (
                               <div key={index} className="flex justify-between">
                                 <span>{item.description}</span>
-                                <span>Qty: {item.quantity} × ${item.unitPrice?.toFixed(2)} = ${item.total?.toFixed(2)}</span>
+                                <span>Qty: {item.quantity} × ${parseFloat(item.unitPrice || '0').toFixed(2)} = ${parseFloat(item.total || '0').toFixed(2)}</span>
                               </div>
                             ))
                           }
@@ -265,7 +265,7 @@ function PurchaseOrderDetails({ po }: { po: any }) {
             <div><strong>PO Number:</strong> {po.poNumber}</div>
             <div><strong>Status:</strong> {po.status || 'Pending'}</div>
             <div><strong>Date Created:</strong> {po.createdAt ? new Date(po.createdAt).toLocaleDateString() : 'N/A'}</div>
-            <div><strong>Total Amount:</strong> ${po.totalAmount?.toFixed(2) || '0.00'}</div>
+            <div><strong>Total Amount:</strong> ${parseFloat(po.totalAmount || '0').toFixed(2)}</div>
           </div>
         </div>
         
@@ -297,15 +297,15 @@ function PurchaseOrderDetails({ po }: { po: any }) {
                 <tr key={index} className="border-t">
                   <td className="p-3">{item.description}</td>
                   <td className="text-center p-3">{item.quantity}</td>
-                  <td className="text-right p-3">${item.unitPrice?.toFixed(2) || '0.00'}</td>
-                  <td className="text-right p-3">${item.total?.toFixed(2) || '0.00'}</td>
+                  <td className="text-right p-3">${parseFloat(item.unitPrice || '0').toFixed(2)}</td>
+                  <td className="text-right p-3">${parseFloat(item.total || '0').toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="bg-gray-50 border-t">
               <tr>
                 <td colSpan={3} className="text-right p-3 font-medium">Total Amount:</td>
-                <td className="text-right p-3 font-bold">${po.totalAmount?.toFixed(2) || '0.00'}</td>
+                <td className="text-right p-3 font-bold">${parseFloat(po.totalAmount || '0').toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>

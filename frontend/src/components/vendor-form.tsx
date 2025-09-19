@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateVendor, useUpdateVendor } from "@/hooks/useApi";
@@ -24,8 +23,6 @@ export function VendorForm({ onClose, initialData }: VendorFormProps) {
     state: initialData?.state || "",
     zipCode: initialData?.zipCode || "",
     country: initialData?.country || "US",
-    vendorType: initialData?.vendorType || "",
-    paymentTerms: initialData?.paymentTerms || "Net 30",
     isActive: initialData?.isActive ?? true,
   });
 
@@ -166,45 +163,6 @@ export function VendorForm({ onClose, initialData }: VendorFormProps) {
             onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
             data-testid="input-vendor-zip"
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="vendorType">Vendor Type</Label>
-          <Select value={formData.vendorType} onValueChange={(value) => setFormData(prev => ({ ...prev, vendorType: value }))}>
-            <SelectTrigger data-testid="select-vendor-type">
-              <SelectValue placeholder="Select vendor type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Office Supplies">Office Supplies</SelectItem>
-              <SelectItem value="Technology">Technology</SelectItem>
-              <SelectItem value="Services">Services</SelectItem>
-              <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-              <SelectItem value="Construction">Construction</SelectItem>
-              <SelectItem value="Professional Services">Professional Services</SelectItem>
-              <SelectItem value="Marketing">Marketing</SelectItem>
-              <SelectItem value="Utilities">Utilities</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="paymentTerms">Payment Terms</Label>
-          <Select value={formData.paymentTerms} onValueChange={(value) => setFormData(prev => ({ ...prev, paymentTerms: value }))}>
-            <SelectTrigger data-testid="select-payment-terms">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
-              <SelectItem value="Net 10">Net 10</SelectItem>
-              <SelectItem value="Net 15">Net 15</SelectItem>
-              <SelectItem value="Net 30">Net 30</SelectItem>
-              <SelectItem value="Net 45">Net 45</SelectItem>
-              <SelectItem value="Net 60">Net 60</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
