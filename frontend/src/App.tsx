@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ComprehensiveDashboard from "@/pages/comprehensive-dashboard";
 import OptimizedDashboard from "@/pages/optimized-dashboard";
 import TestDashboard from "@/pages/test-dashboard";
-import { SignedIn, SignedOut, SignInButton, UserButton, useUser, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import LandingPage from "@/pages/landing-page";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
@@ -45,6 +45,7 @@ function Router() {
 function HeaderWithUser() {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const { signOut, openUserProfile } = useClerk();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentTab, setCurrentTab] = useState('personal');
@@ -137,31 +138,31 @@ function HeaderWithUser() {
   
   return (
     <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between px-2 py-3 sm:px-4 sm:py-4">
         {/* Logo */}
-        <div className="flex items-center space-x-3">
-          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg">
-            <Wallet className="h-5 w-5 text-white" />
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-1.5 sm:p-2 rounded-xl shadow-lg">
+            <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent truncate">
               KashGrip
             </span>
             {user && (
-              <span className="text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600 truncate hidden sm:block">
                 Welcome, {user.firstName || user.fullName?.split(' ')[0] || 'User'}!
               </span>
             )}
           </div>
         </div>
         
-        {/* Navigation Links - Desktop */}
-        <div className="hidden md:flex items-center space-x-1 flex-1 justify-center">
+        {/* Navigation Links - Large Desktop */}
+        <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center mx-4">
           {navigationSections[currentTab as keyof typeof navigationSections]?.map((section) => (
             <button
               key={section.id}
               onClick={() => scrollToSection(section.id)}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-2 xl:px-3 py-2 rounded-md text-xs xl:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeSection === section.id
                   ? 'bg-emerald-500 text-white'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -172,42 +173,85 @@ function HeaderWithUser() {
           ))}
         </div>
         
-        {/* Navigation Dropdown - Mobile */}
-        <div className="md:hidden">
+        {/* Navigation Dropdown - Mobile and Tablet */}
+        <div className="lg:hidden flex items-center space-x-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Menu className="h-4 w-4 mr-2" />
-                Navigate
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <Menu className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Navigate</span>
+                <span className="sm:hidden">Menu</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-48 sm:w-56">
+              {/* User Info */}
+              {user && (
+                <>
+                  <div className="px-3 py-2 border-b">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user.firstName || user.fullName?.split(' ')[0] || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user.primaryEmailAddress?.emailAddress}
+                    </p>
+                  </div>
+                </>
+              )}
+              
+              {/* Navigation Sections */}
               {navigationSections[currentTab as keyof typeof navigationSections]?.map((section) => (
                 <DropdownMenuItem
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
-                  className={`cursor-pointer ${
+                  className={`cursor-pointer text-sm ${
                     activeSection === section.id ? 'bg-emerald-50 text-emerald-600' : ''
                   }`}
                 >
                   {section.label}
                 </DropdownMenuItem>
               ))}
+              
+              {/* Separator */}
+              <div className="border-t my-1" />
+              
+              {/* User Actions */}
+              <DropdownMenuItem
+                onClick={() => openUserProfile()}
+                className="cursor-pointer text-sm"
+              >
+                Manage Account
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleResetAllData}
+                className="cursor-pointer text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset Account Data
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => signOut()}
+                className="cursor-pointer text-sm"
+              >
+                Sign Out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         
-        <UserButton>
-          <UserButton.MenuItems>
-            <UserButton.Action label="manageAccount" />
-            <UserButton.Action
-              label="Reset Account Data"
-              labelIcon={<RotateCcw className="h-4 w-4" />}
-              onClick={handleResetAllData}
-            />
-            <UserButton.Action label="signOut" />
-          </UserButton.MenuItems>
-        </UserButton>
+        {/* UserButton - Desktop Only */}
+        <div className="hidden lg:block flex-shrink-0">
+          <UserButton>
+            <UserButton.MenuItems>
+              <UserButton.Action label="manageAccount" />
+              <UserButton.Action
+                label="Reset Account Data"
+                labelIcon={<RotateCcw className="h-4 w-4" />}
+                onClick={handleResetAllData}
+              />
+              <UserButton.Action label="signOut" />
+            </UserButton.MenuItems>
+          </UserButton>
+        </div>
       </div>
     </header>
   );
